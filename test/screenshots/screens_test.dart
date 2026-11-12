@@ -110,7 +110,7 @@ void main() {
 
   testWidgets('12 PC 대응 현황', (t) async {
     await start(t, w: 1440, h: 900);
-    await t.tap(find.text('긴급·이상 대응 현황').first);
+    await t.tap(find.byKey(const ValueKey('desk-menu-cases')));
     await t.pumpAndSettle();
     final row = find.textContaining('박승민');
     if (row.evaluate().isNotEmpty) await t.tap(row.first);
@@ -119,7 +119,19 @@ void main() {
 
   testWidgets('13 PC 별님 기록', (t) async {
     await start(t, w: 1440, h: 900);
-    await t.tap(find.text('별님 기록').first);
+    await t.tap(find.byKey(const ValueKey('desk-menu-residents')));
     await _shot(t, '13_desk_resident');
   });
+
+  for (final (w, h) in [(1280.0, 720.0), (1366.0, 768.0), (1024.0, 700.0), (920.0, 640.0)]) {
+    testWidgets('14 PC ${w.toInt()}x${h.toInt()}', (t) async {
+      await start(t, w: w, h: h);
+      await _shot(t, '14_desk_${w.toInt()}');
+      await t.tap(find.byKey(const ValueKey('desk-menu-cases')));
+      await t.pumpAndSettle();
+      final row = find.textContaining('박승민');
+      if (row.evaluate().isNotEmpty) await t.tap(row.first);
+      await _shot(t, '15_desk_cases_${w.toInt()}');
+    });
+  }
 }

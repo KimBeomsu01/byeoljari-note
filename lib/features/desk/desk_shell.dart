@@ -22,6 +22,15 @@ extension DeskMenuInfo on DeskMenu {
         DeskMenu.export => '기록 내보내기',
       };
 
+  /// 좁은 메뉴 띠에 쓰는 짧은 이름.
+  String get shortLabel => switch (this) {
+        DeskMenu.today => '오늘',
+        DeskMenu.residents => '별님 기록',
+        DeskMenu.cases => '대응 현황',
+        DeskMenu.schedule => '일정',
+        DeskMenu.export => '내보내기',
+      };
+
   IconData get icon => switch (this) {
         DeskMenu.today => Icons.dashboard_outlined,
         DeskMenu.residents => Icons.menu_book_outlined,
@@ -99,10 +108,17 @@ class _DeskShellState extends ConsumerState<DeskShell> {
       DeskMenu.schedule || DeskMenu.export => _LaterCard(menu),
     };
 
-    return Scaffold(
+    // 화면 크기에 맞춰 조절: 좁은 창(1280 미만)에서는 메뉴를 아이콘 띠로 접고 글자를 조금 줄인다.
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width < 1280;
+    final scale = (width / 1280).clamp(0.88, 1.0);
+    final mq = MediaQuery.of(context);
+    return MediaQuery(
+      data: mq.copyWith(textScaler: _ScaledTextScaler(mq.textScaler, scale)),
+      child: Scaffold(
       backgroundColor: paper,
       body: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _SideMenu(current: menu, openCount: repo.openCases.length, onTap: (m) => setState(() => menu = m)),
+        _SideMenu(compact: compact, current: menu, openCount: repo.openCases.length, onTap: (m) => setState(() => menu = m)),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             _TopBar(
@@ -114,28 +130,41 @@ class _DeskShellState extends ConsumerState<DeskShell> {
             const Divider(height: 1),
             Expanded(
               child: Align(
-                alignment: Alignment.topLeft,
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1280),
-                  child: Padding(padding: const EdgeInsets.fromLTRB(24, 20, 24, 0), child: content),
+                  constraints: const BoxConstraints(maxWidth: 1360),
+                  child: Padding(padding: EdgeInsets.fromLTRB(compact ? 16 : 24, compact ? 12 : 20, compact ? 16 : 24, 0), child: content),
                 ),
               ),
             ),
           ]),
         ),
       ]),
+    ),
     );
   }
 }
 
+/// 사용자의 글자 크기 설정에 화면 폭 비율을 곱한다.
+class _ScaledTextScaler extends TextScaler {
+  const _ScaledTextScaler(this.base, this.factor);
+  final TextScaler base;
+  final double factor;
+  @override
+  double scale(double fontSize) => base.scale(fontSize) * factor;
+  @override
+  double get textScaleFactor => base.scale(1) * factor;
+}
+
 class _SideMenu extends StatelessWidget {
-  const _SideMenu({required this.current, required this.onTap, required this.openCount});
+  const _SideMenu({required this.current, required this.onTap, required this.openCount, this.compact = false});
+  final bool compact;
   final DeskMenu current;
   final ValueChanged<DeskMenu> onTap;
   final int openCount;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => compact ? _rail() : Container(
         width: 220,
         decoration: const BoxDecoration(color: surface, border: Border(right: BorderSide(color: line))),
         child: ListView(padding: const EdgeInsets.fromLTRB(12, 20, 12, 20), children: [
@@ -177,6 +206,54 @@ class _SideMenu extends StatelessWidget {
                         Text('$openCount건', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: stageColors[Stage.danger]!.ink)),
                       if (m.later) const Text('후속', style: TextStyle(fontSize: T.caption, color: inkSub)),
                     ]),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      );
+
+  /// 좁은 창: 아이콘 + 짧은 이름만 있는 띠 (폭 88).
+  Widget _rail() => Container(
+        width: 88,
+        decoration: const BoxDecoration(color: surface, border: Border(right: BorderSide(color: line))),
+        child: ListView(padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6), children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: Icon(Icons.auto_awesome, color: coral, size: 26, semanticLabel: '별자리노트 사무국 PC'),
+          ),
+          for (final m in DeskMenu.values)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Tooltip(
+                message: m.label,
+                child: Material(
+                  color: m == current ? sage : Colors.transparent,
+                  borderRadius: BorderRadius.circular(Radii.button),
+                  child: InkWell(
+                    key: ValueKey('desk-menu-${m.name}'),
+                    borderRadius: BorderRadius.circular(Radii.button),
+                    onTap: () => onTap(m),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Column(children: [
+                        Badge(
+                          isLabelVisible: m == DeskMenu.cases && openCount > 0,
+                          label: Text('$openCount'),
+                          backgroundColor: stageColors[Stage.danger]!.ink,
+                          child: Icon(m.icon, size: 26, color: m == current ? brandDark : inkSub),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(m.shortLabel,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.2,
+                              fontWeight: m == current ? FontWeight.w800 : FontWeight.w600,
+                              color: m == current ? brandDark : inkMain,
+                            )),
+                      ]),
+                    ),
                   ),
                 ),
               ),

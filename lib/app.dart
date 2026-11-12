@@ -22,7 +22,7 @@ class ByeoljariApp extends StatelessWidget {
   static final phoneViewOnWide = ValueNotifier<bool>(false);
 
   /// 이 폭 이상이면 사무국 PC 화면 (통합 명세 6-7).
-  static const double deskMinWidth = 1000;
+  static const double deskMinWidth = 900;
 
   static bool _isDesk(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= deskMinWidth && !phoneViewOnWide.value;
