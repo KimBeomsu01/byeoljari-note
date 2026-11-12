@@ -1,6 +1,9 @@
 // SC-1 반별 일정 (일정 명세 3·4장, 통합 명세 6-5).
-// 반 탭 · 날짜 줄(달력) · 별님 카드 2열 · 보기 전용 안내 · 파일로 일정 올리기(SC-U).
+// 반 고르기 · 날짜(달력) · 별님 카드 한 줄에 하나 · 파일로 일정 올리기(SC-U) · 안내.
 // 일정 탭 안에 들어가는 본문이다. 상단 제목줄은 앱 공통 틀(app.dart)이 그린다.
+//
+// 카드를 한 줄에 하나로 둔 이유: 390px 폭에서 두 열로 나누면 카드 폭이 165px 안팎이라
+// 본문 글자(17)로 '지금 학교 (08:40~14:30)'가 들어가지 않고, 오전·오후 칸이 너무 좁아진다.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +12,7 @@ import '../../core/providers.dart';
 import '../../core/repository.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/ui.dart';
 import 'schedule_widgets.dart';
 import 'upload_sheet.dart';
 
@@ -38,33 +42,25 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with MinuteTick
     final now = ref.read(clockProvider)();
     final today = dayOf(now);
     final date = _date ?? today;
+    final isToday = sameDay(date, today);
     final home = repo.homeClassOf(me);
     final classId = _classId ?? home ?? repo.classes.first.id;
+    final cls = repo.classOf(classId);
     final residents = repo.residentsOf(classId);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      padding: const EdgeInsets.fromLTRB(Gap.page, Gap.s, Gap.page, 120),
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(minimumSize: const Size(44, 44)),
-            onPressed: () => showUploadSheet(context),
-            icon: const Icon(Icons.upload_file, size: 18),
-            label: const Text('파일로 일정 올리기'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        _ClassTabs(
+        _ClassChips(
           classes: repo.classes,
           selected: classId,
           homeClassId: home,
           onSelect: (id) => setState(() => _classId = id),
         ),
-        const SizedBox(height: 8),
-        _DateRow(
+        const SizedBox(height: Gap.xl),
+        _DateBlock(
           date: date,
-          isToday: sameDay(date, today),
+          isToday: isToday,
           open: _calendarOpen,
           onToggle: () => setState(() {
             _calendarOpen = !_calendarOpen;
@@ -88,63 +84,63 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> with MinuteTick
             }),
           ),
         if (isWeekend(date))
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFEFF1EA), borderRadius: BorderRadius.circular(10)),
-            child: const Row(children: [
-              Icon(Icons.info_outline, size: 18, color: inkSub),
-              SizedBox(width: 8),
-              Expanded(child: Text('주말에는 식사와 여가 활동만 있어요', style: TextStyle(color: inkMain))),
-            ]),
-          ),
-        const SizedBox(height: 12),
-        if (residents.isEmpty)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Center(child: Text('이 반에 등록된 별님이 없어요', style: TextStyle(color: inkSub))),
-          )
+            padding: EdgeInsets.only(top: Gap.m),
+            child: InfoCard(
+              child: Row(children: [
+                Icon(Icons.info_outline, size: 24, color: brandDark),
+                SizedBox(width: Gap.m),
+                Expanded(child: Text('주말에는 식사와 여가 활동만 있어요', style: TextStyle(fontSize: T.body, color: inkMain))),
+              ]),
+            ),
+          ),
+        SectionTitle('${cls.name} 별님', count: residents.length),
+        if (residents.isEmpty)
+          const EmptyNote('이 반에 등록된 별님이 없어요')
         else
           // 반·날짜를 바꾸면 카드 전체를 새로 만든다 (이전 반 별님이 남아 보이지 않게, 5-5).
           KeyedSubtree(
             key: ValueKey('cards-$classId-${date.toIso8601String()}'),
-            child: _CardGrid(children: [
-              for (final r in residents) _ResidentCard(repo: repo, resident: r, date: date, now: now, today: today),
+            child: Column(children: [
+              for (final r in residents)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Gap.m),
+                  child: _ResidentCard(repo: repo, resident: r, date: date, now: now, today: today),
+                ),
             ]),
           ),
-        const SizedBox(height: 20),
-        const Center(
-          child: Text('보기 전용 · 일정 변경은 사무국 웹에서 해요',
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: inkSub)),
+        const SizedBox(height: Gap.l),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(tapHeight)),
+          onPressed: () => showUploadSheet(context),
+          icon: const Icon(Icons.upload_file, size: 24),
+          label: const Text('파일로 일정 올리기'),
         ),
+        const SizedBox(height: Gap.l),
+        const Text('일정은 사무국에서 바꿔요',
+            textAlign: TextAlign.center, style: TextStyle(fontSize: T.caption, color: inkSub)),
       ],
     );
   }
 }
 
-// ── 반 탭
-class _ClassTabs extends StatelessWidget {
-  const _ClassTabs({required this.classes, required this.selected, required this.homeClassId, required this.onSelect});
+// ── 반 고르기: 여섯 반이 한눈에 보이게 줄을 바꿔 늘어놓는다 (옆으로 밀어야 보이는 칸이 없게).
+class _ClassChips extends StatelessWidget {
+  const _ClassChips({required this.classes, required this.selected, required this.homeClassId, required this.onSelect});
   final List<Class> classes;
   final String selected;
   final String? homeClassId;
   final ValueChanged<String> onSelect;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [
-          for (final c in classes)
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: _ClassTab(cls: c, selected: c.id == selected, mine: c.id == homeClassId, onTap: () => onSelect(c.id)),
-            ),
-        ]),
-      );
+  Widget build(BuildContext context) => Wrap(spacing: Gap.s, runSpacing: Gap.s, children: [
+        for (final c in classes)
+          _ClassChip(cls: c, selected: c.id == selected, mine: c.id == homeClassId, onTap: () => onSelect(c.id)),
+      ]);
 }
 
-class _ClassTab extends StatelessWidget {
-  const _ClassTab({required this.cls, required this.selected, required this.mine, required this.onTap});
+class _ClassChip extends StatelessWidget {
+  const _ClassChip({required this.cls, required this.selected, required this.mine, required this.onTap});
   final Class cls;
   final bool selected;
   final bool mine;
@@ -152,37 +148,40 @@ class _ClassTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(cls.color);
     return Semantics(
       button: true,
       selected: selected,
       label: '${cls.name}${mine ? ', 내 반' : ''}',
       excludeSemantics: true,
       child: Material(
-        color: selected ? brandDark : Colors.white,
-        shape: StadiumBorder(side: BorderSide(color: selected ? brandDark : const Color(0xFFD9DCD5))),
+        color: selected ? brandDark : surface,
+        shape: StadiumBorder(side: BorderSide(color: selected ? brandDark : line, width: 1.5)),
         child: InkWell(
           customBorder: const StadiumBorder(),
           onTap: onTap,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44),
+            constraints: const BoxConstraints(minHeight: tapHeight),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: Gap.l, vertical: Gap.s),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                Text(cls.name,
-                    style: TextStyle(fontWeight: FontWeight.w700, color: selected ? Colors.white : inkMain)),
-                if (mine) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: selected ? Colors.white : const Color(0xFFE6EFE9),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text('내 반', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: brandDark)),
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Color(cls.color),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: selected ? Colors.white : inkSub, width: 1.5),
                   ),
+                ),
+                const SizedBox(width: Gap.s),
+                Flexible(
+                  child: Text(cls.name,
+                      style: TextStyle(
+                          fontSize: T.body, fontWeight: FontWeight.w700, color: selected ? Colors.white : inkMain)),
+                ),
+                if (mine) ...[
+                  const SizedBox(width: Gap.s),
+                  const StatusPill('내 반', color: brandDark),
                 ],
               ]),
             ),
@@ -193,9 +192,9 @@ class _ClassTab extends StatelessWidget {
   }
 }
 
-// ── 날짜 줄
-class _DateRow extends StatelessWidget {
-  const _DateRow({required this.date, required this.isToday, required this.open, required this.onToggle, required this.onToday});
+// ── 날짜: 크게 보여주고, 바꾸기·오늘로는 폭을 나눈 큰 버튼으로.
+class _DateBlock extends StatelessWidget {
+  const _DateBlock({required this.date, required this.isToday, required this.open, required this.onToggle, required this.onToday});
   final DateTime date;
   final bool isToday;
   final bool open;
@@ -203,42 +202,38 @@ class _DateRow extends StatelessWidget {
   final VoidCallback onToday;
 
   @override
-  Widget build(BuildContext context) => Row(children: [
+  Widget build(BuildContext context) {
+    final buttonStyle = OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(tapHeight),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: Gap.m),
+    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Wrap(spacing: Gap.m, runSpacing: Gap.s, crossAxisAlignment: WrapCrossAlignment.center, children: [
+        Text(dateLabel(date), style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
+        if (isToday) const StatusPill('오늘', color: brandDark),
+      ]),
+      const SizedBox(height: Gap.m),
+      Row(children: [
         Expanded(
           child: Semantics(
-            button: true,
-            label: '${dateLabel(date)}${isToday ? ' 오늘' : ''}, 달력 ${open ? '접기' : '펼치기'}',
+            label: open ? '달력 접기' : '날짜 바꾸기, 달력 펼치기',
             excludeSemantics: true,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: onToggle,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 44),
-                child: Row(children: [
-                  const Icon(Icons.calendar_today_outlined, size: 18, color: brandDark),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(dateLabel(date),
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                  ),
-                  if (isToday) ...[
-                    const SizedBox(width: 6),
-                    const Text('오늘', style: TextStyle(fontSize: 12, color: brandDark, fontWeight: FontWeight.w700)),
-                  ],
-                  Icon(open ? Icons.expand_less : Icons.expand_more, color: inkSub),
-                ]),
-              ),
+            button: true,
+            child: OutlinedButton.icon(
+              style: buttonStyle,
+              onPressed: onToggle,
+              icon: Icon(open ? Icons.expand_less : Icons.calendar_month, size: 24),
+              label: Text(open ? '달력 접기' : '날짜 바꾸기'),
             ),
           ),
         ),
-        if (!isToday)
-          TextButton(
-            style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
-            onPressed: onToday,
-            child: const Text('오늘로'),
-          ),
-      ]);
+        if (!isToday) ...[
+          const SizedBox(width: Gap.s),
+          Expanded(child: OutlinedButton(style: buttonStyle, onPressed: onToday, child: const Text('오늘로'))),
+        ],
+      ]),
+    ]);
+  }
 }
 
 // ── 월 달력
@@ -271,40 +266,49 @@ class _MonthCalendar extends StatelessWidget {
       cells.add(null);
     }
     return Container(
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+      margin: const EdgeInsets.only(top: Gap.m),
+      padding: const EdgeInsets.fromLTRB(Gap.xs, Gap.xs, Gap.xs, Gap.s),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E2DC)),
+        color: surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: line),
       ),
       child: Column(children: [
         Row(children: [
           IconButton(
             tooltip: '이전 달',
+            iconSize: 28,
+            constraints: const BoxConstraints(minWidth: tapHeight, minHeight: tapHeight),
             onPressed: () => onMonth(DateTime(month.year, month.month - 1)),
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_left, color: brandDark),
           ),
           Expanded(
             child: Text('${month.year}년 ${month.month}월',
-                textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700)),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
           ),
           IconButton(
             tooltip: '다음 달',
+            iconSize: 28,
+            constraints: const BoxConstraints(minWidth: tapHeight, minHeight: tapHeight),
             onPressed: () => onMonth(DateTime(month.year, month.month + 1)),
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Icons.chevron_right, color: brandDark),
           ),
         ]),
+        const SizedBox(height: Gap.xs),
         Row(children: [
           for (final w in const ['월', '화', '수', '목', '금', '토', '일'])
             Expanded(
-              child: Text(w, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: inkSub)),
+              child: Text(w,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkSub)),
             ),
         ]),
+        const SizedBox(height: Gap.xs),
         for (var row = 0; row < cells.length ~/ 7; row++)
           Row(children: [
             for (final d in cells.sublist(row * 7, row * 7 + 7))
-              Expanded(child: d == null ? const SizedBox(height: 44) : _dayCell(d)),
+              Expanded(child: d == null ? const SizedBox(height: tapHeight) : _dayCell(d)),
           ]),
       ]),
     );
@@ -320,30 +324,29 @@ class _MonthCalendar extends StatelessWidget {
       label: '${dateLabel(d)}${isToday ? ' 오늘' : ''}${dot ? ', 일정 있음' : ''}',
       excludeSemantics: true,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Radii.button),
         onTap: () => onPick(d),
-        child: SizedBox(
-          height: 44,
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: tapHeight),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
             Container(
-              width: 30,
-              height: 26,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 34),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSel ? brandDark : null,
-                borderRadius: BorderRadius.circular(8),
-                border: isToday && !isSel ? Border.all(color: brandDark) : null,
+                borderRadius: BorderRadius.circular(10),
+                border: isToday && !isSel ? Border.all(color: brandDark, width: 2) : null,
               ),
               child: Text('${d.day}',
                   style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
+                      fontSize: T.body,
+                      fontWeight: isToday || isSel ? FontWeight.w800 : FontWeight.w600,
                       color: isSel ? Colors.white : inkMain)),
             ),
             const SizedBox(height: 3),
             Container(
-              width: 5,
-              height: 5,
+              width: 6,
+              height: 6,
               decoration: BoxDecoration(color: dot ? brandDark : Colors.transparent, shape: BoxShape.circle),
             ),
           ]),
@@ -353,27 +356,7 @@ class _MonthCalendar extends StatelessWidget {
   }
 }
 
-// ── 카드 2열
-class _CardGrid extends StatelessWidget {
-  const _CardGrid({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => Column(children: [
-        for (var i = 0; i < children.length; i += 2)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: IntrinsicHeight(
-              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Expanded(child: children[i]),
-                const SizedBox(width: 8),
-                Expanded(child: i + 1 < children.length ? children[i + 1] : const SizedBox()),
-              ]),
-            ),
-          ),
-      ]);
-}
-
+// ── 별님 카드: ① 누구 ② 지금·다음 ③ 오전·오후 체온 ④ 하루 일정 보기
 class _ResidentCard extends StatelessWidget {
   const _ResidentCard({required this.repo, required this.resident, required this.date, required this.now, required this.today});
   final InMemoryRepository repo;
@@ -391,7 +374,7 @@ class _ResidentCard extends StatelessWidget {
     final (am, pm) = amPm(slots);
     final openCase = repo.openCaseOf(r.id);
 
-    // 카드 테두리: 그날 기록된 판정 중 가장 심한 것. 위험 빨강 > 이상 주황 / 저온 파랑. 없고 미기록이면 회색 점선.
+    // 카드 테두리: 그날 기록된 판정 중 가장 심한 것 (왼쪽 색 띠). 없고 미기록이면 점선.
     Stage? worst;
     for (final s in slots) {
       final st = s.measurement?.judgment.stage;
@@ -401,13 +384,8 @@ class _ResidentCard extends StatelessWidget {
     }
     final missed = slots.any((s) => s.state == SlotState.missed);
     final dashed = worst == null && missed;
-    final side = worst != null
-        ? BorderSide(color: stageColors[worst]!.line, width: 2.5)
-        : dashed
-            ? BorderSide.none
-            : const BorderSide(color: Color(0xFFE2E2DC));
 
-    // 지금 · 다음
+    // 지금 · 다음 (한 줄에 한 가지)
     final List<Widget> lines;
     if (sameDay(date, today)) {
       ScheduleItem? current;
@@ -418,79 +396,97 @@ class _ResidentCard extends StatelessWidget {
       }
       lines = [
         current != null
-            ? _line('지금', '${hm(current.startAt)} ${current.title}', color: nowRed, bold: true)
-            : _line('지금', '${cls.name} 생활실'),
-        next != null ? _line('다음', '${hm(next.startAt)} ${next.title}') : _line('다음', '오늘 일정 끝'),
+            ? _line(StatusPill('지금', color: nowRed, filled: true),
+                '${current.title} (${hm(current.startAt)}~${hm(current.endAt)})',
+                strong: true)
+            : _line(const StatusPill('지금', color: inkSub), '${cls.name} 생활실'),
+        next != null
+            ? _line(const StatusPill('다음', color: inkSub), '${hm(next.startAt)} ${next.title}')
+            : _line(const StatusPill('다음', color: inkSub), '오늘 일정이 끝났어요'),
       ];
     } else {
       lines = [
-        Text(date.isBefore(today) ? '하루 일정 끝' : '일정 보기',
-            style: const TextStyle(fontSize: 13, color: inkSub, fontWeight: FontWeight.w600)),
+        Padding(
+          padding: const EdgeInsets.only(bottom: Gap.s),
+          child: Text(date.isBefore(today) ? '하루 일정이 끝났어요' : '일정 ${items.length}개가 있어요',
+              style: const TextStyle(fontSize: T.body, color: inkMain)),
+        ),
       ];
     }
 
-    final card = Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: side),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => openDaySchedule(context, r.id, date),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              ExcludeSemantics(
-                child: CircleAvatar(
-                  radius: 17,
-                  backgroundColor: Color(cls.color),
-                  child: Text(_initial(r.name),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
-                ),
-              ),
-              // 큰 글자에서는 배지 글자가 두 줄로 내려간다 (넘치지 않게).
-              if (openCase != null)
-                Flexible(
-                  child: Padding(padding: const EdgeInsets.only(left: 6), child: _CaseBadge(caseItem: openCase)),
-                ),
-            ]),
-            const SizedBox(height: 4),
-            Text(r.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 2),
-            ...lines,
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: SlotCell(label: '오전', status: am)),
-              const SizedBox(width: 6),
-              Expanded(child: SlotCell(label: '오후', status: pm)),
-            ]),
+    final content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        ExcludeSemantics(child: ResidentAvatar(name: r.name, classColor: cls.color, size: 56)),
+        const SizedBox(width: Gap.m),
+        Expanded(
+          // 큰 글자에서는 배지가 이름 아래 줄로 내려간다 (넘치지 않게).
+          child: Wrap(spacing: Gap.s, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            Text(r.name, style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
+            if (openCase != null) _CaseBadge(caseItem: openCase),
           ]),
         ),
+      ]),
+      const SizedBox(height: Gap.m),
+      ...lines,
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Expanded(child: SlotCell(label: '오전', status: am)),
+          const SizedBox(width: Gap.s),
+          Expanded(child: SlotCell(label: '오후', status: pm)),
+        ]),
       ),
-    );
+      const SizedBox(height: Gap.xs),
+      // 카드 전체가 눌린다는 것을 글자로 알려 준다.
+      ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: const Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          Flexible(
+            child: Text('하루 일정 보기',
+                style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: brandDark)),
+          ),
+          Icon(Icons.chevron_right, size: 26, color: brandDark),
+        ]),
+      ),
+    ]);
 
-    return Semantics(
-      container: true,
-      hint: '하루 일정 보기',
-      child: dashed
-          ? CustomPaint(foregroundPainter: const DashedBorderPainter(color: Color(0xFF9A9E9B), width: 2), child: card)
-          : card,
-    );
+    const pad = EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.xs);
+    final Widget card;
+    if (dashed) {
+      card = CustomPaint(
+        foregroundPainter: const DashedBorderPainter(color: inkSub, radius: Radii.card, width: 2),
+        child: Material(
+          color: surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card)),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => openDaySchedule(context, r.id, date),
+            child: Padding(padding: pad, child: content),
+          ),
+        ),
+      );
+    } else {
+      card = InfoCard(
+        accent: worst == null ? null : stageColors[worst]!.line,
+        padding: pad,
+        onTap: () => openDaySchedule(context, r.id, date),
+        child: content,
+      );
+    }
+
+    return Semantics(container: true, hint: '하루 일정 보기', child: card);
   }
 
-  /// 프로필 대신 이름(성 다음 글자) 한 글자. 실제 사진은 쓰지 않는다.
-  static String _initial(String name) => name.length >= 2 ? name.substring(1, 2) : name;
-
-  Widget _line(String head, String body, {Color? color, bool bold = false}) => Text.rich(
-        TextSpan(children: [
-          TextSpan(text: '$head ', style: TextStyle(fontWeight: FontWeight.w700, color: color ?? inkSub)),
-          TextSpan(text: body, style: TextStyle(color: color ?? inkMain, fontWeight: bold ? FontWeight.w700 : null)),
+  Widget _line(Widget pill, String body, {bool strong = false}) => Padding(
+        padding: const EdgeInsets.only(bottom: Gap.s),
+        child: Row(children: [
+          pill,
+          const SizedBox(width: Gap.m),
+          Expanded(
+            child: Text(body,
+                style: TextStyle(
+                    fontSize: T.body, color: inkMain, fontWeight: strong ? FontWeight.w700 : FontWeight.w400)),
+          ),
         ]),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 13),
       );
 }
 
@@ -509,27 +505,14 @@ class _CaseBadge extends StatelessWidget {
       label: '$text, 상세 보기',
       excludeSemantics: true,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        customBorder: const StadiumBorder(),
         onTap: () => openCaseDetail(context, caseItem.id),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
           child: Align(
-            alignment: Alignment.topRight,
             widthFactor: 1,
             heightFactor: 1,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-              decoration: BoxDecoration(
-                color: urgent ? c.ink : c.soft,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: c.line),
-              ),
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: urgent ? Colors.white : c.ink),
-              ),
-            ),
+            child: StatusPill(text, color: c.ink, background: c.soft, filled: urgent),
           ),
         ),
       ),

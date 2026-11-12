@@ -5,6 +5,7 @@ import 'package:byeoljari_note/core/models.dart';
 import 'package:byeoljari_note/core/providers.dart';
 import 'package:byeoljari_note/core/repository.dart';
 import 'package:byeoljari_note/core/seed.dart' as seed;
+import 'package:byeoljari_note/core/theme.dart';
 import 'package:byeoljari_note/features/archive/archive_screen.dart';
 import 'package:byeoljari_note/features/handover/handover_screen.dart';
 import 'package:byeoljari_note/features/handover/handover_view.dart';
@@ -101,23 +102,28 @@ void main() {
   });
 
   group('HO-1 최신 기록', () {
-    testWidgets('교대 요약 · 대응 칸 · 고정 공지 · 기록 카드가 보인다', (tester) async {
+    testWidgets('지금 챙길 일 · 대응 칸 · 고정 공지 · 기록 카드가 보인다', (tester) async {
       phone(tester);
       await pumpHandover(tester);
-      expect(find.text('교대 요약'), findsOneWidget);
+      expect(find.text('지금 챙길 일'), findsOneWidget);
+      expect(find.textContaining('이후 기록이에요'), findsOneWidget);
       expect(find.bySemanticsLabel('긴급 0'), findsOneWidget);
       expect(find.bySemanticsLabel('이상 대응 1'), findsOneWidget);
       expect(find.bySemanticsLabel('남은 할 일 3'), findsOneWidget);
       expect(find.textContaining('긴급 · 이상 대응'), findsOneWidget);
-      expect(find.textContaining('▲ 이상 대응 · 이상 38.2℃'), findsOneWidget);
-      expect(find.textContaining('아직 아무도 확인 안 함'), findsOneWidget);
-      expect(find.text('전체 공지 · 위에 고정'), findsOneWidget);
+      expect(find.text('박승민 별님'), findsOneWidget);
+      expect(find.text('38.2℃'), findsOneWidget);
+      await reveal(tester, find.text('아직 아무도 확인 안 했어요'));
+      expect(find.text('확인했어요'), findsOneWidget);
+      expect(find.text('체온 재기'), findsOneWidget);
+      await reveal(tester, find.text('📌 전체 공지 · 맨 위 고정'));
       expect(find.text('독감 예방접종'), findsOneWidget);
     });
 
     testWidgets('[확인했어요]를 누르면 이상 건 확인 기록이 남고 ✓ 확인함으로 바뀐다', (tester) async {
       phone(tester);
       await pumpHandover(tester);
+      await reveal(tester, find.text('확인했어요'));
       await tester.tap(find.text('확인했어요'));
       await tester.pumpAndSettle();
       final c = repo.openCases.first;
@@ -126,10 +132,11 @@ void main() {
       expect(find.textContaining('김하늘 선생님 확인'), findsOneWidget);
     });
 
-    testWidgets('[재측정 입력]은 퀵 체온을 그 별님으로 연다', (tester) async {
+    testWidgets('[체온 재기]는 퀵 체온을 그 별님으로 연다', (tester) async {
       phone(tester);
       await pumpHandover(tester);
-      await tester.tap(find.text('재측정 입력'));
+      await reveal(tester, find.text('체온 재기'));
+      await tester.tap(find.text('체온 재기'));
       await tester.pump();
       final qt = container.read(quickTempProvider);
       expect(qt.open, isTrue);
@@ -139,7 +146,10 @@ void main() {
     testWidgets('체온 할 일 [완료하기] → 퀵 체온이 그 별님으로 열림, 저장하면 자동 완료', (tester) async {
       phone(tester);
       await pumpHandover(tester);
-      await tester.tap(find.textContaining(RegExp(r'^할 일 \d+$'))); // 필터 칩
+      final taskChip = find.textContaining(RegExp(r'^할 일 \d+$')); // 보기 칩
+      await tester.ensureVisible(taskChip);
+      await tester.pumpAndSettle();
+      await tester.tap(taskChip);
       await tester.pumpAndSettle();
       final seojun = repo.openTempTasksOf(rid('이서준')).single;
       final card = find.byKey(ValueKey('entry-${seojun.id}'));
@@ -153,7 +163,8 @@ void main() {
       repo.saveMeasurement(residentId: rid('이서준'), value: 369, by: me, at: repo.now());
       await tester.pumpAndSettle();
       expect(repo.entry(seojun.id).task!.done, isTrue);
-      expect(find.textContaining('김하늘 선생님 완료 · 36.9℃'), findsOneWidget);
+      await reveal(tester, find.descendant(of: card, matching: find.textContaining('잰 체온 36.9℃')));
+      expect(find.descendant(of: card, matching: find.textContaining('김하늘 선생님 완료')), findsOneWidget);
       await toTop(tester);
       expect(find.bySemanticsLabel('남은 할 일 2'), findsOneWidget);
     });
@@ -185,21 +196,27 @@ void main() {
       expect(find.text('양말 갈아 신기기 완료'), findsOneWidget); // 토스트
     });
 
-    testWidgets('미확인 필터에서 [확인]을 누를 때마다 줄고 0이면 빈 문구', (tester) async {
+    testWidgets('안 본 기록 보기에서 [확인]을 누를 때마다 줄고 0이면 빈 문구', (tester) async {
       phone(tester);
       await pumpHandover(tester);
       final n = HandoverView(repo, me, repo.now()).unread.length;
-      await tester.tap(find.text('미확인 $n'));
+      await tester.tap(find.text('안 본 기록 $n'));
       await tester.pumpAndSettle();
       for (var i = n; i > 0; i--) {
         final btn = find.widgetWithText(OutlinedButton, '확인');
-        await reveal(tester, btn.first);
+        for (var k = 0; k < 40 && btn.evaluate().isEmpty; k++) {
+          await tester.drag(feed, const Offset(0, -200));
+          await tester.pump();
+        }
+        await tester.ensureVisible(btn.first);
+        await tester.pumpAndSettle();
         await tester.tap(btn.first);
         await tester.pumpAndSettle();
         expect(HandoverView(repo, me, repo.now()).unread.length, i - 1);
       }
       await toTop(tester);
-      expect(find.text('미확인 0'), findsOneWidget);
+      expect(find.text('안 본 기록 0'), findsOneWidget);
+      await reveal(tester, find.text('안 본 기록이 없어요. 모두 확인했어요.'));
       expect(find.text('안 본 기록이 없어요. 모두 확인했어요.'), findsOneWidget);
     });
 
@@ -210,7 +227,7 @@ void main() {
       expect(repo.isRead(nari.id, me), isFalse);
       final card = find.byKey(ValueKey('entry-${nari.id}'));
       await reveal(tester, card);
-      await tester.tap(find.descendant(of: card, matching: find.text('답글 1')));
+      await tester.tap(find.descendant(of: card, matching: find.text('답글 1개')));
       await tester.pumpAndSettle();
       expect(find.textContaining('점심 후에 한 번 더 볼게요'), findsOneWidget);
       await tester.enterText(find.descendant(of: card, matching: find.byType(TextField)), '저녁에도 볼게요');
@@ -221,13 +238,16 @@ void main() {
       expect(find.text('답글을 남겼어요 · 이 기록도 확인으로 표시했어요'), findsOneWidget);
     });
 
-    testWidgets('확인한 전체 공지는 "모두"에서 접히고 "전체 공지" 필터에서는 펼쳐진다', (tester) async {
+    testWidgets('확인한 전체 공지는 "모두"에서 접히고 "전체 공지" 보기에서는 펼쳐진다', (tester) async {
       phone(tester);
       final flu = repo.entries.firstWhere((e) => e.title == '독감 예방접종');
       repo.markRead(flu.id, me, repo.now());
       await pumpHandover(tester);
       expect(find.text('11월 3일(월) 오전, 별님 전원 예방접종이 있어요.'), findsNothing);
+      await reveal(tester, find.text('확인한 공지 · 눌러서 펼치기'));
       expect(find.text('확인한 공지 · 눌러서 펼치기'), findsOneWidget);
+      expect(find.text('11월 3일(월) 오전, 별님 전원 예방접종이 있어요.'), findsNothing);
+      await toTop(tester);
       final chip = find.textContaining(RegExp(r'^전체 공지 \d+$'));
       await tester.ensureVisible(chip);
       await tester.pumpAndSettle();
@@ -281,7 +301,7 @@ void main() {
       await pumpHandover(tester);
       await tester.tap(find.text('기록 남기기'));
       await tester.pumpAndSettle();
-      final save = find.widgetWithText(FilledButton, '기록 남기기');
+      final save = find.descendant(of: find.byType(BottomSheet), matching: find.widgetWithText(FilledButton, '기록 남기기'));
       expect(tester.widget<FilledButton>(save).onPressed, isNull);
 
       await tester.tap(find.bySemanticsLabel('이서준'));
@@ -291,6 +311,8 @@ void main() {
       await tester.pump();
       expect(find.text('⚠ 메모를 한 줄이라도 적어주세요.'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('절반'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('절반'));
       await tester.pump();
       await tester.ensureVisible(find.text('할 일로 넘기기'));
@@ -311,7 +333,7 @@ void main() {
       expect(e.task!.id, isNotEmpty);
       expect(e.task!.duePreset, '저녁 전');
       expect(e.task!.kind, TaskKind.memo);
-      expect(find.text('할 일로 넘겼어요 · 완료할 때까지 교대 요약에 남아요'), findsOneWidget);
+      expect(find.text('할 일로 넘겼어요 · 완료할 때까지 지금 챙길 일에 남아요'), findsOneWidget);
       expect(find.bySemanticsLabel('남은 할 일 4'), findsOneWidget);
       // 내 기록 + 열린 할 일 → [완료하기]만 (확인 버튼 없음)
       final card = find.byKey(ValueKey('entry-${e.id}'));
@@ -342,14 +364,14 @@ void main() {
       await tester.tap(find.text('아카이브에서 열기'));
       await tester.pumpAndSettle();
       expect(find.text('이서준 별님에 대한 메모'), findsOneWidget);
-      expect(find.textContaining('인수인계 + 이서준 별님 아카이브'), findsOneWidget);
+      expect(find.text('인수인계와 이서준 별님 아카이브에 남아요'), findsOneWidget);
 
       // 반 공지로 바꿔 저장
       await tester.tap(find.bySemanticsLabel('반 공지'));
       await tester.pump();
       expect(find.text('은하수자리 반 공지'), findsOneWidget);
       await tester.enterText(find.byType(TextField).last, '오늘 산책은 쉬어요.');
-      await tester.tap(find.widgetWithText(FilledButton, '기록 남기기'));
+      await tester.tap(find.descendant(of: find.byType(BottomSheet), matching: find.widgetWithText(FilledButton, '기록 남기기')));
       await tester.pumpAndSettle();
       final e = repo.entries.firstWhere((x) => x.body == '오늘 산책은 쉬어요.');
       expect(e.scope, EntryScope.classScope);
@@ -388,5 +410,73 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('어떤 별님인가요?'), findsOneWidget);
     });
+  });
+
+  group('크기·큰 글자 (390×844 · 360×640 · 1.3배)', () {
+    for (final (w, h, scale) in [(390.0, 844.0, 1.0), (360.0, 640.0, 1.0), (390.0, 844.0, 1.3), (360.0, 640.0, 1.3)]) {
+      testWidgets('${w.toInt()}×${h.toInt()} 글자 $scale배: 최신 기록 · 별님별 기록 · 작성 시트가 넘치지 않는다', (tester) async {
+        phone(tester, w: w, h: h);
+        container = ProviderContainer(overrides: [repoProvider.overrideWith((ref) => repo)]);
+        addTearDown(container.dispose);
+        await tester.pumpWidget(UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: buildTheme(),
+            builder: (c, child) => MediaQuery(
+              data: MediaQuery.of(c).copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: const Scaffold(body: HandoverScreen()),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+
+        // 최신 기록: 끝까지 내리며 확인, 답글 펼치기, 보기 칩마다
+        for (var i = 0; i < 12; i++) {
+          await tester.drag(feed, const Offset(0, -500));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+        final reply = find.textContaining(RegExp(r'^답글 \d+개$'));
+        if (reply.evaluate().isNotEmpty) {
+          await tester.ensureVisible(reply.first);
+          await tester.pumpAndSettle();
+          await tester.tap(reply.first);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+        await toTop(tester);
+        for (final f in FeedFilter.values) {
+          final chip = find.text('${f.label} ${HandoverView(repo, me, repo.now()).countFor(f)}');
+          await tester.ensureVisible(chip);
+          await tester.pumpAndSettle();
+          await tester.tap(chip);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+
+        // 별님별 기록: 반마다
+        await tester.tap(find.bySemanticsLabel(RegExp('^별님별 기록')));
+        await tester.pumpAndSettle();
+        for (final c in repo.classes) {
+          await tester.scrollUntilVisible(find.text(c.name).first, 100, scrollable: hList.last);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(c.name).first);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+
+        // 작성 시트: 할 일까지 펼친다
+        await tester.tap(find.text('기록 남기기'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await tester.ensureVisible(find.text('할 일로 넘기기'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('할 일로 넘기기'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 }

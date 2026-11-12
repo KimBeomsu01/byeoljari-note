@@ -3,6 +3,7 @@ import 'package:byeoljari_note/core/models.dart';
 import 'package:byeoljari_note/core/providers.dart';
 import 'package:byeoljari_note/core/repository.dart';
 import 'package:byeoljari_note/core/seed.dart';
+import 'package:byeoljari_note/core/theme.dart';
 import 'package:byeoljari_note/features/alert_case/case_detail_screen.dart';
 import 'package:byeoljari_note/features/archive/archive_screen.dart';
 import 'package:byeoljari_note/features/archive/archive_timeline.dart';
@@ -17,7 +18,11 @@ Future<InMemoryRepository> pumpArchive(WidgetTester tester, String residentId, {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(ProviderScope(child: MaterialApp(home: ArchiveScreen(residentId: residentId))));
+  await tester.pumpWidget(
+    ProviderScope(
+      child: MaterialApp(home: ArchiveScreen(residentId: residentId)),
+    ),
+  );
   await tester.pumpAndSettle();
   return ProviderScope.containerOf(tester.element(find.byType(ArchiveScreen))).read(repoProvider);
 }
@@ -66,19 +71,19 @@ void main() {
 
       expect(find.text('이서준'), findsOneWidget);
       expect(find.text('은하수자리 · 담임 이수진 선생님'), findsOneWidget);
-      expect(find.text('별님카드 ›'), findsOneWidget);
+      expect(find.text('별님카드 보기'), findsOneWidget);
       expect(find.text('오늘'), findsOneWidget);
       expect(find.text('37.6℃'), findsOneWidget); // 측정과 자동 기록이 한 줄
       expect(find.text('! 주의'), findsOneWidget);
-      expect(find.text('○ 할 일 열림 · 재측정'), findsOneWidget);
-      expect(find.textContaining('반 공지 · 은하수자리 전원'), findsOneWidget);
       expect(find.text('이서준 별님 기록 남기기'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('○ 할 일 남음: 재측정'), 200, scrollable: list);
+      expect(find.textContaining('반 공지 · 은하수자리 전원', skipOffstage: false), findsWidgets);
 
       // 어제 묶음: 평소 체온 2건이 한 줄로 접혀 있다 → 누르면 펼쳐진다
       await tester.scrollUntilVisible(find.text('어제 · 10월 27일'), 200, scrollable: list);
-      final group = find.textContaining('✓ 평소 체온 기록 2건');
+      final group = find.textContaining('✓ 평소 체온 2건 보기');
       await tester.scrollUntilVisible(group.first, 200, scrollable: list);
-      await tester.drag(list, const Offset(0, -200));
+      await tester.drag(list, const Offset(0, -100));
       await tester.pumpAndSettle();
       expect(group, findsWidgets);
       final before = find.text('✓ 평소', skipOffstage: false).evaluate().length;
@@ -99,8 +104,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('새 기록 확인'), findsNothing);
-      expect(find.text('검색 결과 $n건'), findsOneWidget);
-      expect(find.textContaining('2026년 3월 · 담임 박지은 → 이수진 선생님'), findsOneWidget);
+      expect(find.text('찾은 기록 $n건'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('2026년 3월부터 담임이 이수진 선생님으로 바뀌었어요'), 200, scrollable: list);
+      expect(find.text('2026년 3월부터 담임이 이수진 선생님으로 바뀌었어요'), findsOneWidget);
       await tester.scrollUntilVisible(find.textContaining('낯선 소리(드라이기)'), 200, scrollable: list);
       expect(find.text('2025년 9월 1일 (월)'), findsOneWidget);
       expect(find.textContaining('박지은 선생님 · 당시 담임'), findsWidgets);
@@ -110,8 +116,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '없는검색어');
       await tester.pumpAndSettle();
-      expect(find.text('조건에 맞는 기록이 없어요'), findsOneWidget);
-      await tester.tap(find.text('전체 기록 보기'));
+      expect(find.text('찾는 기록이 없어요'), findsOneWidget);
+      await tester.tap(find.text('모든 기록 보기').last);
       await tester.pumpAndSettle();
       expect(find.text('새 기록 확인'), findsOneWidget);
     });
@@ -121,35 +127,36 @@ void main() {
       final recs = buildArchiveRecords(repo, seojun);
       final nNotice = recs.where((r) => r.matches(ArchiveFilter.classNotice)).length;
       final nObs = recs.where((r) => r.matches(ArchiveFilter.observation)).length;
+      final nTemp = recs.where((r) => r.matches(ArchiveFilter.temp)).length;
 
       await tester.tap(find.text('반 공지 $nNotice'));
       await tester.pumpAndSettle();
       expect(find.text('새 기록 확인'), findsNothing);
-      expect(find.textContaining('반 공지 · 은하수자리 전원'), findsNWidgets(nNotice));
-      expect(find.text('37.6℃'), findsNothing);
-      expect(find.textContaining('담임 박지은 →'), findsNothing); // 반 공지만 볼 때는 담임 변경선 생략
+      expect(find.textContaining('반 공지 · 은하수자리 전원', skipOffstage: false), findsNWidgets(nNotice));
+      expect(find.text('37.6℃', skipOffstage: false), findsNothing);
+      expect(find.textContaining('담임이 이수진', skipOffstage: false), findsNothing); // 반 공지만 볼 때는 담임 변경선 생략
 
       await tester.tap(find.text('관찰 기록 $nObs'));
       await tester.pumpAndSettle();
-      expect(find.text('37.6℃'), findsNothing);
-      expect(find.textContaining('블록 쌓기'), findsOneWidget);
+      expect(find.text('37.6℃', skipOffstage: false), findsNothing);
+      expect(find.textContaining('블록 쌓기', skipOffstage: false), findsOneWidget);
 
-      await tester.tap(find.textContaining('체온 '));
+      await tester.tap(find.text('체온 $nTemp'));
       await tester.pumpAndSettle();
-      expect(find.text('37.6℃'), findsOneWidget);
-      expect(find.textContaining('블록 쌓기'), findsNothing);
+      expect(find.text('37.6℃', skipOffstage: false), findsOneWidget);
+      expect(find.textContaining('블록 쌓기', skipOffstage: false), findsNothing);
     });
 
     testWidgets('[새 기록 확인]은 이 별님 기록과 반 공지를 archive로 확인 처리한다', (tester) async {
       final repo = await pumpArchive(tester, seojun);
       final unread = buildArchiveRecords(repo, seojun).where((r) => isUnread(repo, r, 'kim_haneul')).toList();
       expect(unread, isNotEmpty);
-      expect(find.text('새 기록 ${unread.length}건 · 아직 확인하지 않았어요'), findsOneWidget);
+      expect(find.text('새 기록 ${unread.length}건'), findsOneWidget);
 
       await tester.tap(find.text('새 기록 확인'));
       await tester.pumpAndSettle();
 
-      expect(find.text('새 기록을 확인했어요 · 최신 기록에도 반영돼요'), findsOneWidget);
+      expect(find.text('새 기록 ${unread.length}건을 확인했어요'), findsOneWidget);
       expect(find.text('새 기록 확인'), findsNothing);
       for (final r in unread) {
         expect(repo.isRead(r.readTarget!.id, 'kim_haneul'), isTrue);
@@ -157,21 +164,26 @@ void main() {
       }
       // 같은 반 다른 별님(최도윤)의 개인 기록은 그대로 미확인
       final doyun = residentByName('최도윤').id;
-      final doyunNote = repo.archiveEntriesOf(doyun).firstWhere((e) => e.scope == EntryScope.resident && e.authorId != 'kim_haneul');
+      final doyunNote = repo
+          .archiveEntriesOf(doyun)
+          .firstWhere((e) => e.scope == EntryScope.resident && e.authorId != 'kim_haneul');
       expect(repo.isRead(doyunNote.id, 'kim_haneul'), isFalse);
     });
 
     testWidgets('기록 상세: 답글·확인 상태를 보여주고 열어도 읽음 처리하지 않는다', (tester) async {
       final nari = residentByName('한나리').id;
       final repo = await pumpArchive(tester, nari);
+      await tester.scrollUntilVisible(find.textContaining('왼쪽 무릎이 조금 긁혀'), 200, scrollable: list);
       await tester.tap(find.textContaining('왼쪽 무릎이 조금 긁혀'));
       await tester.pumpAndSettle();
 
       expect(find.text('관찰 기록'), findsWidgets);
-      expect(find.text('답글 1'), findsWidgets);
-      expect(find.text('확인했어요. 점심 후에 한 번 더 볼게요.'), findsOneWidget);
       expect(find.text('사진 1장'), findsWidgets);
-      expect(find.textContaining('열어 보기만으로는 확인되지 않아요'), findsOneWidget);
+      final sheet = find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable));
+      await tester.scrollUntilVisible(find.textContaining('열어 보기만으로는 확인되지 않아요'), 200, scrollable: sheet);
+      await tester.scrollUntilVisible(find.text('답글 1'), 200, scrollable: sheet);
+      await tester.scrollUntilVisible(find.text('확인했어요. 점심 후에 한 번 더 볼게요.'), 200, scrollable: sheet);
+      await tester.scrollUntilVisible(find.text('목록으로'), 200, scrollable: sheet);
       final e = repo.archiveEntriesOf(nari).firstWhere((x) => x.body?.contains('긁혀') ?? false);
       expect(repo.isRead(e.id, 'kim_haneul'), isFalse);
 
@@ -195,6 +207,9 @@ void main() {
       await pumpArchive(tester, residentByName('박승민').id);
       expect(find.text('38.2℃'), findsOneWidget);
       expect(find.text('▲ 이상'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('대응 이력 보기'), 200, scrollable: list);
+      await tester.ensureVisible(find.text('대응 이력 보기'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('대응 이력 보기'));
       await tester.pumpAndSettle();
       expect(find.byType(CaseDetailScreen), findsOneWidget);
@@ -217,19 +232,20 @@ void main() {
       repo.close(s.caseItem!.id, 'park_soyeon', repo.now(), '회복');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('별님카드 ›'));
+      await tester.tap(find.text('별님카드 보기'));
       await tester.pumpAndSettle();
       expect(find.byType(ResidentCardScreen), findsOneWidget);
       expect(find.text('37.1℃'), findsOneWidget);
-      expect(find.text('최근 14일 중앙값'), findsOneWidget);
+      expect(find.text('최근 2주 동안 잰 체온의 가운데 값이에요'), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp('최근 14일 체온 그래프')), findsOneWidget);
       expect(find.text('투약 지침 보기'), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text('이 별님의 기록 아카이브'), 200, scrollable: list);
+      await tester.scrollUntilVisible(find.text('종료 · 회복'), 200, scrollable: list);
       expect(find.text('이상 대응'), findsOneWidget);
       expect(find.text('종료 · 회복'), findsOneWidget);
 
-      await tester.tap(find.text('이 별님의 기록 아카이브'));
+      await tester.scrollUntilVisible(find.text('기록 모아보기'), -200, scrollable: list);
+      await tester.tap(find.text('기록 모아보기'));
       await tester.pumpAndSettle();
       expect(find.byType(ResidentCardScreen), findsNothing);
       expect(find.byType(ArchiveScreen), findsOneWidget);
@@ -239,13 +255,122 @@ void main() {
       tester.view.physicalSize = const Size(360, 640) * 2;
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(ProviderScope(child: MaterialApp(home: ResidentCardScreen(residentId: seojun))));
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(home: ResidentCardScreen(residentId: seojun)),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.text('대응 이력이 없어요.', skipOffstage: false), findsOneWidget); // 시작 상태: 이서준은 이상 건 없음
       await tester.tap(find.text('투약 지침 보기'));
       await tester.pumpAndSettle();
       expect(find.text('이서준 투약 지침'), findsOneWidget);
     });
+
+    testWidgets('시작 상태: 이서준은 대응 이력이 없다', (tester) async {
+      await tester.pumpWidget(ProviderScope(child: MaterialApp(home: ResidentCardScreen(residentId: seojun))));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('대응 이력이 없어요'), 200, scrollable: list);
+      expect(find.text('대응 이력이 없어요'), findsOneWidget);
+    });
+  });
+
+  group('화면 크기·큰 글자 (docs/design.md)', () {
+    Future<void> pumpScaled(WidgetTester tester, Widget home, Size size, double scale) async {
+      tester.view.physicalSize = size * 2;
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: buildTheme(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: home,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    /// 끝까지 내리며 넘침이 없는지 본다.
+    void noOverflow(WidgetTester tester) {
+      final e = tester.takeException();
+      if (e != null) fail(e is FlutterError ? e.toStringDeep() : '$e');
+    }
+
+    Future<void> scrollThrough(WidgetTester tester) async {
+      for (var i = 0; i < 60; i++) {
+        noOverflow(tester);
+        final pos = tester.state<ScrollableState>(list).position;
+        if (pos.pixels >= pos.maxScrollExtent) break;
+        await tester.drag(list, const Offset(0, -300));
+        await tester.pumpAndSettle();
+      }
+      noOverflow(tester);
+    }
+
+    for (final size in const [Size(390, 844), Size(360, 640)]) {
+      for (final scale in const [1.0, 1.3]) {
+        testWidgets('아카이브 ${size.width.toInt()}×${size.height.toInt()} 글자 $scale배', (tester) async {
+          await pumpScaled(tester, ArchiveScreen(residentId: seojun), size, scale);
+          await scrollThrough(tester);
+          // 접힌 평소 체온도 펼쳐 본다
+          await tester.drag(list, const Offset(0, 20000));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byType(TextField), '소리');
+          await tester.pumpAndSettle();
+          await scrollThrough(tester);
+        });
+
+        testWidgets('별님카드 ${size.width.toInt()}×${size.height.toInt()} 글자 $scale배', (tester) async {
+          final c = ProviderContainer();
+          addTearDown(c.dispose);
+          final repo = c.read(repoProvider);
+          final s = repo.saveMeasurement(residentId: seojun, value: 384, by: 'kim_haneul', at: repo.now());
+          repo.close(s.caseItem!.id, 'park_soyeon', repo.now(), '회복');
+          tester.view.physicalSize = size * 2;
+          tester.view.devicePixelRatio = 2;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: c,
+              child: MaterialApp(
+                theme: buildTheme(),
+                builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+                  child: child!,
+                ),
+                home: ResidentCardScreen(residentId: seojun),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await scrollThrough(tester);
+        });
+      }
+    }
+
+    for (final scale in const [1.0, 1.3]) {
+      testWidgets('누르는 것은 56 이상, 칩 글자가 잘리지 않는다 (글자 $scale배)', (tester) async {
+        await pumpScaled(tester, ArchiveScreen(residentId: seojun), const Size(360, 640), scale);
+        expect(tester.getSize(find.widgetWithText(OutlinedButton, '별님카드 보기')).height, greaterThanOrEqualTo(56));
+        expect(tester.getSize(find.byType(TextField)).height, greaterThanOrEqualTo(56));
+        for (final chip in tester.widgetList<ChoiceChip>(find.byType(ChoiceChip))) {
+          final label = (chip.label as Text).data!;
+          final chipBox = tester.getRect(find.widgetWithText(ChoiceChip, label));
+          final textBox = tester.getRect(find.text(label));
+          expect(chipBox.height, greaterThanOrEqualTo(56), reason: label);
+          expect(
+            chipBox.contains(textBox.topLeft) && chipBox.contains(textBox.bottomRight - const Offset(1, 1)),
+            isTrue,
+            reason: label,
+          );
+        }
+        expect(tester.getSize(find.widgetWithText(FilledButton, '이서준 별님 기록 남기기')).height, greaterThanOrEqualTo(56));
+      });
+    }
   });
 }

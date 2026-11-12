@@ -40,6 +40,8 @@ flutter build web            # build/web 에 웹 빌드
 ```
 - 판정·기저치를 건드리면 반드시 경계값 테스트를 추가한다 (`test/core/judgment_test.dart`).
 - 화면 흐름은 위젯 테스트로 확인한다 (`test/features/`). 작은 폰(360×640)에서 넘치지 않는지도 본다.
+- **화면 디자인은 `docs/design.md`를 따른다** (최소 글자 15, 누르는 것 56 이상, 한 줄에 한 가지, 쉬운 말). 공통 부품은 `lib/core/ui.dart`.
+- 화면 모양 확인: `flutter test --update-goldens --tags screenshots --run-skipped test/screenshots` → `test/screenshots/out/*.png` (Windows 맑은 고딕으로 그림).
 - `package:flutter/material.dart` 사용 시 Flutter 3.47부터 "material_ui로 옮기라"는 info가 뜬다. 지금은 무시해도 된다.
 
 ## 진행 상황

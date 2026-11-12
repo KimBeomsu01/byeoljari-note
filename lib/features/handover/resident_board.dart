@@ -1,13 +1,13 @@
-// HO-2 별님별 기록 (인수인계 명세 3.2): 반 탭 + 별님 그리드.
-// 그리드 순서는 상태에 따라 바꾸지 않는다 (선생님들이 별님 위치를 기억한다).
+// HO-2 별님별 기록 (인수인계 명세 3.2): 반 칩 + 별님 카드 2칸.
+// 카드 순서는 상태에 따라 바꾸지 않는다 (선생님들이 별님 위치를 기억한다).
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/judgment.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/ui.dart';
 import 'handover_common.dart';
 import 'handover_view.dart';
 
@@ -24,15 +24,16 @@ class ResidentBoard extends ConsumerWidget {
     final cls = repo.classOf(selected);
     final residents = repo.residentsOf(selected);
 
+    const cols = 2;
     final rows = <Widget>[];
-    for (var i = 0; i < residents.length; i += 3) {
-      final chunk = residents.skip(i).take(3).toList();
+    for (var i = 0; i < residents.length; i += cols) {
+      final chunk = residents.skip(i).take(cols).toList();
       rows.add(Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: Gap.m),
         child: IntrinsicHeight(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            for (var j = 0; j < 3; j++) ...[
-              if (j > 0) const SizedBox(width: 8),
+            for (var j = 0; j < cols; j++) ...[
+              if (j > 0) const SizedBox(width: Gap.m),
               Expanded(child: j < chunk.length ? _ResidentTile(resident: chunk[j], view: v) : const SizedBox()),
             ],
           ]),
@@ -40,30 +41,34 @@ class ResidentBoard extends ConsumerWidget {
       ));
     }
 
-    return ListView(padding: const EdgeInsets.fromLTRB(0, 8, 0, 120), children: [
-      SizedBox(
-        height: 52,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          children: [
-            for (final c in repo.classes)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: _ClassTab(cls: c, selected: c.id == selected, unread: v.unreadInClass(c.id)),
-              ),
-          ],
-        ),
+    return ListView(padding: const EdgeInsets.fromLTRB(0, Gap.s, 0, 120), children: [
+      const Padding(
+        padding: EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.s),
+        child: Text('반 고르기', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkSub)),
+      ),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+        child: Row(children: [
+          for (final c in repo.classes)
+            Padding(
+              padding: const EdgeInsets.only(right: Gap.s),
+              child: _ClassTab(cls: c, selected: c.id == selected, unread: v.unreadInClass(c.id)),
+            ),
+        ]),
       ),
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: Text('${cls.name} · 담임 ${repo.staff(cls.homeroomId).displayName} · ${residents.length}명',
-            style: const TextStyle(fontSize: 13, color: inkSub)),
+        padding: const EdgeInsets.fromLTRB(Gap.page, Gap.xl, Gap.page, Gap.m),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${cls.name} 별님 ${residents.length}명',
+              style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
+          Text('담임 ${repo.staff(cls.homeroomId).displayName}', style: const TextStyle(fontSize: T.caption, color: inkSub)),
+        ]),
       ),
       if (residents.isEmpty)
-        const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('이 반에 별님이 없어요.')))
+        const EmptyNote('이 반에는 별님이 없어요')
       else
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Column(children: rows)),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: Gap.page), child: Column(children: rows)),
     ]);
   }
 }
@@ -75,40 +80,14 @@ class _ClassTab extends ConsumerWidget {
   final int unread;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final color = Color(cls.color);
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '${cls.name}${unread > 0 ? ', 안 본 기록 $unread' : ''}',
-      excludeSemantics: true,
-      child: Material(
-        color: selected ? Color.alphaBlend(color.withValues(alpha: 0.2), Colors.white) : Colors.white,
-        shape: StadiumBorder(side: BorderSide(color: selected ? color : hoCardLine, width: selected ? 1.5 : 1)),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: () => ref.read(handoverClassProvider.notifier).select(cls.id),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 44),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Container(width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Text(cls.name, style: TextStyle(fontWeight: selected ? FontWeight.w800 : FontWeight.w600)),
-              if (unread > 0) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(color: hoUnreadBadge, borderRadius: BorderRadius.circular(99)),
-                  child: Text('$unread', style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w800)),
-                ),
-              ],
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) => HoChip(
+        label: cls.name,
+        selected: selected,
+        dot: Color(cls.color),
+        semanticsLabel: '${cls.name}${unread > 0 ? ', 안 본 기록 $unread' : ''}',
+        trailing: unread > 0 ? CountBadge(unread) : null,
+        onTap: () => ref.read(handoverClassProvider.notifier).select(cls.id),
+      );
 }
 
 class _ResidentTile extends ConsumerWidget {
@@ -128,29 +107,23 @@ class _ResidentTile extends ConsumerWidget {
     final recordCount = repo.archiveEntriesOf(r.id).where((e) => e.scope == EntryScope.resident).length;
 
     // 상태 표시: 긴급·이상 대응 > 할 일
-    Color border = hoCardLine;
-    double borderW = 1;
+    Color? accent;
     String? status;
-    Color statusInk = inkSub;
+    Color statusInk = inkMain;
     if (c != null) {
       final sc = stageColors[c.isUrgent ? Stage.danger : c.severity]!;
-      border = sc.line;
-      borderW = 2;
+      accent = c.isUrgent ? sc.ink : sc.line;
       status = '${c.isUrgent ? Stage.danger.symbol : c.severity.symbol} ${c.kindLabel}';
       statusInk = sc.ink;
     } else if (tasks.isNotEmpty) {
-      border = hoTaskLine;
-      borderW = 2;
+      accent = hoTask.line;
       status = '☐ 할 일 ${dueLabel(tasks.first.task!, view.now)}';
-      statusInk = hoTaskInk;
+      statusInk = hoTask.ink;
     }
 
-    final tempText = last == null
-        ? '체온 기록 없음'
-        : '${last.judgment.stage.symbol} ${formatTemp(last.value)}℃ ${last.judgment.stage.label}';
     final semantics = [
       '${r.name} 별님',
-      last == null ? '체온 기록 없음' : '최근 ${formatTemp(last.value)}도 ${last.judgment.stage.label}',
+      last == null ? '체온 기록 없음' : '최근 ${(last.value / 10).toStringAsFixed(1)}도 ${last.judgment.stage.label}',
       ?status,
       if (newCount > 0) '새 기록 $newCount',
     ].join(', ');
@@ -160,42 +133,33 @@ class _ResidentTile extends ConsumerWidget {
       label: semantics,
       excludeSemantics: true,
       child: Material(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13), side: BorderSide(color: border, width: borderW)),
+        color: surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.card),
+          side: BorderSide(color: accent ?? line, width: accent == null ? 1 : 2.5),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(13),
           onTap: () => openArchive(context, r.id),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Stack(clipBehavior: Clip.none, children: [
-                NameAvatar(name: r.name, size: 38, color: Color(cls.color).withValues(alpha: 0.4)),
-                if (newCount > 0)
-                  Positioned(
-                    right: -16,
-                    top: -6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(color: hoUnreadBadge, borderRadius: BorderRadius.circular(99)),
-                      child: Text('새 $newCount',
-                          style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-              ]),
-              const SizedBox(height: 4),
-              Text(r.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(tempText,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: last == null ? inkSub : stageColors[last.judgment.stage]!.ink)),
-              if (status != null)
-                Text(status,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: statusInk)),
-              Text('기록 $recordCount건', style: const TextStyle(fontSize: 11, color: inkSub)),
+            padding: const EdgeInsets.all(Gap.m),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              ResidentAvatar(name: r.name, classColor: cls.color, size: 56),
+              const SizedBox(height: Gap.s),
+              Text(r.name, style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain, height: 1.3)),
+              if (newCount > 0) NewMark(text: '새 기록 $newCount'),
+              const SizedBox(height: Gap.xs),
+              if (last == null)
+                const Text('체온 기록 없음', style: TextStyle(fontSize: T.caption, color: inkSub))
+              else
+                StageTag(last.judgment.stage, value: last.value),
+              if (status != null) ...[
+                const SizedBox(height: Gap.xs),
+                Text(status, style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: statusInk)),
+              ],
+              const Spacer(),
+              const SizedBox(height: Gap.xs),
+              Text('기록 $recordCount건', style: const TextStyle(fontSize: T.caption, color: inkSub)),
             ]),
           ),
         ),

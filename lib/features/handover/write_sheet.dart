@@ -23,7 +23,6 @@ Future<void> showWriteSheet(BuildContext context, WidgetRef ref, {String? classI
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: false,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
     builder: (_) => WriteSheet(classId: initialClass, residentId: residentId),
   );
 }
@@ -127,7 +126,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
 
     final String toast;
     if (task != null) {
-      toast = '할 일로 넘겼어요 · 완료할 때까지 교대 요약에 남아요';
+      toast = '할 일로 넘겼어요 · 완료할 때까지 지금 챙길 일에 남아요';
     } else {
       toast = switch (_scope) {
         EntryScope.resident => '${repo.resident(_residentId!).name} 별님 아카이브에 함께 담겼어요',
@@ -140,7 +139,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
     Navigator.of(context).pop();
     messenger
       ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(toast), duration: const Duration(seconds: 3), behavior: SnackBarBehavior.floating));
+      ..showSnackBar(SnackBar(content: Text(toast), duration: const Duration(seconds: 3)));
   }
 
   @override
@@ -159,9 +158,9 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
       EntryScope.resident => resName == null ? '메모' : '$resName 별님에 대한 메모',
     };
     final whereText = switch (_scope) {
-      EntryScope.facility => '전체 공지 · 모든 선생님의 최신 기록에 보여요',
-      EntryScope.classScope => '반 공지 + ${cls.name} ${residents.length}명 아카이브',
-      EntryScope.resident => '인수인계 + ${resName ?? '별님'} 별님 아카이브',
+      EntryScope.facility => '모든 선생님의 최신 기록에 보여요',
+      EntryScope.classScope => '인수인계와 ${cls.name} 별님 ${residents.length}명의 아카이브에 남아요',
+      EntryScope.resident => '인수인계와 ${resName ?? '별님'} 별님 아카이브에 남아요',
     };
 
     return Padding(
@@ -169,33 +168,36 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         // 머리
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+          padding: const EdgeInsets.fromLTRB(Gap.page, Gap.m, Gap.s, Gap.xs),
           child: Row(children: [
-            const Expanded(child: Text('기록 남기기', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+            const Expanded(
+              child: Text('기록 남기기', style: TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain)),
+            ),
             IconButton(
               tooltip: '닫기 (쓴 내용은 버려요)',
-              iconSize: 26,
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              iconSize: 28,
+              constraints: const BoxConstraints(minWidth: tapHeight, minHeight: tapHeight),
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.close, color: inkMain),
             ),
           ]),
         ),
+        const Divider(),
         Flexible(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(Gap.page, Gap.l, Gap.page, Gap.l),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // 종류
+              // 1. 종류
               const _Label('무엇을 남길까요?'),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                _Pick(
+              Wrap(spacing: Gap.s, runSpacing: Gap.s, children: [
+                HoChip(
                     label: '별님 기록',
                     selected: _scope == EntryScope.resident,
                     onTap: () => setState(() {
                           _scope = EntryScope.resident;
                           _error = null;
                         })),
-                _Pick(
+                HoChip(
                     label: '반 공지',
                     selected: _scope == EntryScope.classScope,
                     onTap: () => setState(() {
@@ -204,7 +206,7 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
                           _taskKind = TaskKind.memo;
                         })),
                 if (canFacility)
-                  _Pick(
+                  HoChip(
                       label: '전체 공지',
                       selected: _scope == EntryScope.facility,
                       onTap: () => setState(() {
@@ -215,20 +217,22 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
               ]),
               if (!canFacility)
                 const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Text('전체 공지는 사무국에서 올려요.', style: TextStyle(fontSize: 12, color: inkSub)),
+                  padding: EdgeInsets.only(top: Gap.s),
+                  child: Text('전체 공지는 사무국에서 올려요.', style: TextStyle(fontSize: T.caption, color: inkSub)),
                 ),
 
+              // 2. 반
               if (_scope != EntryScope.facility) ...[
-                const SizedBox(height: 12),
-                const _Label('반'),
+                const SizedBox(height: Gap.xl),
+                const _Label('어느 반인가요?'),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
                   child: Row(children: [
                     for (final c in repo.classes)
                       Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: _Pick(
+                        padding: const EdgeInsets.only(right: Gap.s),
+                        child: HoChip(
                           label: c.name,
                           dot: Color(c.color),
                           selected: c.id == _classId,
@@ -244,12 +248,13 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
                 ),
               ],
 
+              // 3. 별님
               if (_scope == EntryScope.resident) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: Gap.xl),
                 const _Label('어떤 별님인가요?'),
-                Wrap(spacing: 6, runSpacing: 6, children: [
+                Wrap(spacing: Gap.s, runSpacing: Gap.s, children: [
                   for (final r in residents)
-                    _Pick(
+                    HoChip(
                       label: r.name,
                       selected: r.id == _residentId,
                       onTap: () => setState(() {
@@ -261,147 +266,149 @@ class _WriteSheetState extends ConsumerState<WriteSheet> {
               ],
 
               if (_scope == EntryScope.facility) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _title,
-                  decoration: const InputDecoration(labelText: '제목 (선택)', border: OutlineInputBorder()),
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
+                const SizedBox(height: Gap.xl),
+                const _Label('제목 (안 써도 돼요)'),
+                TextField(controller: _title, style: const TextStyle(fontSize: T.body, color: inkMain)),
+                const SizedBox(height: Gap.s),
+                _CheckRow(
+                  label: '최신 기록 맨 위에 고정',
                   value: _pinned,
-                  onChanged: (v) => setState(() => _pinned = v ?? false),
-                  title: const Text('최신 기록 맨 위에 고정'),
-                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (v) => setState(() => _pinned = v),
                 ),
               ],
 
-              const SizedBox(height: 12),
+              // 4. 메모
+              const SizedBox(height: Gap.xl),
+              _Label(bodyLabel),
               TextField(
                 controller: _body,
                 minLines: 3,
                 maxLines: 8,
+                style: const TextStyle(fontSize: T.body, height: 1.5, color: inkMain),
                 onChanged: (_) {
                   if (_error != null) setState(() => _error = null);
                 },
-                decoration: InputDecoration(
-                  labelText: bodyLabel,
+                decoration: const InputDecoration(
                   hintText: '오늘 본 작은 변화나 다음 선생님이 알아야 할 일을 적어주세요.',
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                  border: const OutlineInputBorder(),
+                  hintMaxLines: 3,
                 ),
               ),
 
               if (_scope != EntryScope.facility) ...[
-                const SizedBox(height: 10),
-                const _Label('빠른 문구'),
-                for (final (group, items) in quickPhrases)
+                const SizedBox(height: Gap.l),
+                const _Label('누르면 메모에 들어가요'),
+                for (final (group, items) in quickPhrases) ...[
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      SizedBox(
-                        width: 52,
-                        height: 44,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(group, style: const TextStyle(fontSize: 12.5, color: inkSub)),
+                    padding: const EdgeInsets.only(top: Gap.xs, bottom: Gap.xs),
+                    child: Text(group,
+                        style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkSub)),
+                  ),
+                  Wrap(spacing: Gap.s, runSpacing: Gap.s, children: [
+                    for (final (chip, sentence) in items)
+                      Tooltip(
+                        message: sentence,
+                        child: HoChip(
+                          label: chip,
+                          selected: false,
+                          icon: Icons.add,
+                          semanticsLabel: '$chip 넣기',
+                          onTap: () => _addPhrase(sentence),
                         ),
                       ),
-                      Expanded(
-                        child: Wrap(spacing: 6, runSpacing: 4, children: [
-                          for (final (chip, sentence) in items)
-                            ActionChip(
-                              materialTapTargetSize: MaterialTapTargetSize.padded,
-                              label: Text(chip),
-                              tooltip: sentence,
-                              onPressed: () => _addPhrase(sentence),
-                            ),
-                        ]),
-                      ),
-                    ]),
-                  ),
+                  ]),
+                  const SizedBox(height: Gap.s),
+                ],
               ],
 
-              const SizedBox(height: 8),
-              // 사진 (시연: 자리 표시만, 1장)
+              // 5. 사진 (시연: 자리 표시만, 1장)
+              const SizedBox(height: Gap.m),
               Row(children: [
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(minimumSize: const Size(44, 44)),
-                  onPressed: () => setState(() => _photos = _photos == 0 ? 1 : 0),
-                  icon: Icon(_photos == 0 ? Icons.add_a_photo_outlined : Icons.remove_circle_outline),
-                  label: Text(_photos == 0 ? '사진 넣기' : '사진 1장 · 빼기'),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => setState(() => _photos = _photos == 0 ? 1 : 0),
+                    icon: Icon(_photos == 0 ? Icons.add_a_photo_outlined : Icons.remove_circle_outline),
+                    label: Text(_photos == 0 ? '사진 넣기' : '사진 빼기'),
+                  ),
                 ),
                 if (_photos > 0) ...[
-                  const SizedBox(width: 10),
+                  const SizedBox(width: Gap.m),
                   Semantics(
                     label: '사진 1장 (시연용 자리 표시)',
                     excludeSemantics: true,
                     child: Container(
-                      width: 52,
-                      height: 44,
-                      decoration: BoxDecoration(color: const Color(0xFFE6E8E3), borderRadius: BorderRadius.circular(8)),
+                      width: 72,
+                      height: tapHeight,
+                      decoration: BoxDecoration(
+                        color: paper,
+                        borderRadius: BorderRadius.circular(Radii.button),
+                        border: Border.all(color: line),
+                      ),
                       child: const Icon(Icons.photo_outlined, color: inkSub),
                     ),
                   ),
                 ],
               ]),
 
+              // 6. 할 일
               if (_scope != EntryScope.facility) ...[
-                const SizedBox(height: 4),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
+                const SizedBox(height: Gap.m),
+                _CheckRow(
+                  label: '할 일로 넘기기',
                   value: _asTask,
-                  onChanged: (v) => setState(() => _asTask = v ?? false),
-                  title: const Text('할 일로 넘기기'),
-                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (v) => setState(() => _asTask = v),
                 ),
                 if (_asTask) ...[
-                  if (_scope == EntryScope.resident)
-                    Wrap(spacing: 6, runSpacing: 6, children: [
-                      _Pick(
+                  if (_scope == EntryScope.resident) ...[
+                    const SizedBox(height: Gap.s),
+                    const _Label('무슨 할 일인가요?'),
+                    Wrap(spacing: Gap.s, runSpacing: Gap.s, children: [
+                      HoChip(
                           label: '부탁·확인',
                           selected: _taskKind == TaskKind.memo,
                           onTap: () => setState(() => _taskKind = TaskKind.memo)),
-                      _Pick(
+                      HoChip(
                           label: '체온 재기',
                           selected: _taskKind == TaskKind.temp,
                           onTap: () => setState(() => _taskKind = TaskKind.temp)),
                     ]),
-                  const SizedBox(height: 6),
-                  const _Label('언제까지'),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
+                  ],
+                  const SizedBox(height: Gap.l),
+                  const _Label('언제까지 할까요?'),
+                  Wrap(spacing: Gap.s, runSpacing: Gap.s, children: [
                     for (final p in taskPresets)
-                      _Pick(label: p, selected: _preset == p, onTap: () => setState(() => _preset = p)),
+                      HoChip(label: p, selected: _preset == p, onTap: () => setState(() => _preset = p)),
                   ]),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Text('인수인계에 [완료하기] 버튼이 붙고, 끝날 때까지 교대 요약에 남아요.',
-                        style: TextStyle(fontSize: 12.5, color: hoTaskInk)),
+                  Padding(
+                    padding: const EdgeInsets.only(top: Gap.s),
+                    child: Text('[완료하기] 버튼이 붙고, 끝날 때까지 지금 챙길 일에 남아요.',
+                        style: TextStyle(fontSize: T.caption, color: hoTask.ink, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ],
 
-              const SizedBox(height: 10),
-              Text('저장 위치 · $whereText', style: const TextStyle(fontSize: 12.5, color: inkSub)),
+              const SizedBox(height: Gap.l),
+              Text(whereText, style: const TextStyle(fontSize: T.caption, color: inkSub)),
               if (_error != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.only(top: Gap.s),
                   child: Text('⚠ $_error',
-                      style: TextStyle(color: stageColors[Stage.danger]!.ink, fontWeight: FontWeight.w700)),
+                      style: TextStyle(fontSize: T.body, color: stageColors[Stage.danger]!.ink, fontWeight: FontWeight.w700)),
                 ),
             ]),
           ),
         ),
+        const Divider(),
         SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+            padding: const EdgeInsets.fromLTRB(Gap.page, Gap.m, Gap.page, Gap.m),
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                style: FilledButton.styleFrom(minimumSize: const Size(44, 52), backgroundColor: hoSummaryBg),
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(60)),
                 // 대상을 고르기 전에는 비활성 (인수인계 3.4)
                 onPressed: _targetChosen && !_saving ? _save : null,
-                child: const Text('기록 남기기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                child: const Text('기록 남기기', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800)),
               ),
             ),
           ),
@@ -417,45 +424,40 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: inkSub)),
+        padding: const EdgeInsets.only(bottom: Gap.s),
+        child: Text(text, style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: inkMain)),
       );
 }
 
-/// 하나 고르기 칩 (44 높이).
-class _Pick extends StatelessWidget {
-  const _Pick({required this.label, required this.selected, required this.onTap, this.dot});
+/// 큰 체크 줄: 높이 56, 글자 크게, 줄 전체를 눌러도 된다.
+class _CheckRow extends StatelessWidget {
+  const _CheckRow({required this.label, required this.value, required this.onChanged});
   final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color? dot;
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) => Semantics(
+        checked: value,
         button: true,
-        selected: selected,
         label: label,
         excludeSemantics: true,
-        child: Material(
-          color: selected ? hoSummaryBg : Colors.white,
-          shape: StadiumBorder(side: BorderSide(color: selected ? hoSummaryBg : hoCardLine)),
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: onTap,
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (dot != null) ...[
-                  Container(width: 9, height: 9, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                ],
-                if (selected) const Text('✓ ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                Text(label,
-                    style: TextStyle(
-                        color: selected ? Colors.white : inkMain, fontWeight: selected ? FontWeight.w800 : FontWeight.w600)),
-              ]),
-            ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.button),
+          onTap: () => onChanged(!value),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: tapHeight),
+            child: Row(children: [
+              Transform.scale(
+                scale: 1.3,
+                child: Checkbox(value: value, onChanged: (v) => onChanged(v ?? false)),
+              ),
+              const SizedBox(width: Gap.xs),
+              Expanded(
+                child: Text(label,
+                    style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
+              ),
+            ]),
           ),
         ),
       );

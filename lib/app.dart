@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/models.dart';
 import 'core/providers.dart';
 import 'core/theme.dart';
 import 'features/alert_case/notice_center.dart';
@@ -11,16 +12,19 @@ import 'features/quick_temp/quick_temp_screen.dart';
 import 'features/schedule/schedule_screen.dart';
 
 class ByeoljariApp extends StatelessWidget {
-  const ByeoljariApp({super.key});
+  const ByeoljariApp({super.key, this.fontFamilyForScreenshots});
+
+  /// 스크린샷 테스트에서 한글 글꼴을 지정할 때만 쓴다.
+  final String? fontFamilyForScreenshots;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: '별자리노트',
         debugShowCheckedModeBanner: false,
-        theme: buildTheme(),
+        theme: buildTheme(fontFamily: fontFamilyForScreenshots),
         // 폰 화면 폭으로 보여준다 (PC 브라우저에서도).
         builder: (context, child) => ColoredBox(
-          color: const Color(0xFFDDE3DC),
+          color: const Color(0xFFD5DDE8),
           child: Center(
             child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 430), child: child),
           ),
@@ -50,19 +54,24 @@ class _AppShellState extends ConsumerState<AppShell> {
       appBar: qtOpen
           ? null
           : AppBar(
-              backgroundColor: paper,
-              title: Text(_tab == 0 ? '인수인계' : '일정', style: const TextStyle(fontWeight: FontWeight.w700)),
+              titleSpacing: Gap.page,
+              title: Text(_tab == 0 ? '인수인계' : '일정'),
               actions: [
                 _RoleSwitch(),
                 IconButton(
                   tooltip: '알림',
+                  iconSize: 30,
+                  constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
                   onPressed: () => showNoticeCenter(context, ref),
                   icon: Badge(
                     isLabelVisible: unseen > 0,
+                    backgroundColor: stageColors[Stage.danger]!.ink,
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                     label: Text('$unseen'),
-                    child: const Icon(Icons.notifications_none),
+                    child: const Icon(Icons.notifications_outlined, color: inkMain),
                   ),
                 ),
+                const SizedBox(width: 8),
               ],
             ),
       body: Stack(children: [
@@ -139,9 +148,21 @@ class _RoleSwitch extends ConsumerWidget {
         const PopupMenuItem(value: '_skip30', child: Text('⏩ 시계 30분 앞으로')),
         const PopupMenuItem(value: '_reset', child: Text('↺ 시연 처음 상태로')),
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Chip(label: Text(repo.staff(me).displayName, style: const TextStyle(fontSize: 12))),
+      // 지금 쓰는 사람 (시연에서는 눌러서 바꾼다)
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(Radii.pill),
+          border: Border.all(color: line, width: 1.5),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.person_outline, size: 22, color: inkSub),
+          const SizedBox(width: 4),
+          Text(repo.staff(me).name, style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkMain)),
+          const Icon(Icons.arrow_drop_down, color: inkSub),
+        ]),
       ),
     );
   }
@@ -156,44 +177,67 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget item(int i, IconData icon, String label) {
+    Widget item(int i, IconData icon, IconData iconOn, String label) {
       final on = !qtOpen && tab == i;
       return Expanded(
-        child: InkWell(
-          onTap: () => onTab(i),
-          child: SizedBox(
-            height: 64,
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(icon, color: on ? brandDark : inkSub),
-              Text(label, style: TextStyle(fontSize: 12, color: on ? brandDark : inkSub)),
-            ]),
+        child: Semantics(
+          button: true,
+          selected: on,
+          label: label,
+          excludeSemantics: true,
+          child: InkWell(
+            onTap: () => onTab(i),
+            child: SizedBox(
+              height: 76,
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(on ? iconOn : icon, size: 30, color: on ? brandDark : inkSub),
+                const SizedBox(height: 2),
+                Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                    style: TextStyle(fontSize: T.caption, fontWeight: on ? FontWeight.w800 : FontWeight.w500, color: on ? brandDark : inkSub)),
+              ]),
+            ),
           ),
         ),
       );
     }
 
     return Material(
-      color: Colors.white,
-      elevation: 8,
+      color: surface,
+      shape: const Border(top: BorderSide(color: line)),
       child: SafeArea(
         top: false,
-        child: Row(children: [
-          item(0, Icons.article_outlined, '인수인계'),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          item(0, Icons.article_outlined, Icons.article, '인수인계'),
+          // 가장 자주 누르는 버튼: 노란 '체온 재기'
           Semantics(
             button: true,
             label: qtOpen ? '퀵 체온 접기' : '퀵 체온 열기',
+            excludeSemantics: true,
             child: GestureDetector(
               onTap: onQuick,
               child: Container(
-                width: 64,
-                height: 64,
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: const BoxDecoration(color: brandDark, shape: BoxShape.circle),
-                child: Icon(qtOpen ? Icons.close : Icons.thermostat, color: Colors.white, size: 30),
+                width: 132,
+                height: 60,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                decoration: BoxDecoration(
+                  color: qtOpen ? inkMain : starYellow,
+                  borderRadius: BorderRadius.circular(Radii.pill),
+                ),
+                // 큰 글자 설정에서도 넘치지 않게 버튼 안에서 줄인다
+                child: FittedBox(fit: BoxFit.scaleDown, child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(qtOpen ? Icons.close : Icons.thermostat, color: qtOpen ? Colors.white : inkMain, size: 28),
+                  const SizedBox(width: 4),
+                  Text(qtOpen ? '닫기' : '체온 재기',
+                      style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: qtOpen ? Colors.white : inkMain)),
+                ])),
               ),
             ),
           ),
-          item(1, Icons.calendar_view_month_outlined, '일정'),
+          item(1, Icons.calendar_month_outlined, Icons.calendar_month, '일정'),
         ]),
       ),
     );

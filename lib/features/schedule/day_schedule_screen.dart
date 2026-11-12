@@ -1,6 +1,6 @@
 // SC-2 별님 하루 일정 (일정 명세 5장, 통합 명세 4-3·6-5).
-// 머리: 이름·날짜·일정 개수·오전/오후 체온 상태. 아래: 시간 순 목록 (지금 = 붉은 테두리, 지남 = 흐리게).
-// '체온 측정' 줄을 누르면 그 별님이 선택된 채 퀵 체온이 열린다. 측정 권한이 없는 반이면 안내만.
+// 머리: 이름·날짜·일정 개수·오전/오후 체온 상태. 아래: 시간 순 목록 (지금 = 붉은 굵은 테두리, 지남 = 바탕색 + '지남').
+// '체온 재기' 버튼을 누르면 그 별님이 선택된 채 퀵 체온이 열린다. 측정 권한이 없는 반이면 안내만.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +8,7 @@ import '../../core/judgment.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
+import '../../core/ui.dart';
 import '../quick_temp/quick_temp_controller.dart';
 import 'schedule_widgets.dart';
 
@@ -46,64 +47,51 @@ class _DayScheduleScreenState extends ConsumerState<DayScheduleScreen> with Minu
     final (am, pm) = amPm(slots);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: paper,
-        title: const Text('하루 일정', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
+      appBar: AppBar(title: const Text('하루 일정')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: const EdgeInsets.fromLTRB(Gap.page, Gap.xs, Gap.page, 48),
         children: [
-          // 머리
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E2DC)),
-            ),
+          // 머리: ① 누구 ② 날짜 ③ 오전·오후 체온
+          InfoCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                ExcludeSemantics(
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Color(cls.color),
-                    child: Text(r.name.length >= 2 ? r.name.substring(1, 2) : r.name,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
-                  ),
-                ),
-                const SizedBox(width: 10),
+                ExcludeSemantics(child: ResidentAvatar(name: r.name, classColor: cls.color, size: 56)),
+                const SizedBox(width: Gap.m),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(r.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                    Text(
-                      '${cls.name} · ${dateLabel(date)}${isToday ? ' 오늘' : ''} · 일정 ${items.length}개',
-                      style: const TextStyle(fontSize: 13, color: inkSub),
-                    ),
+                    Text(r.name, style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
+                    Text(cls.name, style: const TextStyle(fontSize: T.caption, color: inkSub)),
                   ]),
                 ),
               ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: SlotCell(label: '오전', status: am)),
-                const SizedBox(width: 8),
-                Expanded(child: SlotCell(label: '오후', status: pm)),
+              const SizedBox(height: Gap.l),
+              Wrap(spacing: Gap.s, runSpacing: Gap.xs, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                Text(dateLabel(date),
+                    style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
+                if (isToday) const StatusPill('오늘', color: brandDark),
               ]),
+              Text('일정 ${items.length}개', style: const TextStyle(fontSize: T.caption, color: inkSub)),
+              const SizedBox(height: Gap.m),
+              IntrinsicHeight(
+                child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Expanded(child: SlotCell(label: '오전', status: am)),
+                  const SizedBox(width: Gap.s),
+                  Expanded(child: SlotCell(label: '오후', status: pm)),
+                ]),
+              ),
             ]),
           ),
           if (isWeekend(date) || r.commutesToSchool)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: Gap.m),
               child: Text(
                 isWeekend(date) ? '주말에는 식사와 여가 활동만 있어요' : '학교에 다니는 별님이라 일정 흐름이 달라요',
-                style: const TextStyle(fontSize: 12, color: inkSub),
+                style: const TextStyle(fontSize: T.caption, color: inkSub),
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: Gap.l),
           if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: Text('이 날은 일정이 없어요', style: TextStyle(color: inkSub))),
-            )
+            const EmptyNote('이 날은 일정이 없어요')
           else
             for (final it in items)
               _ItemTile(
@@ -118,6 +106,12 @@ class _DayScheduleScreenState extends ConsumerState<DayScheduleScreen> with Minu
   }
 }
 
+/// '오후 체온 · 목욕 전' → '오후 체온 (목욕 전)'. 버튼 글자 안에 점이 두 번 나오지 않게.
+String _slotName(TempSlot ts) {
+  final parts = ts.label.split(' · ');
+  return parts.length == 1 ? parts.first : '${parts.first} (${parts.sublist(1).join(' ')})';
+}
+
 class _ItemTile extends StatelessWidget {
   const _ItemTile({required this.item, required this.now, required this.slot, required this.onTemp});
   final ScheduleItem item;
@@ -127,6 +121,8 @@ class _ItemTile extends StatelessWidget {
   /// null이면 누를 수 없음 (오늘이 아닌 날).
   final VoidCallback? onTemp;
 
+  static const _tabular = [FontFeature.tabularFigures()];
+
   @override
   Widget build(BuildContext context) {
     final isNow = !now.isBefore(item.startAt) && now.isBefore(item.endAt);
@@ -134,51 +130,48 @@ class _ItemTile extends StatelessWidget {
     final red = nowRed;
 
     final body = Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: Gap.m),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isNow ? red : const Color(0xFFE2E2DC), width: isNow ? 2 : 1),
+        color: isNow ? stageColors[Stage.danger]!.soft : (isPast ? paper : surface),
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: isNow ? red : line, width: isNow ? 3 : 1),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Opacity(
-          opacity: isPast ? 0.5 : 1,
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(Gap.l),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SizedBox(
-                width: 52,
+                width: 84,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(hm(item.startAt), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                  Text(hm(item.endAt), style: const TextStyle(fontSize: 12, color: inkSub)),
+                  Text(hm(item.startAt),
+                      style: const TextStyle(
+                          fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain, fontFeatures: _tabular)),
+                  Text('~ ${hm(item.endAt)}',
+                      style: const TextStyle(fontSize: T.caption, color: inkSub, fontFeatures: _tabular)),
                 ]),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Gap.m),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                  Wrap(spacing: Gap.s, runSpacing: Gap.xs, crossAxisAlignment: WrapCrossAlignment.center, children: [
                     KindTag(item.kind),
-                    if (isNow)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: red, borderRadius: BorderRadius.circular(4)),
-                        child: const Text('지금',
-                            style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w800)),
-                      ),
-                    if (isPast) const Text('지남', style: TextStyle(fontSize: 11, color: inkSub, fontWeight: FontWeight.w700)),
+                    if (isNow) StatusPill('지금', color: red, filled: true),
+                    if (isPast) const StatusPill('지남', color: inkSub),
                   ]),
-                  const SizedBox(height: 4),
-                  Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                  Text(
-                    [item.place, if (item.staffName != null) item.staffName!].join(' · '),
-                    style: const TextStyle(fontSize: 13, color: inkSub),
-                  ),
+                  const SizedBox(height: Gap.xs),
+                  Text(item.title,
+                      style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: inkMain)),
+                  Text(item.place, style: const TextStyle(fontSize: T.caption, color: inkSub)),
+                  if (item.staffName != null)
+                    Text('담당 ${item.staffName}', style: const TextStyle(fontSize: T.caption, color: inkSub)),
                 ]),
               ),
             ]),
           ),
         ),
-        if (item.tempSlot != null) _tempLine(item.tempSlot!),
+        if (item.tempSlot != null) _tempBlock(item.tempSlot!),
       ]),
     );
 
@@ -189,45 +182,46 @@ class _ItemTile extends StatelessWidget {
     );
   }
 
-  /// '체온 측정 · 오전 체온' 줄. 일정보다 눈에 띄게 (일정 명세 2장).
-  Widget _tempLine(TempSlot ts) {
+  /// 체온 재는 일정: 상태 한 줄 + '체온 재기 · 오전 체온' 버튼 (일정보다 눈에 띄게, 일정 명세 2장).
+  Widget _tempBlock(TempSlot ts) {
     final s = slot;
     final m = s?.measurement;
-    String status;
-    Color fg = brandDark;
+    final name = _slotName(ts);
+    final Widget status;
     if (s != null && s.state == SlotState.recorded && m != null) {
-      final st = m.judgment.stage;
-      status = '${st.symbol} ${formatTemp(m.value)}° ${st.label}';
-      fg = stageColors[st]!.ink;
+      status = Semantics(
+        label: '$name ${formatTemp(m.value)}도 ${m.judgment.stage.label}',
+        excludeSemantics: true,
+        child: StageTag(m.judgment.stage, value: m.value),
+      );
     } else if (s?.state == SlotState.missed) {
-      status = '미기록';
-      fg = const Color(0xFF55595A);
+      status = const Wrap(spacing: Gap.s, runSpacing: Gap.xs, crossAxisAlignment: WrapCrossAlignment.center, children: [
+        StatusPill('미기록', color: inkSub),
+        Text('아직 안 쟀어요', style: TextStyle(fontSize: T.caption, color: inkSub)),
+      ]);
     } else {
-      status = '예정';
+      status = Text(s == null ? '예정' : '${hm(s.at)}에 재요', style: const TextStyle(fontSize: T.caption, color: inkSub));
     }
-    return Material(
-      color: const Color(0xFFEAF2EC),
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(11)),
-      child: InkWell(
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(11)),
-        onTap: onTemp,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 44),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(children: [
-              const Icon(Icons.thermostat, size: 18, color: brandDark),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text('체온 측정 · ${ts.label}',
-                    style: const TextStyle(fontWeight: FontWeight.w800, color: brandDark)),
-              ),
-              Text(status, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: fg)),
-              if (onTemp != null) const Icon(Icons.chevron_right, size: 18, color: brandDark),
-            ]),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gap.l, 0, Gap.l, Gap.l),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Wrap(spacing: Gap.s, runSpacing: Gap.xs, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          if (onTemp == null) ...[
+            const Icon(Icons.thermostat, size: 24, color: brandDark),
+            Text(name, style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
+          ],
+          status,
+        ]),
+        if (onTemp != null) ...[
+          const SizedBox(height: Gap.s),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(tapHeight)),
+            onPressed: onTemp,
+            icon: const Icon(Icons.thermostat, size: 24),
+            label: Text('체온 재기 · $name'),
           ),
-        ),
-      ),
+        ],
+      ]),
     );
   }
 }

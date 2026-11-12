@@ -1,4 +1,7 @@
 // 퀵 체온 (QT). 퀵 체온 명세 3~8장 + 통합 명세 6-1.
+// 화면 기준: docs/design.md — 40~60대 선생님이 한 손으로, 돋보기 없이 본다.
+// 위에서부터: 반 고르기 → 별님 고르기 → 이름·체온(크게) → 다이얼(± 옆) → 쓸기 안내.
+// 작은 폰에서는 글자가 아니라 다이얼을 먼저 줄인다.
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -11,10 +14,14 @@ import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/repository.dart';
 import '../../core/theme.dart';
+import '../../core/ui.dart';
 import '../alert_case/alert_sheet.dart';
 import 'quick_temp_controller.dart';
 
 const double _swipeThreshold = 48;
+
+/// "기록 완료" 표시의 진한 초록 (흰 글자 대비 충분). 판정 '평소' 글자색과 같은 계열.
+final Color _doneGreen = stageColors[Stage.normal]!.ink;
 
 class QuickTempScreen extends ConsumerStatefulWidget {
   const QuickTempScreen({super.key});
@@ -58,7 +65,7 @@ class _QuickTempScreenState extends ConsumerState<QuickTempScreen> {
     } else if (stage == Stage.caution && result.task != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         duration: const Duration(seconds: 3),
-        content: Text('평소보다 조금 높아요 (${formatDiff(result.measurement.judgment.diff)}). 30분 뒤 다시 재 주세요'),
+        content: Text('! ${plainDiff(result.measurement.judgment.diff)}\n30분 뒤 다시 재 주세요'),
       ));
     }
   }
@@ -86,6 +93,7 @@ class _QuickTempScreenState extends ConsumerState<QuickTempScreen> {
     final r = repo.resident(st.residentId);
     final idx = residents.indexWhere((x) => x.id == r.id);
     final saved = st.isSaved;
+    final canMeasure = ctrl.canMeasure(st.classId);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -94,69 +102,64 @@ class _QuickTempScreenState extends ConsumerState<QuickTempScreen> {
       onPanEnd: (_) => _onSwipeEnd(),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: saved
-                ? [recordedGreen, const Color(0xFFE3F1E1)]
-                : [Color.alphaBlend(Color(cls.color).withValues(alpha: 0.22), paper), paper],
-          ),
-        ),
+        // 기록 완료면 화면 전체가 초록으로 바뀐다 (한눈에 알 수 있게).
+        color: saved ? recordedGreen : Color.alphaBlend(Color(cls.color).withValues(alpha: 0.14), paper),
         child: SafeArea(
           bottom: false,
           child: LayoutBuilder(builder: (context, box) {
-            final compact = box.maxHeight < 720;
-            // 작은 화면에서는 다이얼을 줄인다 (퀵 체온 명세: 작은 화면·safe area 지원)
-            final dialSize = (box.maxHeight * 0.27).clamp(140.0, 210.0);
+            // 작은 화면: 이름과 체온을 한 줄에, 간격을 줄인다. 글자 크기는 그대로.
+            final compact = box.maxHeight < 700;
+            final gap = compact ? Gap.xs : Gap.m;
             return Column(
               children: [
-                const SizedBox(height: 8),
+                SizedBox(height: compact ? Gap.xs : Gap.s),
                 _ClassTabs(state: st),
-                SizedBox(height: compact ? 4 : 10),
+                SizedBox(height: gap),
                 _ResidentRow(state: st),
-                SizedBox(height: compact ? 2 : 10),
                 Text('${cls.name} · ${idx + 1} / ${residents.length}',
-                    style: const TextStyle(fontSize: 13, color: inkSub)),
+                    style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkSub)),
+                SizedBox(height: compact ? 0 : Gap.xs),
                 Semantics(
                   label: '${r.name} ${formatTemp(st.value)}도 ${saved ? '기록 완료' : '입력 중'}',
-                  child: Column(children: [
-                    Text(r.name, style: TextStyle(fontSize: compact ? 32 : 40, fontWeight: FontWeight.w500, height: 1.15)),
-                    _DigitalTemp(value: st.value, size: compact ? 38 : 46),
-                  ]),
+                  child: ExcludeSemantics(child: _NameAndTemp(name: r.name, value: st.value, compact: compact)),
                 ),
-                Text(saved ? '체온 기록 완료' : '체온을 입력해 주세요',
-                    style: TextStyle(fontSize: 13, color: saved ? brandDark : inkSub)),
-                const Spacer(),
-                _Dial(
-                  value: st.value,
-                  saved: saved,
-                  enabled: ctrl.canMeasure(st.classId),
-                  diameter: dialSize,
-                  onNudge: (d) {
-                    if (ref.read(quickTempProvider).mode == QtMode.classSelect) ctrl.setMode(QtMode.resident);
-                    ctrl.nudge(d);
-                  },
-                  onHoldComplete: _save,
+                SizedBox(height: compact ? Gap.xs : Gap.s),
+                _StatusLine(saved: saved),
+                SizedBox(height: gap),
+                // 다이얼은 남은 높이만큼만 (작은 화면에서 가장 먼저 줄어든다).
+                Expanded(
+                  child: LayoutBuilder(builder: (context, area) {
+                    const btn = 60.0;
+                    final maxByWidth = area.maxWidth - Gap.page * 2 - btn * 2 - Gap.m * 2;
+                    final dial = math.max(0.0, math.min(math.min(area.maxHeight, maxByWidth), 260.0));
+                    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      _RoundBtn(label: '−', semantic: '0.1도 내리기', onTap: () => ctrl.nudge(-1)),
+                      const SizedBox(width: Gap.m),
+                      _Dial(
+                        value: st.value,
+                        saved: saved,
+                        enabled: canMeasure,
+                        diameter: dial,
+                        onNudge: (d) {
+                          if (ref.read(quickTempProvider).mode == QtMode.classSelect) ctrl.setMode(QtMode.resident);
+                          ctrl.nudge(d);
+                        },
+                        onHoldComplete: _save,
+                      ),
+                      const SizedBox(width: Gap.m),
+                      _RoundBtn(label: '+', semantic: '0.1도 올리기', onTap: () => ctrl.nudge(1)),
+                    ]);
+                  }),
                 ),
-                SizedBox(height: compact ? 4 : 10),
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  _RoundBtn(label: '−', semantic: '0.1도 내리기', onTap: () => ctrl.nudge(-1)),
-                  const SizedBox(width: 16),
-                  const Text('돌려서 조절 · 0.1℃', style: TextStyle(fontSize: 13, color: inkSub)),
-                  const SizedBox(width: 16),
-                  _RoundBtn(label: '+', semantic: '0.1도 올리기', onTap: () => ctrl.nudge(1)),
-                ]),
-                SizedBox(
-                  height: 22,
-                  child: saved
-                      ? Text('${r.name} · ${formatTemp(st.value)}℃ 기록 완료',
-                          style: const TextStyle(fontSize: 13, color: brandDark, fontWeight: FontWeight.w600))
-                      : null,
+                const SizedBox(height: Gap.xs),
+                const Text('돌려서 0.1도씩', style: TextStyle(fontSize: T.body, color: inkSub, fontWeight: FontWeight.w600)),
+                SizedBox(height: gap),
+                _GestureGuide(
+                  mode: st.mode,
+                  onUp: () => ctrl.setMode(QtMode.classSelect),
+                  onDown: () => ctrl.setMode(QtMode.resident),
                 ),
-                const Spacer(),
-                _GestureGuide(compact: compact, mode: st.mode, onUp: () => ctrl.setMode(QtMode.classSelect), onDown: () => ctrl.setMode(QtMode.resident)),
-                SizedBox(height: compact ? 8 : 12),
+                SizedBox(height: compact ? Gap.s : Gap.l),
               ],
             );
           }),
@@ -166,6 +169,7 @@ class _QuickTempScreenState extends ConsumerState<QuickTempScreen> {
   }
 }
 
+// ── 반 고르기: 높이 52 칩. 잠긴 반은 자물쇠 + '잠김' 글자.
 class _ClassTabs extends ConsumerWidget {
   const _ClassTabs({required this.state});
   final QuickTempState state;
@@ -176,21 +180,24 @@ class _ClassTabs extends ConsumerWidget {
     final ctrl = ref.read(quickTempProvider.notifier);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(24)),
-        child: Row(children: [
-          for (final c in repo.classes)
-            _ClassTab(
+      padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+      // 잴 수 있는 반을 앞에, 잠긴 반은 뒤에 둔다 (내 반이 첫 화면에 보이게).
+      child: Row(children: [
+        for (final c in [
+          ...repo.classes.where((c) => ctrl.canMeasure(c.id)),
+          ...repo.classes.where((c) => !ctrl.canMeasure(c.id)),
+        ])
+          Padding(
+            padding: const EdgeInsets.only(right: Gap.s),
+            child: _ClassTab(
               cls: c,
               selected: c.id == state.classId,
               ring: c.id == state.classId && state.mode == QtMode.classSelect,
               locked: !ctrl.canMeasure(c.id),
               onTap: () => ctrl.selectClass(c.id, keepMode: state.mode == QtMode.classSelect),
             ),
-        ]),
-      ),
+          ),
+      ]),
     );
   }
 }
@@ -203,37 +210,56 @@ class _ClassTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fg = selected ? Colors.white : (locked ? inkSub : inkMain);
     return Semantics(
       button: true,
       enabled: !locked,
+      selected: selected,
       label: '${cls.name}${locked ? ', 측정 권한 없음' : ''}',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: locked ? null : onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          constraints: const BoxConstraints(minHeight: 44),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: ring ? brandDark : Colors.transparent, width: 2),
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? brandDark : (locked ? paper : surface),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.pill),
+          // 반 고르기 중이면 선택된 칩에 굵은 테두리 (위아래로 쓸어 바꾸는 상태)
+          side: BorderSide(
+            color: ring ? inkMain : (selected ? brandDark : line),
+            width: ring ? 3 : 1.5,
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text(cls.name,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                  color: locked ? inkSub.withValues(alpha: 0.6) : inkMain,
-                )),
-            if (locked) const Padding(padding: EdgeInsets.only(left: 3), child: Icon(Icons.lock, size: 12, color: inkSub)),
-          ]),
+        ),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: locked ? null : onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.symmetric(horizontal: Gap.l),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: Color(cls.color),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: selected ? Colors.white : inkSub, width: 1.5),
+                ),
+              ),
+              const SizedBox(width: Gap.s),
+              Text(cls.name, style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: fg)),
+              if (locked) ...[
+                const SizedBox(width: Gap.s),
+                Icon(Icons.lock, size: 18, color: fg),
+                const SizedBox(width: 2),
+                Text('잠김', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: fg)),
+              ],
+            ]),
+          ),
         ),
       ),
     );
   }
 }
 
+// ── 별님 고르기: 동그라미 52 + 이름. 고른 별님은 굵은 남색 테두리, 잰 별님은 ✓.
 class _ResidentRow extends ConsumerWidget {
   const _ResidentRow({required this.state});
   final QuickTempState state;
@@ -243,56 +269,108 @@ class _ResidentRow extends ConsumerWidget {
     final repo = ref.watch(repoProvider);
     final cls = repo.classOf(state.classId);
     final list = repo.residentsOf(state.classId);
+    final nameH = MediaQuery.textScalerOf(context).scale(T.caption) * 1.45;
     return SizedBox(
-      height: 72,
+      height: 52 + 8 + 2 + nameH + 4,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: Gap.page - 4),
         children: [
-          for (final r in list)
-            Semantics(
-              button: true,
-              selected: r.id == state.residentId,
-              label: r.name,
-              child: InkWell(
-                onTap: () => ref.read(quickTempProvider.notifier).selectResident(r.id),
-                borderRadius: BorderRadius.circular(30),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Column(children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: r.id == state.residentId && state.mode == QtMode.resident ? brandDark : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Color(cls.color).withValues(alpha: 0.35),
-                        child: Text(r.name.substring(1, 2), style: const TextStyle(fontSize: 14, color: inkMain)),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${r.name.substring(1)}${state.saved.containsKey(r.id) ? ' ✓' : ''}',
-                      style: TextStyle(fontSize: 12, fontWeight: r.id == state.residentId ? FontWeight.w700 : FontWeight.w400),
-                    ),
-                  ]),
+          for (final r in list) _residentItem(ref, r, cls, list),
+        ],
+      ),
+    );
+  }
+
+  Widget _residentItem(WidgetRef ref, Resident r, Class cls, List<Resident> list) {
+    final selected = r.id == state.residentId;
+    final done = state.saved.containsKey(r.id);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${r.name}${done ? ', 기록함' : ''}',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: () => ref.read(quickTempProvider.notifier).selectResident(r.id),
+        borderRadius: BorderRadius.circular(Radii.button),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(children: [
+            Stack(clipBehavior: Clip.none, children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected ? (state.mode == QtMode.resident ? brandDark : inkSub) : Colors.transparent,
+                    width: 2,
+                  ),
                 ),
+                child: ResidentAvatar(name: r.name, classColor: cls.color, size: 52),
+              ),
+              if (done)
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: _doneGreen,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(Icons.check, size: 14, color: Colors.white),
+                  ),
+                ),
+            ]),
+            const SizedBox(height: 2),
+            Text(
+              r.name.substring(1),
+              style: TextStyle(
+                fontSize: T.caption,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                color: selected ? brandDark : inkMain,
               ),
             ),
-        ],
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+// ── 이름과 체온: 같은 크기로 크게 (퀵 체온 명세). 작은 화면에서는 한 줄에 나란히.
+class _NameAndTemp extends StatelessWidget {
+  const _NameAndTemp({required this.name, required this.value, required this.compact});
+  final String name;
+  final int value;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 36.0 : 44.0;
+    final nameText = Text(name, style: TextStyle(fontSize: size, fontWeight: FontWeight.w800, height: 1.15, color: inkMain));
+    final temp = _DigitalTemp(value: value, size: size);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: compact
+            ? Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+                nameText,
+                const SizedBox(width: Gap.l),
+                temp,
+              ])
+            : Column(mainAxisSize: MainAxisSize.min, children: [nameText, temp]),
       ),
     );
   }
 }
 
 class _DigitalTemp extends StatelessWidget {
-  const _DigitalTemp({required this.value, this.size = 46});
+  const _DigitalTemp({required this.value, this.size = 44});
   final int value;
   final double size;
 
@@ -304,14 +382,42 @@ class _DigitalTemp extends StatelessWidget {
         style: TextStyle(
           fontSize: size,
           height: 1.1,
-          fontWeight: FontWeight.w300,
-          letterSpacing: 2,
-          fontFamily: 'monospace',
+          fontWeight: FontWeight.w700,
+          color: inkMain,
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
-      const Padding(padding: EdgeInsets.only(top: 8, left: 2), child: Text('℃', style: TextStyle(fontSize: 16))),
+      Padding(
+        padding: const EdgeInsets.only(top: 4, left: 2),
+        child: Text('℃', style: TextStyle(fontSize: size * 0.5, fontWeight: FontWeight.w700, color: inkSub)),
+      ),
     ]);
+  }
+}
+
+// ── 지금 상태 한 줄: 입력 중(조용히) / 기록 완료(진한 초록 띠 + ✓).
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.saved});
+  final bool saved;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!saved) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 6),
+        child: Text('체온을 입력해 주세요',
+            textAlign: TextAlign.center, style: TextStyle(fontSize: T.body, color: inkSub, fontWeight: FontWeight.w600)),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Gap.l, vertical: 6),
+      decoration: BoxDecoration(color: _doneGreen, borderRadius: BorderRadius.circular(Radii.pill)),
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.check_circle, color: Colors.white, size: 24),
+        SizedBox(width: 6),
+        Text('체온 기록 완료', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: Colors.white)),
+      ]),
+    );
   }
 }
 
@@ -369,6 +475,8 @@ class _DialState extends State<_Dial> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final d = widget.diameter;
+    final title = !widget.enabled ? '측정 권한 없음' : (widget.saved ? '기록 완료' : '눌러서 기록');
+    final sub = !widget.enabled ? '다른 반이에요' : (widget.saved ? '다음 별님으로' : '0.5초 꾹');
     return Semantics(
       label: '체온 다이얼. 돌려서 조절하고 0.5초 눌러 기록',
       value: '${formatTemp(widget.value)}도',
@@ -428,17 +536,24 @@ class _DialState extends State<_Dial> with SingleTickerProviderStateMixin {
               builder: (context, _) => CustomPaint(
                 painter: _DialPainter(rotation: _rotation, progress: _hold.value, saved: widget.saved),
                 child: Center(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(widget.saved ? Icons.check : Icons.north, color: brandDark, size: 28),
-                    const SizedBox(height: 6),
-                    Text(
-                      !widget.enabled ? '측정 권한 없음' : (widget.saved ? '기록 완료' : '눌러서 기록'),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  // 아주 작은 화면에서만 안쪽 글씨를 다이얼에 맞춘다.
+                  child: SizedBox(
+                    width: d * 0.62,
+                    height: d * 0.62,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(widget.saved ? Icons.check_circle : Icons.touch_app,
+                            color: widget.saved ? _doneGreen : brandDark, size: 32),
+                        Text(title,
+                            style: TextStyle(
+                                fontSize: T.body,
+                                fontWeight: FontWeight.w800,
+                                color: widget.saved ? _doneGreen : inkMain)),
+                        Text(sub, style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: inkSub)),
+                      ]),
                     ),
-                    const SizedBox(height: 2),
-                    Text(widget.saved ? '다음 별님으로 넘겨 주세요' : '0.5초간 꾹 눌러 주세요',
-                        style: const TextStyle(fontSize: 11, color: inkSub)),
-                  ]),
+                  ),
                 ),
               ),
             ),
@@ -458,32 +573,38 @@ class _DialPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
     final r = size.width / 2;
-    canvas.drawCircle(c, r, Paint()..color = Colors.white.withValues(alpha: 0.9));
+    if (r <= 0) return;
+    canvas.drawCircle(c, r, Paint()..color = surface);
     canvas.drawCircle(
-        c, r, Paint()..color = const Color(0x22000000)..style = PaintingStyle.stroke..strokeWidth = 1);
-    canvas.drawCircle(c, r * 0.62, Paint()..color = const Color(0xFFF7F7F2));
+        c,
+        r - 1,
+        Paint()
+          ..color = saved ? _doneGreen : line
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = saved ? 3 : 2);
+    canvas.drawCircle(c, r * 0.62, Paint()..color = saved ? recordedGreen : paper);
 
-    final tick = Paint()..color = inkSub.withValues(alpha: 0.5)..strokeWidth = 1.4;
+    final tick = Paint()..color = inkSub;
     for (var i = 0; i < 60; i++) {
       final a = (i * 6 + rotation - 90) * math.pi / 180;
       final major = i % 5 == 0;
       final p1 = c + Offset(math.cos(a), math.sin(a)) * (r - 8);
       final p2 = c + Offset(math.cos(a), math.sin(a)) * (r - (major ? 20 : 14));
-      canvas.drawLine(p1, p2, tick..strokeWidth = major ? 2 : 1.2);
+      canvas.drawLine(p1, p2, tick..strokeWidth = major ? 2.4 : 1.2);
     }
     final dotA = (rotation - 90) * math.pi / 180;
-    canvas.drawCircle(c + Offset(math.cos(dotA), math.sin(dotA)) * (r - 14), 5, Paint()..color = brandDark);
+    canvas.drawCircle(c + Offset(math.cos(dotA), math.sin(dotA)) * (r - 14), 6, Paint()..color = brandDark);
 
     if (progress > 0) {
       canvas.drawArc(
-        Rect.fromCircle(center: c, radius: r - 3),
+        Rect.fromCircle(center: c, radius: r - 4),
         -math.pi / 2,
         2 * math.pi * progress,
         false,
         Paint()
           ..color = brandDark
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 5
+          ..strokeWidth = 7
           ..strokeCap = StrokeCap.round,
       );
     }
@@ -493,6 +614,7 @@ class _DialPainter extends CustomPainter {
   bool shouldRepaint(_DialPainter old) => old.rotation != rotation || old.progress != progress || old.saved != saved;
 }
 
+/// − / + 버튼 60×60.
 class _RoundBtn extends StatelessWidget {
   const _RoundBtn({required this.label, required this.semantic, required this.onTap});
   final String label, semantic;
@@ -504,20 +626,27 @@ class _RoundBtn extends StatelessWidget {
         label: semantic,
         excludeSemantics: true,
         child: SizedBox(
-          width: 44,
-          height: 44,
+          width: 60,
+          height: 60,
           child: OutlinedButton(
             onPressed: onTap,
-            style: OutlinedButton.styleFrom(shape: const CircleBorder(), padding: EdgeInsets.zero, backgroundColor: Colors.white),
-            child: Text(label, style: const TextStyle(fontSize: 20, color: inkMain)),
+            style: OutlinedButton.styleFrom(
+              shape: const CircleBorder(),
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(60, 60),
+              backgroundColor: surface,
+              side: const BorderSide(color: brandDark, width: 2),
+            ),
+            // 글꼴마다 '−' 기호가 없을 수 있어 아이콘으로 그린다.
+            child: Icon(label == '+' ? Icons.add : Icons.remove, size: 34, color: brandDark),
           ),
         ),
       );
 }
 
+// ── 쓸기 안내: 지금 좌우로 쓸면 무엇이 바뀌는지 한 줄 + 위/아래 버튼 2개 (높이 56).
 class _GestureGuide extends StatelessWidget {
-  const _GestureGuide({required this.compact, required this.mode, required this.onUp, required this.onDown});
-  final bool compact;
+  const _GestureGuide({required this.mode, required this.onUp, required this.onDown});
   final QtMode mode;
   final VoidCallback onUp, onDown;
 
@@ -525,23 +654,17 @@ class _GestureGuide extends StatelessWidget {
   Widget build(BuildContext context) {
     final residentMode = mode == QtMode.resident;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.page),
       child: Column(children: [
-        if (!compact) ...[
-          Text(residentMode ? '별님 선택 중' : '반 선택 중', style: const TextStyle(fontSize: 11, color: inkSub)),
-          Text(residentMode ? '별님 바꾸기' : '반 바꾸기', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-          const Text('화면을 좌우로 쓸어 주세요', style: TextStyle(fontSize: 11, color: inkSub)),
-          const SizedBox(height: 8),
-        ] else
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(residentMode ? '좌우로 쓸어 별님 바꾸기' : '좌우로 쓸어 반 바꾸기',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          ),
+        Text(
+          residentMode ? '좌우로 쓸면 다음 별님' : '좌우로 쓸면 다음 반',
+          style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: inkMain),
+        ),
+        const SizedBox(height: Gap.xs),
         Row(children: [
-          Expanded(child: _GuideBtn(icon: Icons.swipe_up, text: '위로 쓸어\n반 바꾸기', strong: residentMode, onTap: onUp)),
-          const SizedBox(width: 8),
-          Expanded(child: _GuideBtn(icon: Icons.swipe_down, text: '아래로 쓸어\n별님 선택', strong: !residentMode, onTap: onDown)),
+          Expanded(child: _GuideBtn(icon: Icons.swipe_up, text: '반 바꾸기', on: !residentMode, onTap: onUp)),
+          const SizedBox(width: Gap.s),
+          Expanded(child: _GuideBtn(icon: Icons.swipe_down, text: '별님 고르기', on: residentMode, onTap: onDown)),
         ]),
       ]),
     );
@@ -549,29 +672,41 @@ class _GestureGuide extends StatelessWidget {
 }
 
 class _GuideBtn extends StatelessWidget {
-  const _GuideBtn({required this.icon, required this.text, required this.strong, required this.onTap});
+  const _GuideBtn({required this.icon, required this.text, required this.on, required this.onTap});
   final IconData icon;
   final String text;
-  final bool strong;
+
+  /// 지금 이 모드인가 (남색으로 채움).
+  final bool on;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: strong ? const Color(0xFFE2ECDD) : Colors.white.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: strong ? brandDark.withValues(alpha: 0.5) : const Color(0x22000000)),
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        selected: on,
+        child: Material(
+          color: on ? brandDark : surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.button),
+            side: BorderSide(color: on ? brandDark : line, width: 1.5),
           ),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 22, color: strong ? brandDark : inkSub),
-            const SizedBox(width: 6),
-            Text(text, style: TextStyle(fontSize: 12, color: strong ? inkMain : inkSub)),
-          ]),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.button),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: tapHeight),
+              padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.xs),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(icon, size: 24, color: on ? Colors.white : brandDark),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: on ? Colors.white : inkMain)),
+                ),
+              ]),
+            ),
+          ),
         ),
       );
 }

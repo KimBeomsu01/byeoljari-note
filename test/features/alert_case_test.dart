@@ -66,7 +66,8 @@ class Harness {
     await tester.pumpAndSettle();
   }
 
-  Future<void> tapText(String text) => tap(find.text(text).last);
+  // S3는 길어서 아래쪽 버튼·기록은 화면 밖에 있다: 화면 밖까지 찾고 ensureVisible로 끌어온다.
+  Future<void> tapText(String text) => tap(find.text(text, skipOffstage: false).last);
 
   /// 퀵 체온으로 체온 저장 (0.5초 누름) → S1까지.
   Future<void> saveViaQuickTemp(String residentId, int value) async {
@@ -86,6 +87,20 @@ class Harness {
 
 Finder inSheet(String text) => find.descendant(of: find.byType(BottomSheet), matching: find.text(text));
 
+/// 큰 글자 검사용: 넘침 오류를 모은다. 하단 메뉴(lib/app.dart, 다른 담당)의 넘침은 따로 보고하고 여기서는 뺀다.
+List<String> Function() collectOverflows() {
+  final errors = <String>[];
+  final old = FlutterError.onError;
+  FlutterError.onError = (d) {
+    final text = d.toDiagnosticsNode().toStringDeep();
+    if (!text.contains('lib/app.dart')) errors.add(text);
+  };
+  return () {
+    FlutterError.onError = old;
+    return errors;
+  };
+}
+
 void main() {
   testWidgets('시연 흐름: 38.4 이상 대응 → 간호사 확인·담당·투약 기록 → 39.1 긴급 → 원장 병원 지시 → 간호사 종료', (tester) async {
     setSize(tester, 400, 820);
@@ -96,8 +111,9 @@ void main() {
     // ── 김하늘: 퀵 체온 38.4 → S1
     await h.saveViaQuickTemp(seojun, 384);
     expect(inSheet('▲ 이상 대응'), findsOneWidget);
-    expect(find.text('38.4℃ · 평소보다 +1.3℃ · 이상'), findsOneWidget);
-    expect(find.text('아직 아무도 확인 안 함'), findsOneWidget);
+    expect(inSheet('38.4℃'), findsOneWidget);
+    expect(inSheet('평소보다 1.3도 높아요'), findsOneWidget);
+    expect(inSheet('아직 아무도 확인 안 했어요'), findsOneWidget);
     expect(find.text('간호사에게 전화'), findsOneWidget);
     expect(find.text('새 이상 대응'), findsNothing, reason: '내가 잰 체온의 알림은 배너로 띄우지 않는다');
     final caseId = h.repo.openCaseOf(seojun)!.id;
@@ -107,7 +123,10 @@ void main() {
     expect(find.byType(CaseDetailScreen), findsOneWidget);
     expect(find.text('이서준 · 이상 대응'), findsOneWidget);
     expect(find.text('미확인'), findsOneWidget);
+    // 대응 단계는 할 일 버튼 아래에 있다
+    await tester.dragUntilVisible(find.text('① 관찰·재측정'), find.byType(ListView).last, const Offset(0, -200));
     expect(find.text('① 관찰·재측정'), findsOneWidget);
+    expect(find.text('지금'), findsOneWidget);
     // 생활관은 투약 기록 권한이 없다: 흐리게 + 누르면 이유
     await h.tapText('투약 기록');
     expect(find.text('간호사·원장님만 투약을 기록할 수 있어요'), findsOneWidget);
@@ -121,10 +140,10 @@ void main() {
 
     await h.tapText('확인했어요');
     expect(h.repo.caseById(caseId).status, CaseStatus.acked);
-    expect(find.textContaining('박소연 간호사 '), findsWidgets); // 확인한 사람 줄
+    expect(find.textContaining('박소연 간호사 ', skipOffstage: false), findsWidgets); // 확인한 사람 줄
     await h.tapText('제가 맡을게요');
     expect(h.repo.caseById(caseId).assigneeId, 'park_soyeon');
-    expect(find.text('박소연 간호사'), findsOneWidget, reason: '담당');
+    expect(find.text('박소연 간호사', skipOffstage: false), findsOneWidget, reason: '담당');
     expect(h.repo.noticesFor('kim_haneul').first.body, '박소연 간호사가 맡았어요');
 
     await h.tapText('투약 기록');
@@ -135,17 +154,17 @@ void main() {
     expect(find.text('② 원내 조제로 올릴까요?'), findsOneWidget);
     await h.tapText('올리기');
     expect(h.repo.caseById(caseId).stage, 2);
-    expect(find.text('💊 투약 기록 · 지침대로 해열제 줌 (원장님 전화 지시)'), findsOneWidget);
+    expect(find.text('💊 투약 기록 · 지침대로 해열제 줌 (원장님 전화 지시)', skipOffstage: false), findsOneWidget);
 
     // 조치 기록 → 기록 취소 (지우지 않고 취소 표시)
     await h.tapText('조치 기록');
     await h.tapText('💧 수분 섭취');
     await h.tapText('기록하기');
-    expect(find.text('📝 💧 수분 섭취'), findsOneWidget);
-    await h.tap(find.text('기록 취소').last);
+    expect(find.text('📝 💧 수분 섭취', skipOffstage: false), findsOneWidget);
+    await h.tap(find.text('기록 취소', skipOffstage: false).last);
     await h.tapText('취소 표시');
-    expect(find.textContaining('취소됨 (박소연 간호사)'), findsOneWidget);
-    expect(find.text('📝 💧 수분 섭취'), findsOneWidget, reason: '기록은 남아 있다');
+    expect(find.textContaining('취소됨 (박소연 간호사)', skipOffstage: false), findsOneWidget);
+    expect(find.text('📝 💧 수분 섭취', skipOffstage: false), findsOneWidget, reason: '기록은 남아 있다');
     expect(h.repo.eventsOf(caseId).where((e) => e.type == 'note').single.voidedBy, 'park_soyeon');
 
     // ── 김하늘: 39.1 → 긴급
@@ -162,13 +181,13 @@ void main() {
     // ── 원장 한경수: 중요 알림 배너 → [병원으로 보내세요] → 단계 ④
     await h.toRoot();
     await h.switchTo('han_kyungsoo');
-    expect(find.text('중요 알림 · 긴급으로 바뀌었어요'), findsOneWidget);
-    await h.tap(find.text('중요 알림 · 긴급으로 바뀌었어요'));
+    expect(find.bySemanticsLabel(RegExp('^중요 알림, 긴급으로 바뀌었어요')), findsOneWidget);
+    await h.tap(find.text('긴급으로 바뀌었어요').first);
     expect(find.text('이서준 · 긴급'), findsOneWidget);
     await h.tapText('병원으로 보내세요');
     await h.tapText('보내기');
     expect(h.repo.caseById(caseId).stage, 4);
-    expect(find.text('🩺 원장님 지시 · 병원으로 보내세요'), findsOneWidget);
+    expect(find.text('🩺 원장님 지시 · 병원으로 보내세요', skipOffstage: false), findsOneWidget);
     expect(find.text('병원 결과 기록'), findsOneWidget);
 
     // ── 간호사: 병원 결과 기록 → 대응 종료
@@ -178,7 +197,7 @@ void main() {
     await h.tapText('병원 결과 기록');
     await h.tapText('진료 후 귀원');
     await h.tapText('기록하기');
-    expect(find.text('🏥 병원 · 진료 후 귀원'), findsOneWidget);
+    expect(find.text('🏥 병원 · 진료 후 귀원', skipOffstage: false), findsOneWidget);
     await h.tapText('대응 종료');
     await h.tapText('병원 진료 후 귀원');
     await h.tapText('종료하기');
@@ -258,4 +277,41 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('별님 카드로'), findsOneWidget);
   });
+
+  for (final size in const [Size(390, 844), Size(360, 640)]) {
+    testWidgets('큰 글자(1.3배): S1·S3·알림 목록이 넘치지 않는다 ${size.width.toInt()}×${size.height.toInt()}', (tester) async {
+      setSize(tester, size.width, size.height);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final overflows = collectOverflows();
+      var errors = <String>[];
+      try {
+        final h = Harness(tester);
+        await h.start();
+        final seojun = residentByName('이서준').id;
+        await h.saveViaQuickTemp(seojun, 384);
+        expect(inSheet('▲ 이상 대응'), findsOneWidget);
+        await tester.drag(find.byType(BottomSheet), const Offset(0, -1000));
+        await tester.pumpAndSettle();
+        await h.tapText('자세히 보기');
+        expect(find.byType(CaseDetailScreen), findsOneWidget);
+        for (final who in ['kim_haneul', 'han_kyungsoo', 'park_seoyeon']) {
+          await h.switchTo(who);
+          await h.dismissBanner();
+          await tester.drag(find.byType(ListView).last, const Offset(0, -3000));
+          await tester.pumpAndSettle();
+          await tester.drag(find.byType(ListView).last, const Offset(0, 3000));
+          await tester.pumpAndSettle();
+        }
+        // 🔔 목록
+        await h.toRoot();
+        await h.dismissBanner();
+        await h.tap(find.byTooltip('알림'));
+        expect(find.textContaining('진행 중'), findsOneWidget);
+      } finally {
+        errors = overflows();
+      }
+      expect(errors, isEmpty);
+    });
+  }
 }

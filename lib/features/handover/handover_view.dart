@@ -1,4 +1,4 @@
-// 인수인계 화면 계산 (범위·미확인·필터). 화면 그리기와 떼어 두어 테스트하기 쉽게 한다.
+// 인수인계 화면 계산 (범위·미확인·보기 칩). 화면에 쓰는 말은 label/emptyText만. 화면 그리기와 떼어 두어 테스트하기 쉽게 한다.
 // 판정은 계산하지 않는다. 측정에 저장된 판정을 읽기만 한다 (통합 명세 5-2).
 import '../../core/models.dart';
 import '../../core/repository.dart';
@@ -8,7 +8,7 @@ enum FeedFilter { all, unread, task, facility, classNotice, resident }
 extension FeedFilterInfo on FeedFilter {
   String get label => switch (this) {
         FeedFilter.all => '모두',
-        FeedFilter.unread => '미확인',
+        FeedFilter.unread => '안 본 기록',
         FeedFilter.task => '할 일',
         FeedFilter.facility => '전체 공지',
         FeedFilter.classNotice => '반별 공지',

@@ -135,8 +135,7 @@ String eventText(InMemoryRepository repo, CaseEvent e) {
     case 'created':
       try {
         final m = repo.measurement(d['measurementId'] as String);
-        return '🌡 ${withSubject(staffName(repo, m.recordedBy))} ${formatTemp(m.value)}℃ 입력 · '
-            '평소보다 ${formatDiff(m.judgment.diff)}℃ · ${m.judgment.stage.label}';
+        return '🌡 처음 잰 체온 ${formatTemp(m.value)}℃ · ${m.judgment.stage.symbol} ${m.judgment.stage.label}';
       } catch (_) {
         return '🌡 이상 건 시작';
       }
@@ -148,9 +147,9 @@ String eventText(InMemoryRepository repo, CaseEvent e) {
       return '⚠ 위험이 나와 긴급으로 바뀌었어요 · 원장님께 알림';
     case 'recovered':
       final v = d['value'] as int?;
-      return '✓ ${v == null ? '' : '${formatTemp(v)}℃ · '}평소 범위로 내려왔어요 (종료 대기)';
+      return '✓ ${v == null ? '' : '${formatTemp(v)}℃ · '}평소 체온으로 돌아왔어요';
     case 'acked':
-      return '👀 $who 확인';
+      return '👀 ${withSubject(who)} 확인했어요';
     case 'assigned':
       return '🙋 ${withSubject(who)} 맡았어요';
     case 'stage':
@@ -160,7 +159,7 @@ String eventText(InMemoryRepository repo, CaseEvent e) {
           '${note == null || note.isEmpty ? '' : ' · $note'}';
     case 'remeasure_scheduled':
       final min = d['minutes'] as int? ?? 30;
-      return '⏱ $min분 뒤 재측정 예약 (${hm(e.at.add(Duration(minutes: min)))})';
+      return '⏱ ${hm(e.at.add(Duration(minutes: min)))}에 다시 재기로 했어요 ($min분 뒤)';
     case 'note':
       return '📝 ${text('text')}';
     case 'medication':
@@ -170,7 +169,7 @@ String eventText(InMemoryRepository repo, CaseEvent e) {
     case 'hospital_result':
       return '🏥 병원 · ${text('text')}';
     case 'closed':
-      return '✅ 종료 · ${text('reason')}';
+      return '✅ 대응 종료 · ${text('reason')}';
     case 'measurement_voided':
       return '↩ 잘못 잰 값으로 표시했어요';
     default:
@@ -178,7 +177,17 @@ String eventText(InMemoryRepository repo, CaseEvent e) {
   }
 }
 
-/// 색만으로 구분하지 않도록 글자·기호가 들어간 작은 표 (5-7).
+/// 타임라인에서 "누가" 줄에 쓸 이름. 처음 입력은 '자동'이 아니라 잰 선생님.
+String eventActor(InMemoryRepository repo, CaseEvent e) {
+  if (e.type == 'created') {
+    try {
+      return staffName(repo, repo.measurement(e.data['measurementId'] as String).recordedBy);
+    } catch (_) {}
+  }
+  return staffName(repo, e.actorId);
+}
+
+/// 색만으로 구분하지 않도록 글자·기호가 들어간 표 (5-7). 크기는 StatusPill과 같다.
 class LabelChip extends StatelessWidget {
   const LabelChip(this.text, {super.key, required this.color, this.filled = false});
   final String text;
@@ -187,15 +196,54 @@ class LabelChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: filled ? color : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color),
+          color: filled ? color : surface,
+          borderRadius: BorderRadius.circular(Radii.pill),
+          border: Border.all(color: color, width: 1.5),
         ),
         child: Text(text,
-            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: filled ? Colors.white : color)),
+            style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: filled ? Colors.white : color)),
       );
+}
+
+/// 큰 "⚠ 긴급" / "▲ 이상 대응" 알약 (색 채움 + 흰 글자).
+class CaseBadge extends StatelessWidget {
+  const CaseBadge(this.c, {super.key});
+  final Case c;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(minHeight: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: caseColors(c).ink, borderRadius: BorderRadius.circular(Radii.pill)),
+        child: Text(caseBadge(c),
+            style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2)),
+      );
+}
+
+/// 아이콘 + 한 줄 (알린 사람, 확인한 사람 같은 안내).
+class IconLine extends StatelessWidget {
+  const IconLine({super.key, required this.icon, required this.text, this.strong = false, this.color});
+  final IconData icon;
+  final String text;
+  final bool strong;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(padding: const EdgeInsets.only(top: 2), child: Icon(icon, size: 22, color: color ?? inkSub)),
+        const SizedBox(width: Gap.s),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(
+                fontSize: strong ? T.body : T.caption,
+                fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
+                color: color ?? inkMain,
+              )),
+        ),
+      ]);
 }
 
 void toast(BuildContext context, String msg) {

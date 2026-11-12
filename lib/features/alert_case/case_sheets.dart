@@ -102,16 +102,18 @@ class _NoteSheetState extends State<_NoteSheet> {
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.l),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(widget.title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+            Text(widget.title, style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800)),
             if (widget.subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(widget.subtitle!, style: const TextStyle(fontSize: 13, color: inkSub)),
+              const SizedBox(height: Gap.xs),
+              Text(widget.subtitle!, style: const TextStyle(fontSize: T.body, color: inkSub)),
             ],
             if (widget.chips.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(spacing: 8, runSpacing: 8, children: [
+              const SizedBox(height: Gap.l),
+              const Text('하나 골라 주세요', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkSub)),
+              const SizedBox(height: Gap.s),
+              Wrap(spacing: Gap.s, runSpacing: Gap.s, children: [
                 for (final c in widget.chips)
                   ChoiceChip(
                     label: Text(c),
@@ -121,31 +123,30 @@ class _NoteSheetState extends State<_NoteSheet> {
                   ),
               ]),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: Gap.l),
             TextField(
               controller: _ctrl,
               minLines: 2,
               maxLines: 4,
+              style: const TextStyle(fontSize: T.body, color: inkMain),
               decoration: InputDecoration(
                 hintText: _needText ? widget.hint.replaceAll('(선택)', '(꼭 써 주세요)') : widget.hint,
-                border: const OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Gap.l),
             Row(children: [
               Expanded(
                 child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(tapHeight)),
                   onPressed: () => Navigator.pop(context),
                   child: const Text('취소'),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Gap.s),
               Expanded(
-                flex: 2,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48), backgroundColor: widget.submitColor ?? brandDark),
+                      minimumSize: const Size.fromHeight(tapHeight), backgroundColor: widget.submitColor ?? brandDark),
                   onPressed: _ready ? () => Navigator.pop(context, NoteResult(_chip, _ctrl.text)) : null,
                   child: Text(widget.submitLabel),
                 ),
@@ -158,26 +159,32 @@ class _NoteSheetState extends State<_NoteSheet> {
   }
 }
 
-/// S5 단계 고르기: 지금보다 높은 단계만. 권한 없는 단계는 흐리게 + 이유.
+/// S5 단계 고르기: 지금보다 높은 단계만. 권한 없는 단계는 자물쇠 + 이유 글자.
 Future<int?> pickStage(BuildContext context, CasePerms p) => showModalBottomSheet<int>(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
       builder: (sheet) => SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.l),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Text('단계 올리기', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-            Text('지금 ${circledStage[p.c.stage - 1]} ${InMemoryRepository.stageLabel(p.c.stage)} · 단계를 건너뛸 수 있어요',
-                style: const TextStyle(fontSize: 13, color: inkSub)),
-            const SizedBox(height: 12),
+            const Text('단계 올리기', style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800)),
+            const SizedBox(height: Gap.xs),
+            Text('지금은 ${circledStage[p.c.stage - 1]} ${InMemoryRepository.stageLabel(p.c.stage)}',
+                style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
+            const Text('건너뛰고 올릴 수도 있어요', style: TextStyle(fontSize: T.body, color: inkSub)),
+            const SizedBox(height: Gap.l),
             for (var s = p.c.stage + 1; s <= 4; s++) ...[
               Builder(builder: (_) {
                 final denied = p.stageDenied(s);
                 return OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
+                    minimumSize: const Size.fromHeight(60),
                     foregroundColor: denied == null ? brandDark : inkSub,
+                    backgroundColor: denied == null ? surface : paper,
+                    side: BorderSide(color: denied == null ? brandDark : line, width: 1.5),
                     alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: Gap.l, vertical: Gap.m),
                   ),
                   onPressed: () {
                     if (denied != null) {
@@ -187,12 +194,21 @@ Future<int?> pickStage(BuildContext context, CasePerms p) => showModalBottomShee
                     Navigator.pop(sheet, s);
                   },
                   child: Row(children: [
-                    Expanded(child: Text(p.stageAction(s), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
-                    if (denied != null) const Icon(Icons.lock_outline, size: 18, semanticLabel: '권한 없음'),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(p.stageAction(s),
+                            style: TextStyle(
+                                fontSize: T.body, fontWeight: FontWeight.w800, color: denied == null ? inkMain : inkSub)),
+                        if (denied != null)
+                          Text(denied, style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w500, color: inkSub)),
+                      ]),
+                    ),
+                    Icon(denied == null ? Icons.chevron_right : Icons.lock_outline,
+                        size: 26, semanticLabel: denied == null ? null : '권한 없음'),
                   ]),
                 );
               }),
-              const SizedBox(height: 8),
+              const SizedBox(height: Gap.s),
             ],
           ]),
         ),
@@ -203,7 +219,7 @@ Future<int?> pickStage(BuildContext context, CasePerms p) => showModalBottomShee
 Future<NoteResult?> stageInputSheet(BuildContext context, int stage, CasePerms p) => switch (stage) {
       2 => showNoteSheet(context,
           title: '원내 조제로 대응할까요?',
-          subtitle: '간호사·원장님 지시대로 한 일을 적어 주세요. 앱은 용량을 정하지 않아요.',
+          subtitle: '간호사·원장님 지시대로 한 일을 적어 주세요.\n앱은 용량을 정하지 않아요.',
           hint: '무엇을 했는지 (선택)',
           submitLabel: '단계 올리기'),
       3 => showNoteSheet(context,
@@ -225,7 +241,7 @@ Future<NoteResult?> stageInputSheet(BuildContext context, int stage, CasePerms p
 Future<NoteResult?> closeSheet(BuildContext context, CasePerms p, {String? initial}) => showNoteSheet(
       context,
       title: '대응을 종료할까요?',
-      subtitle: p.fullClose ? '종료하면 남은 재측정 예약도 멈추고 모두에게 종료 알림이 가요.' : '입력한 선생님은 잘못 잰 값일 때만 종료할 수 있어요.',
+      subtitle: p.fullClose ? '종료하면 다시 재기 알림도 멈춰요.\n모두에게 종료 알림이 가요.' : '처음 잰 선생님은 잘못 잰 값일 때만 종료할 수 있어요.',
       chips: p.allowedCloseReasons,
       chipRequired: true,
       textRequiredFor: const {'기타'},
@@ -233,16 +249,24 @@ Future<NoteResult?> closeSheet(BuildContext context, CasePerms p, {String? initi
       submitLabel: '종료하기',
     );
 
-/// 예/아니오 확인창.
+/// 예/아니오 확인창. 두 버튼은 같은 폭.
 Future<bool> confirm(BuildContext context, String title, String body, String yes) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (d) => AlertDialog(
       title: Text(title),
       content: Text(body),
+      actionsPadding: const EdgeInsets.fromLTRB(Gap.l, 0, Gap.l, Gap.l),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('아니요')),
-        FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(yes)),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton(onPressed: () => Navigator.pop(d, false), child: const Text('아니요')),
+          ),
+          const SizedBox(width: Gap.s),
+          Expanded(
+            child: FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(yes)),
+          ),
+        ]),
       ],
     ),
   );

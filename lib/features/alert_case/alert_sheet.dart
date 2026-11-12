@@ -10,6 +10,7 @@ import '../../core/providers.dart';
 import '../../core/repository.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/ui.dart';
 import 'case_sheets.dart' show confirm;
 import 'case_ui.dart';
 
@@ -51,7 +52,7 @@ class _AlertSheet extends ConsumerWidget {
     // 다른 사람이 확인했는지 (실시간)
     final acks = acksOf(repo, c.id).where((e) => e.actorId != me).toList();
     final ackLine = acks.isEmpty
-        ? '아직 아무도 확인 안 함'
+        ? '아직 아무도 확인 안 했어요'
         : '${withSubject(staffName(repo, acks.first.actorId))} 확인했어요 (${agoText(now(), acks.first.at)})'
             '${acks.length > 1 ? ' 외 ${acks.length - 1}명' : ''}';
 
@@ -60,96 +61,126 @@ class _AlertSheet extends ConsumerWidget {
       toast(context, '${nurse?.displayName ?? '간호사'}에게 전화 연결 (시연: 실제로 걸지 않아요)');
     }
 
+    void later() {
+      final t = now();
+      repo.scheduleRemeasure(c.id, me, t, const Duration(minutes: 30));
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      Navigator.pop(context);
+      messenger?.showSnackBar(SnackBar(content: Text('${hm(t.add(const Duration(minutes: 30)))}에 다시 알려 드릴게요')));
+    }
+
     final callLabel = Text(night ? '당직 간호사에게 전화' : '간호사에게 전화');
-    // 위험이면 맨 위, 빨간색 (S1 표 아래 주석)
-    final Widget callBtn = danger
-        ? FilledButton.icon(
-            style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52), backgroundColor: stageColors[Stage.danger]!.ink),
-            icon: const Icon(Icons.call),
-            label: callLabel,
-            onPressed: call,
-          )
-        : OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            icon: const Icon(Icons.call),
-            label: callLabel,
-            onPressed: call,
-          );
+    final guideBtn = OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(tapHeight)),
+      icon: const Icon(Icons.menu_book_outlined, size: 24),
+      label: const Text('투약 지침 보기'),
+      onPressed: () => showGuideline(context, ref, r.id),
+    );
+    // 위험이면 전화가 맨 위, 빨간색 (S1 표 아래 주석). 아니면 [30분 뒤 다시 재기]가 주 행동.
+    final List<Widget> buttons = danger
+        ? [
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(60), backgroundColor: stageColors[Stage.danger]!.ink),
+              icon: const Icon(Icons.call, size: 26),
+              label: callLabel,
+              onPressed: call,
+            ),
+            const SizedBox(height: Gap.s),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(tapHeight)),
+              icon: const Icon(Icons.alarm, size: 24),
+              label: const Text('30분 뒤 다시 재기'),
+              onPressed: later,
+            ),
+            const SizedBox(height: Gap.s),
+            guideBtn,
+          ]
+        : [
+            FilledButton.icon(
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(60), backgroundColor: brandDark),
+              icon: const Icon(Icons.alarm, size: 26),
+              label: const Text('30분 뒤 다시 재기'),
+              onPressed: later,
+            ),
+            const SizedBox(height: Gap.s),
+            guideBtn,
+            const SizedBox(height: Gap.s),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(tapHeight)),
+              icon: const Icon(Icons.call, size: 24),
+              label: callLabel,
+              onPressed: call,
+            ),
+          ];
+
+    final trend = prev == null
+        ? null
+        : '${m.value > prev.value ? '▲ 올라갔어요' : (m.value < prev.value ? '▼ 내려가고 있어요' : '변화가 없어요')} '
+            '(${formatTemp(prev.value)} → ${formatTemp(m.value)}℃)';
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.l),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 4, 16),
+            padding: const EdgeInsets.fromLTRB(Gap.l, Gap.s, Gap.xs, Gap.l),
             decoration: BoxDecoration(
-                color: col.soft, borderRadius: BorderRadius.circular(16), border: Border.all(color: col.line, width: 1.5)),
+                color: col.soft, borderRadius: BorderRadius.circular(Radii.card), border: Border.all(color: col.line, width: 2)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // ① 무슨 일 (긴급/이상 대응) + 닫기
               Row(children: [
-                Expanded(
-                  child: Text(
-                    '${caseBadge(c)}${result.escalated ? ' · 위험으로 올랐어요' : ''}',
-                    style: TextStyle(color: col.ink, fontWeight: FontWeight.w800, fontSize: 15),
-                  ),
-                ),
+                CaseBadge(c),
+                const Spacer(),
                 IconButton(
                   tooltip: '시트 닫기',
-                  icon: const Icon(Icons.close),
+                  iconSize: 28,
+                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                  icon: const Icon(Icons.close, color: inkMain),
                   onPressed: () => Navigator.pop(context),
                 ),
               ]),
-              Text('${cls.name} ${r.name} 별님', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 2),
-              Text('${formatTemp(m.value)}℃ · 평소보다 ${formatDiff(m.judgment.diff)}℃ · ${stage.label}',
-                  style: TextStyle(fontSize: 17, color: col.ink, fontWeight: FontWeight.w600)),
-              if (prev != null)
-                Text(
-                  '${m.value > prev.value ? '올라갔어요' : (m.value < prev.value ? '내려가고 있어요' : '변화가 없어요')} '
-                  '(${formatTemp(prev.value)} → ${formatTemp(m.value)}℃)',
-                  style: TextStyle(fontSize: 14, color: col.ink, fontWeight: FontWeight.w700),
-                ),
-              Text('평소 체온 ${formatTemp(m.judgment.baseline)}℃ ($baseNote)', style: const TextStyle(fontSize: 12, color: inkSub)),
-              const SizedBox(height: 8),
-              Text(
-                c.isUrgent ? '근무 선생님·간호사·사무국, 원장님께도 알렸어요' : '근무 선생님·간호사·사무국에 알렸어요',
-                style: const TextStyle(fontSize: 13),
+              if (result.escalated)
+                Text('위험으로 올랐어요', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: col.ink)),
+              const SizedBox(height: Gap.s),
+              // ② 누구
+              Text('${r.name} 별님', style: const TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800, height: 1.25)),
+              Text(cls.name, style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: inkSub)),
+              const SizedBox(height: Gap.s),
+              // ③ 몇 도
+              Padding(
+                padding: const EdgeInsets.only(right: Gap.m),
+                child: Wrap(spacing: Gap.m, runSpacing: Gap.xs, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                  Text('${formatTemp(m.value)}℃',
+                      style: TextStyle(
+                          fontSize: T.number,
+                          fontWeight: FontWeight.w800,
+                          color: col.ink,
+                          fontFeatures: const [FontFeature.tabularFigures()])),
+                  StageTag(stage, large: true),
+                ]),
               ),
-              const SizedBox(height: 2),
-              Row(children: [
-                Icon(acks.isEmpty ? Icons.hourglass_empty : Icons.check_circle, size: 16, color: inkSub),
-                const SizedBox(width: 4),
-                Expanded(child: Text(ackLine, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-              ]),
+              Text(plainDiff(m.judgment.diff), style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: col.ink)),
+              if (trend != null) Text(trend, style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: col.ink)),
+              Text('평소 체온 ${formatTemp(m.judgment.baseline)}℃ ($baseNote)',
+                  style: const TextStyle(fontSize: T.caption, color: inkSub)),
+              const Padding(padding: EdgeInsets.fromLTRB(0, Gap.m, Gap.m, Gap.m), child: Divider(color: line)),
+              // ④ 누가 알고 있나
+              IconLine(
+                icon: Icons.campaign_outlined,
+                text: c.isUrgent ? '근무 선생님·간호사·사무국, 원장님께도 알렸어요' : '근무 선생님·간호사·사무국에 알렸어요',
+              ),
+              const SizedBox(height: Gap.xs),
+              IconLine(icon: acks.isEmpty ? Icons.hourglass_empty : Icons.check_circle, text: ackLine, strong: true),
             ]),
           ),
-          const SizedBox(height: 12),
-          if (danger) ...[callBtn, const SizedBox(height: 8)],
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            icon: const Icon(Icons.medication_outlined),
-            label: const Text('투약 지침 보기'),
-            onPressed: () => showGuideline(context, ref, r.id),
-          ),
-          const SizedBox(height: 8),
-          if (!danger) ...[callBtn, const SizedBox(height: 8)],
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48), backgroundColor: brandDark),
-            onPressed: () {
-              final t = now();
-              repo.scheduleRemeasure(c.id, me, t, const Duration(minutes: 30));
-              final messenger = ScaffoldMessenger.maybeOf(context);
-              Navigator.pop(context);
-              messenger?.showSnackBar(
-                  SnackBar(content: Text('${hm(t.add(const Duration(minutes: 30)))}에 다시 알려 드릴게요')));
-            },
-            child: const Text('30분 뒤 다시 재기'),
-          ),
-          const SizedBox(height: 4),
+          const SizedBox(height: Gap.l),
+          ...buttons,
+          const SizedBox(height: Gap.s),
           Row(children: [
             Expanded(
               child: TextButton(
-                style: TextButton.styleFrom(minimumSize: const Size(0, 44)),
+                style: TextButton.styleFrom(minimumSize: const Size(0, tapHeight)),
                 onPressed: () {
                   Navigator.pop(context);
                   if (hostContext.mounted) openCaseDetail(hostContext, c.id);
@@ -157,12 +188,16 @@ class _AlertSheet extends ConsumerWidget {
                 child: const Text('자세히 보기'),
               ),
             ),
+            const SizedBox(width: Gap.s),
             Expanded(
               child: TextButton(
-                style: TextButton.styleFrom(minimumSize: const Size(0, 44), foregroundColor: inkSub),
+                style: TextButton.styleFrom(minimumSize: const Size(0, tapHeight), foregroundColor: inkSub),
                 onPressed: () async {
-                  final ok = await confirm(context, '잘못 잰 값으로 표시할까요?',
-                      result.caseCreated ? '기록은 지워지지 않고 무효 표시돼요. 이 건도 오측정으로 종료되고 알림이 가요.' : '기록은 지워지지 않고 무효 표시돼요.', '무효 표시');
+                  final ok = await confirm(
+                      context,
+                      '잘못 잰 값으로 표시할까요?',
+                      result.caseCreated ? '기록은 지워지지 않고 무효 표시돼요.\n이 건도 오측정으로 끝나고 알림이 가요.' : '기록은 지워지지 않고 무효 표시돼요.',
+                      '무효 표시');
                   if (!ok || !context.mounted) return;
                   final t = now();
                   repo.voidMeasurement(m.id, by: me, at: t);
@@ -194,43 +229,70 @@ Future<void> showGuideline(BuildContext context, WidgetRef ref, String residentI
       for (final e in repo.eventsOf(c.id))
         if (e.type == 'medication' && e.voidedBy == null) e
   ]..sort((a, b) => b.at.compareTo(a.at));
+  final caution = stageColors[Stage.caution]!;
 
   return showDialog<void>(
     context: context,
-    builder: (_) => AlertDialog(
+    builder: (d) => AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: Gap.l, vertical: Gap.xl),
       title: Text('${r.name} 투약 지침'),
       content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           if (g == null)
             const Text('등록된 투약 지침이 없어요.\n간호사·원장님께 먼저 연락하세요.',
-                style: TextStyle(fontWeight: FontWeight.w700))
+                style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700))
           else ...[
-            Text('${repo.staff(g.writtenBy).displayName} 작성 · ${g.updatedAt.year}.${g.updatedAt.month}.${g.updatedAt.day} 수정',
-                style: const TextStyle(fontSize: 12, color: inkSub)),
-            const SizedBox(height: 8),
+            Text('${repo.staff(g.writtenBy).displayName} 작성', style: const TextStyle(fontSize: T.caption, color: inkSub)),
+            Text('${g.updatedAt.year}년 ${g.updatedAt.month}월 ${g.updatedAt.day}일 고침',
+                style: const TextStyle(fontSize: T.caption, color: inkSub)),
+            const SizedBox(height: Gap.m),
             if (now.difference(g.updatedAt).inDays > 180)
               Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(8),
-                color: stageColors[Stage.caution]!.soft,
-                child: Text('! ${now.difference(g.updatedAt).inDays}일 동안 고치지 않은 지침이에요. 간호사에게 확인해 주세요.',
-                    style: TextStyle(color: stageColors[Stage.caution]!.ink, fontSize: 13)),
+                margin: const EdgeInsets.only(bottom: Gap.m),
+                padding: const EdgeInsets.all(Gap.m),
+                decoration: BoxDecoration(
+                  color: caution.soft,
+                  borderRadius: BorderRadius.circular(Radii.button),
+                  border: Border.all(color: caution.line, width: 1.5),
+                ),
+                child: Text('! ${now.difference(g.updatedAt).inDays}일 동안 고치지 않은 지침이에요.\n간호사에게 확인해 주세요.',
+                    style: TextStyle(color: caution.ink, fontSize: T.body, fontWeight: FontWeight.w700)),
               ),
-            Text(g.body),
+            Container(
+              padding: const EdgeInsets.all(Gap.m),
+              decoration: BoxDecoration(
+                color: paper,
+                borderRadius: BorderRadius.circular(Radii.button),
+                border: Border.all(color: line),
+              ),
+              child: Text(g.body, style: const TextStyle(fontSize: T.body, height: 1.6, color: inkMain)),
+            ),
           ],
           if (meds.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Text('최근 투약 기록', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+            const SizedBox(height: Gap.l),
+            const Text('최근 투약 기록', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800)),
             for (final e in meds.take(3))
-              Text('${e.at.month}/${e.at.day} ${hm(e.at)} ${e.data['text'] ?? ''} (${repo.staff(e.actorId).name})',
-                  style: const TextStyle(fontSize: 13)),
+              Padding(
+                padding: const EdgeInsets.only(top: Gap.s),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${e.data['text'] ?? ''}', style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w600)),
+                  Text('${e.at.month}/${e.at.day} ${hm(e.at)} · ${repo.staff(e.actorId).name}',
+                      style: const TextStyle(fontSize: T.caption, color: inkSub)),
+                ]),
+              ),
           ],
-          const SizedBox(height: 12),
-          const Text('이 지침은 의료진이 미리 작성한 것이에요. 판단이 어려우면 간호사·원장님께 먼저 연락하세요.',
-              style: TextStyle(fontSize: 12, color: inkSub)),
+          const SizedBox(height: Gap.l),
+          const Text('이 지침은 의료진이 미리 쓴 글이에요.\n판단이 어려우면 간호사·원장님께 먼저 연락하세요.',
+              style: TextStyle(fontSize: T.caption, color: inkSub)),
         ]),
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('닫기'))],
+      actionsPadding: const EdgeInsets.fromLTRB(Gap.l, 0, Gap.l, Gap.l),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(onPressed: () => Navigator.pop(d), child: const Text('닫기')),
+        ),
+      ],
     ),
   );
 }
