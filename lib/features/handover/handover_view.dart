@@ -7,19 +7,19 @@ enum FeedFilter { all, unread, task, facility, classNotice, resident }
 
 extension FeedFilterInfo on FeedFilter {
   String get label => switch (this) {
-        FeedFilter.all => '모두',
-        FeedFilter.unread => '안 본 기록',
-        FeedFilter.task => '할 일',
-        FeedFilter.facility => '전체 공지',
-        FeedFilter.classNotice => '반별 공지',
-        FeedFilter.resident => '별님 기록',
-      };
+    FeedFilter.all => '모두',
+    FeedFilter.unread => '안 본 기록',
+    FeedFilter.task => '할 일',
+    FeedFilter.facility => '전체 공지',
+    FeedFilter.classNotice => '반별 공지',
+    FeedFilter.resident => '별님 기록',
+  };
 
   String get emptyText => switch (this) {
-        FeedFilter.unread => '안 본 기록이 없어요. 모두 확인했어요.',
-        FeedFilter.task => '남은 할 일이 없어요.',
-        _ => '기록이 없어요.',
-      };
+    FeedFilter.unread => '안 본 기록이 없어요. 모두 확인했어요.',
+    FeedFilter.task => '남은 할 일이 없어요.',
+    _ => '기록이 없어요.',
+  };
 }
 
 /// 최신 기록(HO-1)과 별님별 기록(HO-2)이 같이 쓰는 계산.
@@ -31,12 +31,17 @@ class HandoverView {
     _activeCaseIds = {for (final c in activeCases) c.id};
     final all = repo.entries.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     allSorted = all;
-    visible = all.where((e) => !isActiveCaseEntry(e) && (inRange(e) || hasOpenTask(e) || isPinnedNotice(e) || keepIds.contains(e.id))).toList();
+    visible = all
+        .where(
+          (e) => !isActiveCaseEntry(e) && (inRange(e) || hasOpenTask(e) || isPinnedNotice(e) || keepIds.contains(e.id)),
+        )
+        .toList();
   }
 
   final InMemoryRepository repo;
   final String me;
   final DateTime now;
+
   /// 이 화면에서 방금 완료해 남겨 둘 기록.
   final Set<String> keepIds;
 
@@ -112,10 +117,10 @@ class HandoverView {
 
   /// 칩 옆 숫자. 미확인만 "남은 수".
   int countFor(FeedFilter f) => switch (f) {
-        FeedFilter.all => visible.length,
-        FeedFilter.unread => unread.length,
-        _ => listFor(f).length,
-      };
+    FeedFilter.all => visible.length,
+    FeedFilter.unread => unread.length,
+    _ => listFor(f).length,
+  };
 
   /// 확인한 사람 중 지금 근무조 인원.
   List<String> shiftReaders(String entryId) {
@@ -125,9 +130,8 @@ class HandoverView {
   }
 
   /// 반 탭 배지: 그 반의 반 공지와 별님 기록 중 내가 확인 안 한 것 (3.2).
-  int unreadInClass(String classId) => unread
-      .where((e) => e.scope != EntryScope.facility && e.classId == classId)
-      .length;
+  int unreadInClass(String classId) =>
+      unread.where((e) => e.scope != EntryScope.facility && e.classId == classId).length;
 
   /// 별님 카드 "새 n": 그 별님 대상 미확인 별님 기록 수.
   int unreadOfResident(String residentId) =>

@@ -102,10 +102,10 @@ void main() {
   });
 
   group('HO-1 최신 기록', () {
-    testWidgets('지금 챙길 일 · 대응 칸 · 고정 공지 · 기록 카드가 보인다', (tester) async {
+    testWidgets('교대 요약 · 대응 칸 · 고정 공지 · 기록 카드가 보인다', (tester) async {
       phone(tester);
       await pumpHandover(tester);
-      expect(find.text('지금 챙길 일'), findsOneWidget);
+      expect(find.textContaining(RegExp(r'^(오전|오후|야간|지금) 근무 인계$')), findsOneWidget);
       expect(find.textContaining('이후 기록이에요'), findsOneWidget);
       expect(find.bySemanticsLabel('긴급 0'), findsOneWidget);
       expect(find.bySemanticsLabel('이상 대응 1'), findsOneWidget);
@@ -116,7 +116,7 @@ void main() {
       await reveal(tester, find.text('아직 아무도 확인 안 했어요'));
       expect(find.text('확인했어요'), findsOneWidget);
       expect(find.text('체온 재기'), findsOneWidget);
-      await reveal(tester, find.text('📌 전체 공지 · 맨 위 고정'));
+      await reveal(tester, find.text('전체 공지 · 위에 고정'));
       expect(find.text('독감 예방접종'), findsOneWidget);
     });
 
@@ -282,7 +282,7 @@ void main() {
         final a = ys[i - 1], b = ys[i];
         expect(b.dy > a.dy || (b.dy == a.dy && b.dx > a.dx), isTrue, reason: '그리드 순서 고정');
       }
-      expect(find.textContaining('☐ 할 일'), findsWidgets); // 이서준·최도윤 할 일
+      expect(find.textContaining(RegExp(r'^할 일 ')), findsWidgets); // 이서준·최도윤 할 일
       // 고래자리 → 박승민 이상 대응
       await tester.scrollUntilVisible(find.text('고래자리'), 100, scrollable: hList);
       await tester.pumpAndSettle();
@@ -333,7 +333,7 @@ void main() {
       expect(e.task!.id, isNotEmpty);
       expect(e.task!.duePreset, '저녁 전');
       expect(e.task!.kind, TaskKind.memo);
-      expect(find.text('할 일로 넘겼어요 · 완료할 때까지 지금 챙길 일에 남아요'), findsOneWidget);
+      expect(find.text('할 일로 넘겼어요 · 완료할 때까지 남은 할 일에 보여요'), findsOneWidget);
       expect(find.bySemanticsLabel('남은 할 일 4'), findsOneWidget);
       // 내 기록 + 열린 할 일 → [완료하기]만 (확인 버튼 없음)
       final card = find.byKey(ValueKey('entry-${e.id}'));

@@ -1,4 +1,6 @@
 // 아카이브·별님카드가 같이 쓰는 작은 표시 조각 (docs/design.md).
+import 'dart:ui' show PathMetric;
+
 import 'package:flutter/material.dart';
 
 import '../../core/models.dart';
@@ -140,3 +142,156 @@ class VoidTag extends StatelessWidget {
 
 /// 아카이브 목록·상세 공통 "잘못 잰 값" 표시.
 const voidLabel = VoidTag();
+
+// ── 시제품(모바일 아카이브) 모양 조각
+
+/// 시제품 아카이브 색 (반 공지 글자·점, 기록 찾기 테두리 등).
+const noticeInk = Color(0xFF5F4F80);
+const noticeDot = Color(0xFFA89AC2);
+const segTrack = Color(0xFFECEEE6);
+const softGrey = Color(0xFFF5F6F2);
+const unreadLine = Color(0xFFE7C27A);
+const okInk = Color(0xFF3F6C53);
+const okSoft = Color(0xFFE9F3ED);
+const okLine = Color(0xFFCFE3D6);
+const obsDot = Color(0xFF87A98E);
+
+/// 화면 위 제목: 작은 '별자리노트' + ✦ 큰 제목 (app.dart 머리글과 같은 모양).
+class ScreenTitle extends StatelessWidget {
+  const ScreenTitle(this.title, {super.key});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          const Text('별자리노트', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: inkSub)),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('✦ ', style: TextStyle(fontSize: T.title, color: stageColors[Stage.danger]!.line)),
+            Semantics(header: true, child: Text(title)),
+          ]),
+        ]),
+      );
+}
+
+/// 시제품 머리글 AppBar (뒤로 화살표 대신 아래 [BackLink]를 쓴다).
+PreferredSizeWidget prototypeAppBar(String title) => AppBar(
+      automaticallyImplyLeading: false,
+      titleSpacing: Gap.page,
+      toolbarHeight: 72,
+      title: ScreenTitle(title),
+    );
+
+/// "‹ 은하수자리 별님 목록" 같은 뒤로 가기 글자 버튼.
+class BackLink extends StatelessWidget {
+  const BackLink(this.label, {super.key});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Align(
+        alignment: Alignment.centerLeft,
+        child: Semantics(
+          label: '뒤로: $label',
+          button: true,
+          excludeSemantics: true,
+          child: TextButton(
+            style: TextButton.styleFrom(
+              minimumSize: const Size(tapHeight, tapHeight),
+              padding: const EdgeInsets.only(left: 2, right: 12),
+              foregroundColor: inkMain,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => Navigator.of(context).maybePop(),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('‹', style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w700, height: 1)),
+              const SizedBox(width: 6),
+              Flexible(child: Text(label, style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700))),
+            ]),
+          ),
+        ),
+      );
+}
+
+/// 시제품의 작은 종류 표시 ("체온", "관찰", "반 공지"): 모서리가 살짝 둥근 글자 상자.
+class KindTag extends StatelessWidget {
+  const KindTag(this.text, {super.key, required this.ink, required this.background, this.border});
+  final String text;
+  final Color ink;
+  final Color background;
+  final Color? border;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(6),
+          border: border == null ? null : Border.all(color: border!),
+        ),
+        child: Text(text, style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: ink)),
+      );
+}
+
+/// 점선 둥근 테두리 (반 공지 카드).
+class DashedRRectPainter extends CustomPainter {
+  const DashedRRectPainter({required this.color, this.radius = 12, this.width = 1.5, this.dash = 6, this.gap = 4});
+  final Color color;
+  final double radius, width, dash, gap;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = (Offset.zero & size).deflate(width / 2);
+    final path = Path()..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = width
+      ..style = PaintingStyle.stroke;
+    for (final PathMetric m in path.computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += dash + gap) {
+        canvas.drawPath(m.extractPath(d, (d + dash).clamp(0, m.length)), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(DashedRRectPainter old) => old.color != color || old.radius != radius || old.width != width;
+}
+
+/// 회색 둥근 상자 (기록 상세의 머리 상자, 출처 줄).
+class GreyBox extends StatelessWidget {
+  const GreyBox({super.key, required this.child, this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 12)});
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: padding,
+        decoration: BoxDecoration(color: softGrey, borderRadius: BorderRadius.circular(10)),
+        child: child,
+      );
+}
+
+/// 시트 제목 줄: 제목 + 회색 동그라미 [닫기] (시제품 .sh-top).
+class SheetTitle extends StatelessWidget {
+  const SheetTitle(this.title, {super.key});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(title, style: const TextStyle(fontSize: T.headline - 2, fontWeight: FontWeight.w800, color: inkMain)),
+          ),
+        ),
+        IconButton(
+          tooltip: '닫기',
+          constraints: const BoxConstraints(minWidth: tapHeight, minHeight: tapHeight),
+          style: IconButton.styleFrom(backgroundColor: const Color(0xFFF3F4F1), foregroundColor: inkSub),
+          icon: const Icon(Icons.close, size: 24),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+      ]);
+}

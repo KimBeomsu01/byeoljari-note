@@ -1,5 +1,5 @@
-// 디자인 토큰 (docs/design.md). 판정 색은 통합 명세 5-4 [확정] 그대로.
-// 대상: 40~60대 생활관 선생님. 바쁜 근무 중 한 손으로, 돋보기 없이 읽혀야 한다.
+// 디자인 토큰 (docs/design.md). 팀 시제품(인수인계 명세 13장)의 색·모양 + 중장년용으로 키운 글자.
+// 판정 색은 통합 명세 5-4 [확정] 그대로.
 import 'package:flutter/material.dart';
 
 import 'models.dart';
@@ -12,46 +12,49 @@ class StageColors {
 }
 
 const stageColors = <Stage, StageColors>{
-  Stage.normal: StageColors(Color(0xFF3F6E54), Color(0xFFE6F2EA), Color(0xFF75AA8D)),
-  Stage.caution: StageColors(Color(0xFF7A500E), Color(0xFFFBF0D9), Color(0xFFD9A44E)),
-  Stage.abnormal: StageColors(Color(0xFF8F4610), Color(0xFFFCE8D6), Color(0xFFD9853B)),
-  Stage.danger: StageColors(Color(0xFF9E3534), Color(0xFFFBE6E6), Color(0xFFDC8584)),
-  Stage.low: StageColors(Color(0xFF345F8F), Color(0xFFE6EFFA), Color(0xFF6A9ED5)),
+  Stage.normal: StageColors(Color(0xFF4C7D62), Color(0xFFE9F3ED), Color(0xFF75AA8D)),
+  Stage.caution: StageColors(Color(0xFF8A5D12), Color(0xFFFBF1DD), Color(0xFFD9A44E)),
+  Stage.abnormal: StageColors(Color(0xFF9A4F12), Color(0xFFFCEBDC), Color(0xFFD9853B)),
+  Stage.danger: StageColors(Color(0xFFA8403F), Color(0xFFFBEAEA), Color(0xFFDC8584)),
+  Stage.low: StageColors(Color(0xFF3F6EA0), Color(0xFFE8F0FA), Color(0xFF6A9ED5)),
 };
 
 // ── 색 (이름은 예전 코드와 맞춰 두고 값만 바꿨다)
-/// 밤하늘 남색: 주 버튼, 선택된 탭, 링크.
-const Color brandDark = Color(0xFF1E3A66);
+/// 짙은 녹회색: 주 버튼, 선택된 탭, 퀵 체온 버튼, 요약 카드.
+const Color brandDark = Color(0xFF2F3A34);
 
-/// 새벽 하늘 바탕. 카드(흰색)와 구분된다.
-const Color paper = Color(0xFFEEF2F7);
+/// 따뜻한 미색 바탕.
+const Color paper = Color(0xFFF7F7F2);
 
 /// 카드·시트 바탕.
 const Color surface = Color(0xFFFFFFFF);
 
-/// 본문 글자. 흰 바탕 대비 약 15:1.
-const Color inkMain = Color(0xFF142033);
+/// 본문 글자.
+const Color inkMain = Color(0xFF2B2F2C);
 
-/// 보조 글자. 흰 바탕 대비 약 9:1 — 옅은 회색 글자는 쓰지 않는다.
-const Color inkSub = Color(0xFF3D4A5C);
+/// 보조 글자 (시제품의 진한 쪽 보조색). 이보다 옅은 회색은 쓰지 않는다.
+const Color inkSub = Color(0xFF4D554F);
 
-/// 테두리·구분선.
-const Color line = Color(0xFFC6D0DC);
+/// 카드 테두리·구분선.
+const Color line = Color(0xFFE2E6E0);
 
-/// 별빛 노랑: 앱에서 딱 한 곳, 가운데 '체온 재기' 버튼과 '새 기록' 점에만 쓴다.
-const Color starYellow = Color(0xFFF5C518);
+/// 미확인·새 기록 표시 (시제품 미확인 배지).
+const Color starYellow = Color(0xFFD9A44E);
+
+/// 연한 녹색 면 (퀵 체온 바탕, 선택된 칩 등).
+const Color sage = Color(0xFFE9F0E6);
 
 /// 퀵 체온의 "기록 완료" 초록. 판정 색(평소)과 다른 색이다.
 const Color recordedGreen = Color(0xFFCFE8CF);
 
-// ── 글자 크기 (최소 15)
+// ── 글자 크기: 시제품(12~14)보다 한 단계씩 크게, 최소 14
 class T {
-  static const double caption = 15; // 시각, 작성자 같은 보조 정보
-  static const double body = 17; // 본문, 버튼
-  static const double title = 20; // 카드 제목, 별님 이름
+  static const double caption = 14; // 시각, 작성자 같은 보조 정보
+  static const double body = 16; // 본문, 버튼
+  static const double title = 19; // 카드 제목, 별님 이름
   static const double headline = 24; // 화면 제목
-  static const double number = 32; // 요약 숫자
-  static const double display = 52; // 체온 숫자
+  static const double number = 28; // 요약 숫자
+  static const double display = 46; // 체온 숫자
 }
 
 // ── 간격·모양
@@ -65,13 +68,14 @@ class Gap {
 }
 
 class Radii {
-  static const double card = 16; // 카드·시트
-  static const double button = 14; // 버튼
+  static const double card = 13; // 카드 (시제품)
+  static const double sheet = 26; // 시트 위쪽
+  static const double button = 12; // 버튼
   static const double pill = 999; // 상태 표시
 }
 
-/// 모든 누르는 것의 최소 높이.
-const double tapHeight = 56;
+/// 모든 누르는 것의 최소 높이 (시제품 40 → 앱 기준 44 이상, 넉넉하게 48).
+const double tapHeight = 48;
 
 /// [fontFamily]는 화면 확인용 스크린샷 테스트에서만 넘긴다. 앱은 기기 기본 글꼴을 쓴다.
 ThemeData buildTheme({String? fontFamily}) {
@@ -103,7 +107,7 @@ ThemeData buildTheme({String? fontFamily}) {
 
   final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.button));
   final buttonText = TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w700);
-  const buttonPadding = EdgeInsets.symmetric(horizontal: 20, vertical: 14);
+  const buttonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 
   return base.copyWith(
     textTheme: text,
@@ -113,7 +117,7 @@ ThemeData buildTheme({String? fontFamily}) {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      toolbarHeight: 64,
+      toolbarHeight: 60,
       titleTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -130,7 +134,7 @@ ThemeData buildTheme({String? fontFamily}) {
         padding: buttonPadding,
         textStyle: buttonText,
         foregroundColor: brandDark,
-        side: const BorderSide(color: brandDark, width: 1.5),
+        side: const BorderSide(color: line, width: 1.5),
         shape: buttonShape,
         backgroundColor: surface,
       ),
@@ -181,7 +185,7 @@ ThemeData buildTheme({String? fontFamily}) {
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: surface,
       showDragHandle: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.sheet))),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: surface,

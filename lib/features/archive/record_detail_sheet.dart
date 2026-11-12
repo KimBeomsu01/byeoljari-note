@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/avatar.dart';
 import '../../core/judgment.dart';
 import '../../core/models.dart';
 import '../../core/providers.dart';
@@ -58,16 +59,28 @@ class _RecordDetail extends ConsumerWidget {
     final replies = e == null ? const <Reply>[] : repo.repliesOf(e.id);
 
     const caption = TextStyle(fontSize: T.caption, color: inkSub, height: 1.45);
+    const strong = TextStyle(fontSize: T.body + 1, fontWeight: FontWeight.w800, color: inkMain);
     Widget gap(double h) => SizedBox(height: h);
+    final readByMe = e != null && e.authorId != me && repo.isRead(e.id, me);
 
     return ListView(
       controller: controller,
       padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.xl),
       children: [
-        // ① 누구
-        Text(isNotice ? '${repo.classOf(e!.classId!).name} 전원' : '${r.name} 별님',
-            style: const TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain)),
-        Text(kind, style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkSub)),
+        SheetTitle('기록 상세'),
+        gap(Gap.m),
+        // ① 누구 · 언제 · 누가 (시제품 회색 머리 상자)
+        GreyBox(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              Text(isNotice ? '${repo.classOf(e!.classId!).name} 전원' : '${r.name} 별님', style: strong),
+              const Text('·', style: strong),
+              Text(kind, style: strong),
+            ]),
+            const SizedBox(height: 2),
+            Text('${_ymd(at)}  ${hhmm(at)} · ${authorAsOf(repo, authorId, classId, at)}', style: caption),
+          ]),
+        ),
         gap(Gap.l),
         // ② 상태
         if (m != null) ..._measurementPart(repo, m),
@@ -104,33 +117,44 @@ class _RecordDetail extends ConsumerWidget {
           for (final rp in replies)
             Padding(
               padding: const EdgeInsets.only(top: Gap.s),
-              child: InfoCard(
-                padding: const EdgeInsets.all(14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(rp.body, style: const TextStyle(fontSize: T.body, height: 1.5, color: inkMain)),
-                  gap(Gap.xs),
-                  Text(authorAsOf(repo, rp.authorId, classId, rp.createdAt), style: caption),
-                  Text(ymdHm(rp.createdAt), style: caption),
+              child: GreyBox(
+                padding: const EdgeInsets.all(12),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  FaceAvatar.staff(rp.authorId, size: 36),
+                  const SizedBox(width: Gap.s + 2),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('${authorAsOf(repo, rp.authorId, classId, rp.createdAt)} · ${hhmm(rp.createdAt)}', style: caption),
+                      Text(rp.body, style: const TextStyle(fontSize: T.body, height: 1.5, color: inkMain)),
+                      Text(ymdHm(rp.createdAt), style: caption),
+                    ]),
+                  ),
                 ]),
               ),
             ),
         ],
-        // ④ 기록한 사람·시각 (맨 아래 보조 글자)
+        // ④ 출처 (시제품 .dest)
         gap(Gap.xl),
-        const Divider(),
+        GreyBox(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+          child: Text(
+            '출처 · ${m != null ? '체온 재기' : '인수인계'}  /  '
+            '${e == null ? '체온 기록' : e.authorId == me ? '내가 남긴 기록' : readByMe ? '확인된 기록' : '아직 확인 안 함'}',
+            style: caption,
+          ),
+        ),
         gap(Gap.m),
-        Text('기록한 사람: ${authorAsOf(repo, authorId, classId, at)}', style: caption),
-        Text('기록한 때: ${ymdHm(at)}', style: caption),
-        Text(m != null ? '체온 재기에서 남긴 기록이에요' : '인수인계에서 남긴 기록이에요', style: caption),
-        gap(Gap.xl),
         FilledButton(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(tapHeight)),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
           onPressed: () => Navigator.pop(context),
           child: const Text('목록으로'),
         ),
       ],
     );
   }
+
+  static String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   static String _anyResidentOf(InMemoryRepository repo, String classId) => repo.residentsOf(classId).first.id;
 
@@ -148,21 +172,36 @@ class _RecordDetail extends ConsumerWidget {
   List<Widget> _measurementPart(InMemoryRepository repo, Measurement m) {
     final j = m.judgment;
     const caption = TextStyle(fontSize: T.caption, color: inkSub, height: 1.45);
+    final sc = stageColors[j.stage]!;
     return [
-      Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: Gap.m, runSpacing: Gap.s, children: [
-        if (m.isVoided) voidLabel else StageTag(j.stage, large: true),
-        Text('${formatTemp(m.value)}℃',
-            style: TextStyle(
-              fontSize: T.number,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              decoration: m.isVoided ? TextDecoration.lineThrough : null,
-              color: m.isVoided ? inkSub : inkMain,
-            )),
-      ]),
-      const SizedBox(height: Gap.s),
-      Text(plainDiff(j.diff), style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
-      Text('그때 평소 체온은 ${formatTemp(j.baseline)}℃였어요', style: caption),
+      // 시제품 .tempbox: 판정 옅은 바탕, 왼쪽 설명 · 오른쪽 큰 숫자
+      Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: m.isVoided ? softGrey : sc.soft,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (m.isVoided) voidLabel else StageTag(j.stage, large: true),
+              const SizedBox(height: Gap.s),
+              Text(plainDiff(j.diff), style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
+              Text('그때 평소 체온은 ${formatTemp(j.baseline)}℃였어요', style: caption),
+            ]),
+          ),
+          const SizedBox(width: Gap.s),
+          Text('${formatTemp(m.value)}℃',
+              style: TextStyle(
+                fontSize: T.number + 2,
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                decoration: m.isVoided ? TextDecoration.lineThrough : null,
+                color: m.isVoided ? inkSub : sc.ink,
+              )),
+        ]),
+      ),
+      if (m.isVoided || m.correctsId != null) const SizedBox(height: Gap.xs),
       if (m.isVoided)
         Text(
             m.voidedBy == null
@@ -186,8 +225,14 @@ class _ReadState extends StatelessWidget {
     final readers = repo.readersOf(entry.id);
     final mine = entry.authorId == me;
     final read = !mine && repo.isRead(entry.id, me);
-    return InfoCard(
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: read || mine ? okSoft : stageColors[Stage.caution]!.soft,
+        borderRadius: BorderRadius.circular(Radii.button),
+        border: Border.all(color: read || mine ? okLine : unreadLine),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (mine)
           const Text('내가 남긴 기록이에요', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain))

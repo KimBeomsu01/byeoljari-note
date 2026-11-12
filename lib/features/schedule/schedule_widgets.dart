@@ -18,6 +18,70 @@ bool isWeekend(DateTime d) => d.weekday >= DateTime.saturday;
 /// '10월 28일 (수)'
 String dateLabel(DateTime d) => '${d.month}월 ${d.day}일 (${_weekdays[d.weekday - 1]})';
 
+/// 시제품 날짜 막대: '오늘 · 10월 28일 수요일' / '10월 31일 토요일'.
+String longDateLabel(DateTime d, {bool today = false}) =>
+    '${today ? '오늘 · ' : ''}${d.month}월 ${d.day}일 ${_weekdays[d.weekday - 1]}요일';
+
+/// 시제품의 작은 표 알약 모서리 (둥근 네모).
+const double tagRadius = 7;
+
+/// 연한 반 색 (선택된 반 칩, 오늘 날짜): 흰 바탕 위에 반 색 [alpha].
+Color classTint(int color, [double alpha = 0.2]) => Color.alphaBlend(Color(color).withValues(alpha: alpha), surface);
+
+/// 시제품 카드의 체온 알약: '오전 ✓ 36.5° 평소' / '오후 예정' / '오전 미기록'.
+/// 기호 + 글자 + 색을 함께 쓴다 (5-4). [label]은 '오전' · '오후' · '오전 체온' 등.
+class SlotPill extends StatelessWidget {
+  const SlotPill({super.key, required this.label, required this.status});
+  final String label;
+  final SlotStatus? status;
+
+  static const _missed = (Color(0xFF4D554F), Color(0xFFEEF1F4), Color(0xFFB7C1CC));
+  static const _later = (Color(0xFF4D554F), Color(0xFFF1F2EE), line);
+
+  @override
+  Widget build(BuildContext context) {
+    final s = status;
+    final m = s?.measurement;
+    final String text;
+    final String spoken;
+    final (Color, Color, Color) c;
+    if (s == null) {
+      text = '$label 없음';
+      spoken = '$label 재는 때 없음';
+      c = _later;
+    } else if (s.state == SlotState.recorded && m != null) {
+      final st = m.judgment.stage;
+      final sc = stageColors[st]!;
+      text = '$label ${st.symbol} ${formatTemp(m.value)}° ${st.label}';
+      spoken = '$label ${formatTemp(m.value)}도 ${st.label}';
+      c = (sc.ink, sc.soft, sc.line);
+    } else if (s.state == SlotState.missed) {
+      text = '$label 미기록';
+      spoken = '$label 미기록, 아직 안 쟀어요';
+      c = _missed;
+    } else {
+      text = '$label 예정';
+      spoken = '$label 예정 ${hm(s.at)}';
+      c = _later;
+    }
+    return Semantics(
+      label: spoken,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: c.$2,
+          borderRadius: BorderRadius.circular(tagRadius),
+          border: Border.all(color: c.$3),
+        ),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: T.caption, fontWeight: FontWeight.w700, color: c.$1, height: 1.3, fontFeatures: const [FontFeature.tabularFigures()])),
+      ),
+    );
+  }
+}
+
 /// '09:05'
 String hm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
@@ -42,9 +106,9 @@ class KindTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, fg) = kindColors[kind]!;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(Radii.pill)),
-      child: Text(kind.label, style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: fg)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(tagRadius)),
+      child: Text(kind.label, style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: fg, height: 1.35)),
     );
   }
 }

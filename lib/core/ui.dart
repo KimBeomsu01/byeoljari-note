@@ -1,6 +1,7 @@
 // 공통 화면 부품 (docs/design.md). 화면마다 비슷한 것을 새로 만들지 말고 이걸 쓴다.
 import 'package:flutter/material.dart';
 
+import 'avatar.dart';
 import 'models.dart';
 import 'theme.dart';
 
@@ -117,15 +118,19 @@ class StatusPill extends StatelessWidget {
       );
 }
 
-/// 별님 동그라미: 반 색 바탕 + 이름 첫 글자(성 뺀 이름).
+/// 별님 동그라미. [residentId]가 있으면 시제품 얼굴 그림, 없으면 반 색 + 이름 글자.
 class ResidentAvatar extends StatelessWidget {
-  const ResidentAvatar({super.key, required this.name, required this.classColor, this.size = 48});
+  const ResidentAvatar({super.key, required this.name, required this.classColor, this.size = 48, this.residentId, this.ring});
   final String name;
   final int classColor;
   final double size;
+  final String? residentId;
+  final Color? ring;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => residentId != null
+      ? FaceAvatar.resident(residentId!, size: size, ring: ring)
+      : Container(
         width: size,
         height: size,
         alignment: Alignment.center,

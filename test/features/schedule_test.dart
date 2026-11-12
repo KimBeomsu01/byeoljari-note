@@ -49,6 +49,11 @@ Future<void> _tapVisible(WidgetTester tester, Finder f) async {
   await tester.tap(f);
 }
 
+Future<void> _back(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('뒤로'));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _toTop(WidgetTester tester) async {
   await tester.drag(find.byType(Scrollable).first, const Offset(0, 4000));
   await tester.pumpAndSettle();
@@ -67,8 +72,9 @@ void main() {
     await _pump(tester);
 
     expect(find.text('내 반'), findsOneWidget);
-    expect(find.text('10월 28일 (수)'), findsOneWidget);
-    expect(find.text('오늘'), findsOneWidget);
+    expect(find.text('오늘 · 10월 28일 수요일'), findsOneWidget);
+    expect(find.text('은하수자리 별님 6명'), findsOneWidget);
+    expect(find.text('지금 09:41 기준'), findsOneWidget);
     expect(find.text('오늘로'), findsNothing);
     for (final n in ['김민준', '이서준', '한지호', '류은호', '최도윤', '강시우']) {
       expect(find.text(n), findsOneWidget);
@@ -77,21 +83,21 @@ void main() {
 
     // 이서준 09:15 37.6 주의 (기호 + 글자)
     final seojun = _card('이서준');
-    expect(find.descendant(of: seojun, matching: find.text('37.6℃')), findsOneWidget);
-    expect(find.descendant(of: seojun, matching: find.text('! 주의')), findsOneWidget);
+    expect(find.descendant(of: seojun, matching: find.text('오전 ! 37.6° 주의')), findsOneWidget);
     // 한지호: 같은 시점 최신 = 09:41 36.8 평소
-    expect(find.descendant(of: _card('한지호'), matching: find.text('36.8℃')), findsOneWidget);
-    // 최도윤: 09:00 시점 지남, 기록 없음 → 미기록 + 측정 전
+    expect(find.descendant(of: _card('한지호'), matching: find.text('오전 ✓ 36.8° 평소')), findsOneWidget);
+    // 최도윤: 09:00 시점 지남, 기록 없음 → 미기록 + 측정 전 (점선 카드)
     final doyoon = _card('최도윤');
-    expect(find.descendant(of: doyoon, matching: find.text('미기록')), findsOneWidget);
-    expect(find.descendant(of: doyoon, matching: find.text('아직 안 쟀어요')), findsOneWidget);
-    // 오후는 아직 예정
-    expect(find.descendant(of: doyoon, matching: find.text('예정 13:00')), findsOneWidget);
+    expect(find.descendant(of: doyoon, matching: find.text('오전 미기록')), findsOneWidget);
+    expect(find.descendant(of: doyoon, matching: find.text('측정 전')), findsOneWidget);
+    // 오후는 아직 예정 (읽어 주는 말에는 시각)
+    expect(find.descendant(of: doyoon, matching: find.text('오후 예정')), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is Semantics && w.properties.label == '오후 예정 13:00'), findsWidgets);
 
     // 09:41: 일반 별님은 지금 생활실, 다음 10:00 작업 치료. 통학 김민준은 지금 학교.
     expect(find.descendant(of: doyoon, matching: find.textContaining('은하수자리 생활실')), findsOneWidget);
     expect(find.descendant(of: doyoon, matching: find.textContaining('10:00 작업 치료')), findsOneWidget);
-    expect(find.descendant(of: _card('김민준'), matching: find.text('학교 (08:40~14:30)')), findsOneWidget);
+    expect(find.descendant(of: _card('김민준'), matching: find.textContaining('지금 · 학교')), findsOneWidget);
 
     expect(find.text('이상 대응 중'), findsNothing);
     await tester.scrollUntilVisible(find.text('일정은 사무국에서 바꿔요'), 200,
@@ -107,8 +113,7 @@ void main() {
     expect(find.text('박승민'), findsOneWidget);
     expect(find.text('이상 대응 중'), findsOneWidget);
     final seungmin = _card('박승민');
-    expect(find.descendant(of: seungmin, matching: find.text('38.2℃')), findsOneWidget);
-    expect(find.descendant(of: seungmin, matching: find.text('▲ 이상')), findsOneWidget);
+    expect(find.descendant(of: seungmin, matching: find.textContaining('▲ 38.2° 이상')), findsOneWidget);
   });
 
   testWidgets('위험이 나오면 배지가 "긴급"으로 바뀐다 (저장소가 바뀌면 다시 그림)', (tester) async {
@@ -119,33 +124,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('긴급'), findsOneWidget);
-    expect(find.descendant(of: _card('이서준'), matching: find.text('39.1℃')), findsOneWidget);
+    expect(find.descendant(of: _card('이서준'), matching: find.textContaining('⚠ 39.1° 위험')), findsOneWidget);
   });
 
   testWidgets('날짜 바꾸기로 다른 날(토요일)을 고르면 주말 안내와 일정 개수, 오늘로 돌아오기', (tester) async {
     await _pump(tester);
-    await tester.tap(find.text('날짜 바꾸기'));
+    await tester.tap(find.text('달력'));
     await tester.pumpAndSettle();
     expect(find.text('2026년 10월'), findsOneWidget);
+    expect(find.text('접기'), findsOneWidget);
 
     await _tapVisible(tester, find.text('31'));
     await tester.pumpAndSettle();
     expect(find.text('2026년 10월'), findsNothing); // 고르면 접힘
     await _toTop(tester);
-    expect(find.text('10월 31일 (토)'), findsOneWidget);
+    expect(find.text('10월 31일 토요일'), findsOneWidget);
     expect(find.text('주말에는 식사와 여가 활동만 있어요'), findsOneWidget);
     expect(find.text('오늘로'), findsOneWidget);
     expect(find.text('일정 6개가 있어요'), findsWidgets);
 
     await _tapVisible(tester, find.text('오늘로'));
     await tester.pumpAndSettle();
-    expect(find.text('10월 28일 (수)'), findsOneWidget);
+    expect(find.text('오늘 · 10월 28일 수요일'), findsOneWidget);
     expect(find.text('오늘로'), findsNothing);
   });
 
   testWidgets('지난 날은 "하루 일정이 끝났어요"', (tester) async {
     await _pump(tester);
-    await tester.tap(find.text('날짜 바꾸기'));
+    await tester.tap(find.text('달력'));
     await tester.pumpAndSettle();
     await _tapVisible(tester, find.text('27'));
     await tester.pumpAndSettle();
@@ -158,17 +164,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DayScheduleScreen), findsOneWidget);
-    expect(find.text('하루 일정'), findsOneWidget);
+    expect(find.text('최도윤 별님의 하루'), findsOneWidget);
+    expect(find.bySemanticsLabel('뒤로, 은하수자리'), findsOneWidget);
     expect(find.textContaining('일정 7개'), findsOneWidget);
     expect(find.text('지남'), findsNWidgets(2)); // 아침 식사, 건강 확인
-    expect(find.text('체온 재기 · 오전 체온'), findsOneWidget);
+    expect(find.text('체온 측정 · 오전 체온'), findsOneWidget);
 
     // 시간 순
     final breakfast = tester.getTopLeft(find.text('아침 식사')).dy;
     final therapy = tester.getTopLeft(find.text('작업 치료')).dy;
     expect(breakfast, lessThan(therapy));
 
-    await _tapVisible(tester, find.text('체온 재기 · 오전 체온'));
+    await _tapVisible(tester, find.text('체온 측정 · 오전 체온'));
     await tester.pumpAndSettle();
     expect(find.byType(DayScheduleScreen), findsNothing); // 첫 화면으로 돌아옴
     final qt = c.read(quickTempProvider);
@@ -191,7 +198,7 @@ void main() {
     await _tapCard(tester, '서연우');
     await tester.pumpAndSettle();
 
-    await _tapVisible(tester, find.textContaining('체온 재기 ·').first);
+    await _tapVisible(tester, find.textContaining('체온 측정 ·').first);
     await tester.pump();
     expect(find.text('이 반은 체온 측정 권한이 없어요'), findsOneWidget);
     expect(find.byType(DayScheduleScreen), findsOneWidget);
@@ -206,18 +213,18 @@ void main() {
     await tester.pumpAndSettle();
     await _tapVisible(tester, find.text('파일 고르기'));
     await tester.pumpAndSettle();
-    expect(find.text('일정 5건을 찾았어요'), findsOneWidget);
+    expect(find.textContaining('일정 5개를 표로 정리했어요'), findsOneWidget);
     expect(find.text('작업 치료'), findsOneWidget);
 
-    await tester.tap(find.text('다른 파일 고르기'));
+    await tester.tap(find.text('다시 올리기'));
     await tester.pumpAndSettle();
     expect(find.text('파일 고르기'), findsOneWidget);
     await _tapVisible(tester, find.text('파일 고르기'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('일정에 반영하기'));
+    await tester.ensureVisible(find.text('일정에 반영 (시연)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('일정에 반영하기'));
+    await tester.tap(find.text('일정에 반영 (시연)'));
     await tester.pumpAndSettle();
     expect(find.text('시연용 예시라 실제 일정은 바뀌지 않아요'), findsOneWidget);
     expect(c.read(repoProvider).scheduleOf(seed.residentByName('이서준').id, DateTime(2026, 10, 29)).length, before);
@@ -263,7 +270,7 @@ void main() {
     testWidgets('$label + 큰 글자(1.3배)에서도 넘치지 않는다 (SC-1, SC-2, SC-U)', (tester) async {
       await _pump(tester, size: size, textScale: 1.3);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.text('날짜 바꾸기'));
+      await tester.tap(find.text('달력'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await _tapVisible(tester, find.text('31'));
@@ -282,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(DayScheduleScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await tester.pageBack();
+      await _back(tester);
       await tester.pumpAndSettle();
 
       await _tapClass(tester, '은하수자리');
@@ -291,7 +298,7 @@ void main() {
       await _tapCard(tester, '김민준');
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.pageBack();
+      await _back(tester);
       await tester.pumpAndSettle();
 
       await _openUpload(tester);
@@ -303,15 +310,34 @@ void main() {
     });
   }
 
-  testWidgets('누르는 것은 모두 크다: 반 칩 56, 날짜 바꾸기 56, 카드 체온 재기 버튼 56', (tester) async {
+  testWidgets('누르는 것은 모두 48 이상: 반 칩, 날짜 막대, 하루 일정 뒤로·체온 측정 버튼', (tester) async {
     await _pump(tester);
     final chip = find.ancestor(of: find.text('고래자리'), matching: find.byType(InkWell)).first;
-    expect(tester.getSize(chip).height, greaterThanOrEqualTo(56));
-    expect(tester.getSize(find.ancestor(of: find.text('날짜 바꾸기'), matching: find.byType(OutlinedButton))).height,
-        greaterThanOrEqualTo(56));
+    expect(tester.getSize(chip).height, greaterThanOrEqualTo(48));
+    final dateBar = find.ancestor(of: find.text('달력'), matching: find.byType(InkWell)).first;
+    expect(tester.getSize(dateBar).height, greaterThanOrEqualTo(48));
     await _tapCard(tester, '최도윤');
     await tester.pumpAndSettle();
-    final btn = find.ancestor(of: find.text('체온 재기 · 오전 체온'), matching: find.byType(OutlinedButton));
-    expect(tester.getSize(btn).height, greaterThanOrEqualTo(56));
+    final btn = find.ancestor(of: find.text('체온 측정 · 오전 체온'), matching: find.byType(FilledButton));
+    expect(tester.getSize(btn).height, greaterThanOrEqualTo(48));
+    final back = find.ancestor(of: find.text('은하수자리'), matching: find.byType(InkWell)).first;
+    expect(tester.getSize(back).height, greaterThanOrEqualTo(48));
   });
+
+  for (final (label, size, scale) in [
+    ('360×640', const Size(360, 640), 1.0),
+    ('360×640 큰 글자', const Size(360, 640), 1.3),
+    ('320×640', const Size(320, 640), 1.0),
+  ]) {
+    testWidgets('$label: 별님 카드는 두 열로 나란히, 넘치지 않는다', (tester) async {
+      await _pump(tester, size: size, textScale: scale);
+      expect(tester.takeException(), isNull);
+      final a = tester.getRect(_card('김민준'));
+      final b = tester.getRect(_card('이서준'));
+      expect(a.top, b.top); // 같은 줄
+      expect(a.right, lessThan(b.left)); // 왼쪽·오른쪽
+      expect(b.right, lessThanOrEqualTo(size.width - 20 + 0.5)); // 화면 여백 20 안
+      expect(a.height, b.height); // 한 줄의 두 카드는 높이를 맞춘다
+    });
+  }
 }

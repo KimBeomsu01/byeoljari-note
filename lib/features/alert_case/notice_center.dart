@@ -46,18 +46,18 @@ Future<void> showNoticeCenter(BuildContext context, WidgetRef ref) {
   final done = all.where((n) => !open(n)).toList();
   repo.markNoticesSeen(me, ref.read(clockProvider)());
   Widget row(BuildContext sheet, AppNotice n, bool isOpen) => Padding(
-        padding: const EdgeInsets.only(bottom: Gap.s),
-        child: _NoticeRow(
-          notice: n,
-          who: _noticeWho(repo, n),
-          caseItem: _caseOrNull(repo, n.caseId),
-          closed: !isOpen,
-          onTap: () {
-            Navigator.pop(sheet);
-            openCaseDetail(context, n.caseId);
-          },
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: Gap.s),
+    child: _NoticeRow(
+      notice: n,
+      who: _noticeWho(repo, n),
+      caseItem: _caseOrNull(repo, n.caseId),
+      closed: !isOpen,
+      onTap: () {
+        Navigator.pop(sheet);
+        openCaseDetail(context, n.caseId);
+      },
+    ),
+  );
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -66,18 +66,24 @@ Future<void> showNoticeCenter(BuildContext context, WidgetRef ref) {
     builder: (sheet) => FractionallySizedBox(
       heightFactor: 0.85,
       child: SafeArea(
-        child: ListView(padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.xl), children: [
-          const Text('알림', style: TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800)),
-          if (all.isEmpty) const EmptyNote('받은 알림이 없어요'),
-          if (active.isNotEmpty) ...[
-            SectionTitle('진행 중', count: active.length),
-            for (final n in active) row(sheet, n, true),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.xl),
+          children: [
+            const Text(
+              '알림',
+              style: TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800),
+            ),
+            if (all.isEmpty) const EmptyNote('받은 알림이 없어요'),
+            if (active.isNotEmpty) ...[
+              SectionTitle('진행 중', count: active.length),
+              for (final n in active) row(sheet, n, true),
+            ],
+            if (done.isNotEmpty) ...[
+              SectionTitle('끝난 건', count: done.length),
+              for (final n in done) row(sheet, n, false),
+            ],
           ],
-          if (done.isNotEmpty) ...[
-            SectionTitle('끝난 건', count: done.length),
-            for (final n in done) row(sheet, n, false),
-          ],
-        ]),
+        ),
       ),
     ),
   );
@@ -85,7 +91,13 @@ Future<void> showNoticeCenter(BuildContext context, WidgetRef ref) {
 
 /// 알림 한 줄 (높이 72 이상): [중요] 제목 / 누구 + 긴급·이상 대응 / 내용 / 시각.
 class _NoticeRow extends StatelessWidget {
-  const _NoticeRow({required this.notice, required this.who, required this.caseItem, required this.closed, required this.onTap});
+  const _NoticeRow({
+    required this.notice,
+    required this.who,
+    required this.caseItem,
+    required this.closed,
+    required this.onTap,
+  });
   final AppNotice notice;
   final String who;
   final Case? caseItem;
@@ -106,26 +118,55 @@ class _NoticeRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(Gap.l, Gap.m, Gap.m, Gap.m),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 72 - Gap.m * 2),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Wrap(spacing: Gap.s, runSpacing: Gap.xs, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                  if (n.important) StatusPill('중요', color: danger.ink, filled: true),
-                  if (closed) const StatusPill('끝난 건', color: inkSub),
-                  Text(n.title, style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: inkMain)),
-                ]),
-                if (who.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(who, style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
-                ],
-                if (c != null)
-                  Text(caseBadge(c), style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: caseColors(c).ink)),
-                Text(n.body, style: const TextStyle(fontSize: T.body, color: inkMain)),
-                Text(hm(n.at), style: const TextStyle(fontSize: T.caption, color: inkSub)),
-              ]),
-            ),
-            const Padding(padding: EdgeInsets.only(top: 2), child: Icon(Icons.chevron_right, size: 28, color: inkSub)),
-          ]),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: Gap.s,
+                      runSpacing: Gap.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (n.important) StatusPill('중요', color: danger.ink, filled: true),
+                        if (closed) const StatusPill('끝난 건', color: inkSub),
+                        Text(
+                          n.title,
+                          style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: inkMain),
+                        ),
+                      ],
+                    ),
+                    if (who.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        who,
+                        style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain),
+                      ),
+                    ],
+                    if (c != null)
+                      Text(
+                        caseBadge(c),
+                        style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: caseColors(c).ink),
+                      ),
+                    Text(
+                      n.body,
+                      style: const TextStyle(fontSize: T.body, color: inkMain),
+                    ),
+                    Text(
+                      hm(n.at),
+                      style: const TextStyle(fontSize: T.caption, color: inkSub),
+                    ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(Icons.chevron_right, size: 28, color: inkSub),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -190,7 +231,7 @@ class _NoticeBannerHostState extends ConsumerState<NoticeBannerHost> {
     final unseen = repo.unseenNoticeCount(me);
     final fresh = [
       for (var i = 0; i < list.length && i < unseen; i++)
-        if (!handled.contains(list[i].id)) list[i]
+        if (!handled.contains(list[i].id)) list[i],
     ];
     // 이미 본(🔔 열어 본) 알림도 다시 띄우지 않도록 표시
     handled.addAll(list.map((n) => n.id));
@@ -252,8 +293,8 @@ class _NoticeBanner extends StatefulWidget {
 }
 
 class _NoticeBannerState extends State<_NoticeBanner> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 260))..forward();
+  late final AnimationController _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 260))
+    ..forward();
   Timer? _timer;
 
   @override
@@ -291,8 +332,10 @@ class _NoticeBannerState extends State<_NoticeBanner> with SingleTickerProviderS
       child: SafeArea(
         bottom: false,
         child: SlideTransition(
-          position: Tween(begin: const Offset(0, -1.2), end: Offset.zero)
-              .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic)),
+          position: Tween(
+            begin: const Offset(0, -1.2),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic)),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(Gap.m, Gap.s, Gap.m, 0),
             child: Semantics(
@@ -311,42 +354,69 @@ class _NoticeBannerState extends State<_NoticeBanner> with SingleTickerProviderS
                   child: Container(
                     constraints: const BoxConstraints(minHeight: 72),
                     padding: const EdgeInsets.fromLTRB(Gap.l, Gap.m, Gap.xs, Gap.m),
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Expanded(
-                        child: ExcludeSemantics(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                            Wrap(spacing: Gap.s, runSpacing: Gap.xs, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                              if (important)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                                  decoration:
-                                      BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(Radii.pill)),
-                                  child: Text('중요',
-                                      style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: danger.ink)),
-                                )
-                              else
-                                const Icon(Icons.notifications_active, color: brandDark, size: 24),
-                              Text(n.title, style: TextStyle(fontWeight: FontWeight.w800, color: fg, fontSize: T.title)),
-                            ]),
-                            if (widget.contextLine.isNotEmpty)
-                              Text(widget.contextLine,
-                                  style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: fg)),
-                            Text(n.body,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: T.body, color: fg)),
-                          ]),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ExcludeSemantics(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Wrap(
+                                  spacing: Gap.s,
+                                  runSpacing: Gap.xs,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    if (important)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(Radii.pill),
+                                        ),
+                                        child: Text(
+                                          '중요',
+                                          style: TextStyle(
+                                            fontSize: T.caption,
+                                            fontWeight: FontWeight.w800,
+                                            color: danger.ink,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      const Icon(Icons.notifications_active, color: brandDark, size: 24),
+                                    Text(
+                                      n.title,
+                                      style: TextStyle(fontWeight: FontWeight.w800, color: fg, fontSize: T.title),
+                                    ),
+                                  ],
+                                ),
+                                if (widget.contextLine.isNotEmpty)
+                                  Text(
+                                    widget.contextLine,
+                                    style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: fg),
+                                  ),
+                                Text(
+                                  n.body,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: T.body, color: fg),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        tooltip: '알림 닫기',
-                        iconSize: 26,
-                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                        color: fg,
-                        icon: const Icon(Icons.close),
-                        onPressed: _hide,
-                      ),
-                    ]),
+                        IconButton(
+                          tooltip: '알림 닫기',
+                          iconSize: 26,
+                          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                          color: fg,
+                          icon: const Icon(Icons.close),
+                          onPressed: _hide,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

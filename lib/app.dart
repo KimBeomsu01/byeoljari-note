@@ -55,13 +55,23 @@ class _AppShellState extends ConsumerState<AppShell> {
           ? null
           : AppBar(
               titleSpacing: Gap.page,
-              title: Text(_tab == 0 ? '인수인계' : '일정'),
+              toolbarHeight: 72,
+              // 시제품처럼: 작은 '별자리노트' + ✦ 큰 제목
+              title: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                const Text('별자리노트', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: inkSub)),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  // 시제품의 ✦ (글꼴에 없을 수 있어 아이콘으로)
+                  Icon(Icons.auto_awesome, size: 20, color: stageColors[Stage.danger]!.line),
+                  const SizedBox(width: 6),
+                  Text(_tab == 0 ? '인수인계' : '반별 일정'),
+                ]),
+              ])),
               actions: [
                 _RoleSwitch(),
                 IconButton(
                   tooltip: '알림',
-                  iconSize: 30,
-                  constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
+                  iconSize: 28,
+                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                   onPressed: () => showNoticeCenter(context, ref),
                   icon: Badge(
                     isLabelVisible: unseen > 0,
@@ -177,7 +187,7 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget item(int i, IconData icon, IconData iconOn, String label) {
+    Widget item(int i, IconData icon, String label) {
       final on = !qtOpen && tab == i;
       return Expanded(
         child: Semantics(
@@ -188,13 +198,12 @@ class _BottomBar extends StatelessWidget {
           child: InkWell(
             onTap: () => onTab(i),
             child: SizedBox(
-              height: 76,
+              height: 72,
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(on ? iconOn : icon, size: 30, color: on ? brandDark : inkSub),
+                Icon(icon, size: 28, color: on ? brandDark : inkSub),
                 const SizedBox(height: 2),
                 Text(label,
                     maxLines: 1,
-                    overflow: TextOverflow.visible,
                     softWrap: false,
                     style: TextStyle(fontSize: T.caption, fontWeight: on ? FontWeight.w800 : FontWeight.w500, color: on ? brandDark : inkSub)),
               ]),
@@ -204,41 +213,47 @@ class _BottomBar extends StatelessWidget {
       );
     }
 
+    // 시제품처럼 가운데 짙은 동그라미가 메뉴 위로 살짝 떠 있다.
     return Material(
       color: surface,
       shape: const Border(top: BorderSide(color: line)),
       child: SafeArea(
         top: false,
-        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          item(0, Icons.article_outlined, Icons.article, '인수인계'),
-          // 가장 자주 누르는 버튼: 노란 '체온 재기'
-          Semantics(
-            button: true,
-            label: qtOpen ? '퀵 체온 접기' : '퀵 체온 열기',
-            excludeSemantics: true,
-            child: GestureDetector(
-              onTap: onQuick,
-              child: Container(
-                width: 132,
-                height: 60,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                decoration: BoxDecoration(
-                  color: qtOpen ? inkMain : starYellow,
-                  borderRadius: BorderRadius.circular(Radii.pill),
+        child: SizedBox(
+          height: 80,
+          child: Stack(clipBehavior: Clip.none, alignment: Alignment.topCenter, children: [
+            Row(children: [
+              item(0, Icons.article_outlined, '인수인계'),
+              const SizedBox(width: 110),
+              item(1, Icons.calendar_month_outlined, '일정'),
+            ]),
+            Positioned(
+              top: -18,
+              child: Semantics(
+                button: true,
+                label: qtOpen ? '퀵 체온 접기' : '퀵 체온 열기',
+                excludeSemantics: true,
+                child: GestureDetector(
+                  onTap: onQuick,
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: brandDark,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: surface, width: 4),
+                      ),
+                      child: Icon(qtOpen ? Icons.close : Icons.thermostat, color: Colors.white, size: 32),
+                    ),
+                    Text(qtOpen ? '닫기' : '퀵 체온',
+                        style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: inkMain)),
+                  ]),
                 ),
-                // 큰 글자 설정에서도 넘치지 않게 버튼 안에서 줄인다
-                child: FittedBox(fit: BoxFit.scaleDown, child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(qtOpen ? Icons.close : Icons.thermostat, color: qtOpen ? Colors.white : inkMain, size: 28),
-                  const SizedBox(width: 4),
-                  Text(qtOpen ? '닫기' : '체온 재기',
-                      style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: qtOpen ? Colors.white : inkMain)),
-                ])),
               ),
             ),
-          ),
-          item(1, Icons.calendar_month_outlined, Icons.calendar_month, '일정'),
-        ]),
+          ]),
+        ),
       ),
     );
   }

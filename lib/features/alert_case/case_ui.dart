@@ -58,7 +58,7 @@ List<CaseEvent> acksOf(InMemoryRepository repo, String caseId) {
   final seen = <String>{};
   return [
     for (final e in repo.eventsOf(caseId))
-      if (e.type == 'acked' && e.voidedBy == null && seen.add(e.actorId)) e
+      if (e.type == 'acked' && e.voidedBy == null && seen.add(e.actorId)) e,
   ];
 }
 
@@ -99,16 +99,16 @@ class CasePerms {
 
   /// 단계별 기록 권한 (S5 표 + 3장).
   String? stageDenied(int stage) => switch (stage) {
-        2 => isMedical ? null : '원내 조제는 간호사·원장님만 기록할 수 있어요',
-        3 => isMedical ? null : '원장 처방 요청은 간호사·원장님만 할 수 있어요',
-        _ => null,
-      };
+    2 => isMedical ? null : '원내 조제는 간호사·원장님만 기록할 수 있어요',
+    3 => isMedical ? null : '원장 처방 요청은 간호사·원장님만 할 수 있어요',
+    _ => null,
+  };
 
   String stageAction(int stage) => switch (stage) {
-        2 => '② 원내 조제로',
-        3 => isDirector ? '③ 원장 처방으로' : '③ 원장 처방 요청',
-        _ => '④ 병원으로 이동',
-      };
+    2 => '② 원내 조제로',
+    3 => isDirector ? '③ 원장 처방으로' : '③ 원장 처방 요청',
+    _ => '④ 병원으로 이동',
+  };
 
   bool get fullClose => isAssignee || isMedical || isNightDuty;
   bool get recordedFirst {
@@ -196,31 +196,40 @@ class LabelChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: filled ? color : surface,
-          borderRadius: BorderRadius.circular(Radii.pill),
-          border: Border.all(color: color, width: 1.5),
-        ),
-        child: Text(text,
-            style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: filled ? Colors.white : color)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: filled ? color : surface,
+      borderRadius: BorderRadius.circular(Radii.pill),
+      border: Border.all(color: color, width: 1.5),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: filled ? Colors.white : color),
+    ),
+  );
 }
 
-/// 큰 "⚠ 긴급" / "▲ 이상 대응" 알약 (색 채움 + 흰 글자).
+/// "⚠ 긴급" / "▲ 이상 대응" 알약 (시제품 '● 이상' 알약: 판정 색 옅은 바탕 + 테두리 + 기호·진한 글자).
 class CaseBadge extends StatelessWidget {
   const CaseBadge(this.c, {super.key});
   final Case c;
 
   @override
-  Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minHeight: 40),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: caseColors(c).ink, borderRadius: BorderRadius.circular(Radii.pill)),
-        child: Text(caseBadge(c),
-            style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2)),
-      );
+  Widget build(BuildContext context) {
+    final col = caseColors(c);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: col.soft,
+        borderRadius: BorderRadius.circular(Radii.pill),
+        border: Border.all(color: col.line, width: 1.5),
+      ),
+      child: Text(
+        caseBadge(c),
+        style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: col.ink, height: 1.25),
+      ),
+    );
+  }
 }
 
 /// 아이콘 + 한 줄 (알린 사람, 확인한 사람 같은 안내).
@@ -232,18 +241,26 @@ class IconLine extends StatelessWidget {
   final Color? color;
 
   @override
-  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(padding: const EdgeInsets.only(top: 2), child: Icon(icon, size: 22, color: color ?? inkSub)),
-        const SizedBox(width: Gap.s),
-        Expanded(
-          child: Text(text,
-              style: TextStyle(
-                fontSize: strong ? T.body : T.caption,
-                fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
-                color: color ?? inkMain,
-              )),
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Icon(icon, size: 22, color: color ?? inkSub),
+      ),
+      const SizedBox(width: Gap.s),
+      Expanded(
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: strong ? T.body : T.caption,
+            fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
+            color: color ?? inkMain,
+          ),
         ),
-      ]);
+      ),
+    ],
+  );
 }
 
 void toast(BuildContext context, String msg) {

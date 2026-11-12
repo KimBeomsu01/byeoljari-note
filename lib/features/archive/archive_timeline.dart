@@ -163,11 +163,11 @@ DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 
 const _weekdays = ['월', '화', '수', '목', '금', '토', '일'];
 
-/// 날짜 묶음 "오늘 / 어제 · 10월 27일 / 날짜" (통합 명세 5-8).
+/// 날짜 묶음 "오늘 · 10월 28일 / 어제 · 10월 27일 / 날짜" (통합 명세 5-8, 시제품 문구).
 String dayLabel(DateTime day, DateTime now) {
   final d = _day(day);
   final today = _day(now);
-  if (d == today) return '오늘';
+  if (d == today) return '오늘 · ${d.month}월 ${d.day}일';
   if (d == DateTime(today.year, today.month, today.day - 1)) return '어제 · ${d.month}월 ${d.day}일';
   final wd = _weekdays[d.weekday - 1];
   if (d.year == today.year) return '${d.month}월 ${d.day}일 ($wd)';

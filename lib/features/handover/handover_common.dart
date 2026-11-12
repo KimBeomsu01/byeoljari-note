@@ -12,8 +12,28 @@ final StageColors hoTask = stageColors[Stage.caution]!;
 /// 완료·확인함 색 (판정 '평소' 초록 계열).
 final StageColors hoDone = stageColors[Stage.normal]!;
 
-/// 전체 공지 카드 바탕 (아주 옅은 남색).
-final Color hoNoticeBg = Color.alphaBlend(brandDark.withValues(alpha: 0.05), surface);
+/// 전체 공지 카드 (시제품 #fbf6ea 바탕 / #e3cf9f 테두리).
+const Color hoNoticeBg = Color(0xFFFBF6EA);
+const Color hoNoticeLine = Color(0xFFE3CF9F);
+
+/// 할 일 상자 (시제품: 열림 #fbf1dd / #f0dcb4 / #7f5510).
+const Color hoTaskBg = Color(0xFFFBF1DD);
+const Color hoTaskLine = Color(0xFFF0DCB4);
+const Color hoTaskInk = Color(0xFF7F5510);
+
+/// 완료·확인함 (시제품 #e9f3ed / #cfe3d6 / #3f6c53).
+const Color hoDoneBg = Color(0xFFE9F3ED);
+const Color hoDoneLine = Color(0xFFCFE3D6);
+const Color hoDoneInk = Color(0xFF3F6C53);
+
+/// 카드 아래 칸 구분선 (시제품 #eef0ec).
+const Color hoFootLine = Color(0xFFEEF0EC);
+
+/// 세그먼트·답글 펼침 바탕 (시제품 #eceee6).
+const Color hoSegBg = Color(0xFFECEEE6);
+
+/// 어두운 요약 카드 위 글자 (시제품 #d7ded9). 짙은 바탕 위라 대비가 충분하다.
+const Color hoOnDarkSub = Color(0xFFD7DED9);
 
 String two(int n) => n.toString().padLeft(2, '0');
 String hm(DateTime t) => '${two(t.hour)}:${two(t.minute)}';
@@ -54,42 +74,58 @@ class NameAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
-        child: Container(
-          width: size,
-          height: size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color ?? paper,
-            shape: BoxShape.circle,
-            border: Border.all(color: line, width: 1.5),
-          ),
-          child: Text(
-            name.isEmpty ? '?' : name.characters.first,
-            textScaler: TextScaler.noScaling, // 동그라미 안 글자는 크기 고정 (동그라미가 커지지 않으므로)
-            style: TextStyle(
-              fontSize: size * 0.45 < T.caption ? T.caption : size * 0.45,
-              fontWeight: FontWeight.w700,
-              color: inkMain,
-              height: 1,
-            ),
-          ),
+    child: Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color ?? paper,
+        shape: BoxShape.circle,
+        border: Border.all(color: line, width: 1.5),
+      ),
+      child: Text(
+        name.isEmpty ? '?' : name.characters.first,
+        textScaler: TextScaler.noScaling, // 동그라미 안 글자는 크기 고정 (동그라미가 커지지 않으므로)
+        style: TextStyle(
+          fontSize: size * 0.45 < T.caption ? T.caption : size * 0.45,
+          fontWeight: FontWeight.w700,
+          color: inkMain,
+          height: 1,
         ),
-      );
+      ),
+    ),
+  );
 }
 
-/// '새 기록' 표시: 노란 점 + 글자 (색만으로 뜻을 전하지 않는다).
+/// '새 기록' 표시: 시제품의 작은 알약 (노란 점 + 글자, 색만으로 뜻을 전하지 않는다).
 class NewMark extends StatelessWidget {
   const NewMark({super.key, this.text = '새 기록'});
   final String text;
 
   @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        const YellowDot(),
-        const SizedBox(width: 6),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(8, 3, 10, 3),
+    decoration: BoxDecoration(
+      color: hoTaskBg,
+      borderRadius: BorderRadius.circular(Radii.pill),
+      border: Border.all(color: starYellow),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const YellowDot(size: 9),
+        const SizedBox(width: 5),
         Flexible(
-          child: Text(text, style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: inkMain)),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: hoTaskInk, height: 1.3),
+          ),
         ),
-      ]);
+      ],
+    ),
+  );
 }
 
 /// 노란 점 ('새 기록'에만 쓴다).
@@ -99,13 +135,13 @@ class YellowDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: starYellow, shape: BoxShape.circle, border: Border.all(color: inkMain, width: 1)),
-      );
+    width: size,
+    height: size,
+    decoration: const BoxDecoration(color: starYellow, shape: BoxShape.circle),
+  );
 }
 
-/// 하나 고르기 칩. 글자 길이에 맞춰 늘어나고 잘리지 않는다 (높이 52 이상).
+/// 하나 고르기 칩 (시제품 .chip: 흰 바탕 · 옅은 테두리, 고르면 짙은 녹회색). 높이 48 이상.
 class HoChip extends StatelessWidget {
   const HoChip({
     super.key,
@@ -131,73 +167,73 @@ class HoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        selected: icon == null ? selected : null,
-        label: semanticsLabel ?? label,
-        excludeSemantics: true,
-        child: Material(
-          color: selected ? brandDark : surface,
-          shape: StadiumBorder(side: BorderSide(color: selected ? brandDark : line, width: 1.5)),
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: onTap,
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 52, minWidth: 56),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (dot != null) ...[
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: dot,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: selected ? Colors.white : inkMain, width: 1),
-                    ),
+    button: true,
+    selected: icon == null ? selected : null,
+    label: semanticsLabel ?? label,
+    excludeSemantics: true,
+    child: Material(
+      color: selected ? brandDark : surface,
+      shape: StadiumBorder(side: BorderSide(color: selected ? brandDark : line)),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: tapHeight, minWidth: 56),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (dot != null) ...[
+                Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    color: dot,
+                    shape: BoxShape.circle,
+                    border: selected ? Border.all(color: Colors.white, width: 1.5) : null,
                   ),
-                  const SizedBox(width: 8),
-                ],
-                if (icon != null) ...[
-                  Icon(icon, size: 20, color: selected ? Colors.white : brandDark),
-                  const SizedBox(width: 4),
-                ] else if (selected) ...[
-                  const Icon(Icons.check, size: 20, color: Colors.white),
-                  const SizedBox(width: 4),
-                ],
-                Flexible(
-                  child: Text(label,
-                      style: TextStyle(
-                        fontSize: T.body,
-                        color: selected ? Colors.white : inkMain,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                      )),
                 ),
-                if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-              ]),
-            ),
+                const SizedBox(width: 7),
+              ],
+              if (icon != null) ...[
+                Icon(icon, size: 20, color: selected ? Colors.white : brandDark),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: T.body,
+                    color: selected ? Colors.white : inkMain,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[const SizedBox(width: 7), trailing!],
+            ],
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
-/// 작은 숫자 배지 (안 본 기록 수). 노란 바탕 + 진한 글자.
+/// 작은 숫자 배지 (안 본 기록 수). 시제품의 노란 배지 (#d9a44e), 글자는 읽기 쉽게 진하게.
 class CountBadge extends StatelessWidget {
   const CountBadge(this.count, {super.key});
   final int count;
 
   @override
   Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minWidth: 26),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-        decoration: BoxDecoration(
-          color: starYellow,
-          borderRadius: BorderRadius.circular(Radii.pill),
-          border: Border.all(color: inkMain, width: 1),
-        ),
-        child: Text('$count',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: inkMain)),
-      );
+    constraints: const BoxConstraints(minWidth: 26),
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+    decoration: BoxDecoration(color: starYellow, borderRadius: BorderRadius.circular(Radii.pill)),
+    child: Text(
+      '$count',
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: inkMain),
+    ),
+  );
 }
 
 /// 별님별 기록에서 고른 반. 작성 시트의 기본 반으로도 쓴다 (인수인계 3.4).

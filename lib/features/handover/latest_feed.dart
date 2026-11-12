@@ -1,5 +1,5 @@
 // HO-1 최신 기록 (인수인계 명세 3.1 + 통합 명세 6-3).
-// 순서: 지금 챙길 일 → 보기 칩 → 긴급 · 이상 대응 → 고정 전체 공지 → 이전 근무에서 넘어온 할 일 → 최신 기록.
+// 순서: 교대 요약 → 보기 칩 → 긴급 · 이상 대응 → 고정 전체 공지 → 이전 근무에서 넘어온 할 일 → 최신 기록.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -55,43 +55,53 @@ class _LatestFeedState extends ConsumerState<LatestFeed> {
     final v = HandoverView(repo, me, now, keep: _keep);
     final missed = repo.missedTempResidents(now);
 
-    Widget pad(Widget w) => Padding(padding: const EdgeInsets.symmetric(horizontal: Gap.page), child: w);
+    Widget pad(Widget w) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+      child: w,
+    );
 
     final children = <Widget>[
       pad(_SummaryCard(view: v, missed: missed, onResponse: _goToResponse, onFilter: _setFilter)),
-      const SizedBox(height: Gap.xl),
-      pad(const Text('보기', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkSub))),
-      const SizedBox(height: Gap.s),
+      const SizedBox(height: Gap.m),
       _ViewChips(view: v, selected: _filter, onSelect: _setFilter),
       if (v.activeCases.isNotEmpty) ...[
-        pad(KeyedSubtree(key: _responseKey, child: SectionTitle('긴급 · 이상 대응', count: v.activeCases.length))),
+        pad(
+          KeyedSubtree(
+            key: _responseKey,
+            child: _Sec(
+              '긴급 · 이상 대응 ${v.activeCases.length}',
+              color: stageColors[Stage.danger]!.ink,
+              dot: stageColors[Stage.danger]!.line,
+            ),
+          ),
+        ),
         for (final c in v.activeCases)
-          pad(Padding(padding: const EdgeInsets.only(bottom: Gap.m), child: ResponseCard(caseItem: c))),
+          pad(
+            Padding(
+              padding: const EdgeInsets.only(bottom: Gap.m),
+              child: ResponseCard(caseItem: c),
+            ),
+          ),
       ],
       for (final w in _body(v)) pad(w),
     ];
 
-    return ListView(
-      controller: _scroll,
-      // 아래 120: 떠 있는 '기록 남기기' 버튼이 마지막 카드를 가리지 않게.
-      padding: const EdgeInsets.fromLTRB(0, Gap.s, 0, 120),
-      children: children,
-    );
+    return ListView(controller: _scroll, padding: const EdgeInsets.fromLTRB(0, 0, 0, Gap.l), children: children);
   }
 
   List<Widget> _body(HandoverView v) {
     EntryCard card(Entry e, {bool fold = true}) => EntryCard(
-          key: ValueKey('entry-${e.id}'),
-          entry: e,
-          view: v,
-          foldReadNotice: fold,
-          onCompleted: () => setState(() => _keep.add(e.id)),
-        );
+      key: ValueKey('entry-${e.id}'),
+      entry: e,
+      view: v,
+      foldReadNotice: fold,
+      onCompleted: () => setState(() => _keep.add(e.id)),
+    );
 
     if (_filter != FeedFilter.all) {
       final list = v.listFor(_filter);
       return [
-        SectionTitle(_filter.label, count: list.length),
+        _Sec('${_filter.label} ${list.length}건'),
         if (list.isEmpty) EmptyNote(_filter.emptyText),
         for (final e in list) card(e, fold: _filter != FeedFilter.facility),
       ];
@@ -102,19 +112,12 @@ class _LatestFeedState extends ConsumerState<LatestFeed> {
     final rest = v.listFor(FeedFilter.all);
     final openCarried = carried.where(v.hasOpenTask).length;
     return [
-      if (pinned.isNotEmpty) ...[
-        const SectionTitle('전체 공지'),
-        for (final e in pinned) card(e),
-      ],
+      if (pinned.isNotEmpty) ...[_Sec('고정된 전체 공지 ${pinned.length}'), for (final e in pinned) card(e)],
       if (carried.isNotEmpty) ...[
-        SectionTitle('이전 근무에서 넘어온 할 일', count: openCarried),
-        const Padding(
-          padding: EdgeInsets.only(bottom: Gap.m),
-          child: Text('완료할 때까지 여기에 남아요', style: TextStyle(fontSize: T.caption, color: inkSub)),
-        ),
+        _Sec('이전 근무에서 넘어온 할 일 $openCarried', color: hoTaskInk, sub: '완료할 때까지 여기에 남아요'),
         for (final e in carried) card(e),
       ],
-      SectionTitle('최신 기록', count: rest.length),
+      _Sec('최신 기록 ${rest.length}', sub: '반 공지와 별님 기록'),
       if (rest.isEmpty) const EmptyNote('새로 들어온 기록이 없어요'),
       for (final e in rest) card(e),
       _RangeFooter(view: v),
@@ -122,7 +125,7 @@ class _LatestFeedState extends ConsumerState<LatestFeed> {
   }
 }
 
-/// 맨 위 "지금 챙길 일": 밝은 카드, 한 줄에 한 가지, 누르면 그 목록으로.
+/// 맨 위 교대 요약 (시제품 .summary): 짙은 녹회색 카드 + 흰 숫자. 칸을 누르면 그 목록으로.
 class _SummaryCard extends ConsumerWidget {
   const _SummaryCard({required this.view, required this.missed, required this.onResponse, required this.onFilter});
   final HandoverView view;
@@ -130,88 +133,91 @@ class _SummaryCard extends ConsumerWidget {
   final VoidCallback onResponse;
   final ValueChanged<FeedFilter> onFilter;
 
+  // 시제품 .stat 숫자 색 (짙은 바탕 위)
+  static const _red = Color(0xFFFFB4B2);
+  static const _amber = Color(0xFFF3CF86);
+  static const _zero = Color(0xFFA9B8AF);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final v = view;
     final tasks = v.openTasks.length;
     final unread = v.unread.length;
     final allClear = v.activeCases.isEmpty && tasks == 0 && unread == 0;
+    final shiftName = v.shift == null ? '지금 근무' : '${v.shift!.label} 근무';
 
-    final rows = <Widget>[
-      _Stat(
-          label: '긴급',
-          value: v.urgentCount,
-          symbol: Stage.danger.symbol,
-          bar: stageColors[Stage.danger]!.ink,
-          ink: stageColors[Stage.danger]!.ink,
-          onTap: onResponse),
-      _Stat(
-          label: '이상 대응',
-          value: v.abnormalCount,
-          symbol: Stage.abnormal.symbol,
-          bar: stageColors[Stage.abnormal]!.line,
-          ink: stageColors[Stage.abnormal]!.ink,
-          onTap: onResponse),
-      _Stat(
-          label: '남은 할 일',
-          value: tasks,
-          symbol: '☐',
-          bar: hoTask.line,
-          ink: hoTask.ink,
-          onTap: () => onFilter(FeedFilter.task)),
-      _Stat(
-          label: '안 본 기록',
-          value: unread,
-          symbol: '●',
-          bar: starYellow,
-          ink: inkMain,
-          onTap: () => onFilter(FeedFilter.unread)),
-      _Stat(
-          label: '체온 미기록',
-          value: missed.length,
-          symbol: '○',
-          bar: brandDark,
-          ink: brandDark,
-          onTap: () => _showMissed(context, ref, missed)),
-    ];
+    Widget stat(String label, int value, Color on, VoidCallback onTap) =>
+        _Stat(label: label, value: value, color: value > 0 ? on : _zero, onTap: onTap);
 
     return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: line),
+      padding: const EdgeInsets.all(Gap.m),
+      decoration: BoxDecoration(color: brandDark, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, Gap.s),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$shiftName 인계',
+                        style: const TextStyle(
+                          fontSize: T.title,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2, left: Gap.s),
+                      child: Text(
+                        '${hm(v.now)} 기준',
+                        style: const TextStyle(fontSize: T.caption, color: hoOnDarkSub),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${_sinceText(v.since, v.now)} 이후 기록이에요',
+                  style: const TextStyle(fontSize: T.caption, color: hoOnDarkSub),
+                ),
+                if (allClear)
+                  const Padding(
+                    padding: EdgeInsets.only(top: Gap.xs),
+                    child: Text(
+                      '✦ 넘겨받을 일을 모두 확인했어요',
+                      style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: Colors.white),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // 2줄: 긴급·이상 대응 / 남은 할 일·안 본 기록·체온 미기록
+          Row(
+            children: [
+              Expanded(child: stat('긴급', v.urgentCount, _red, onResponse)),
+              const SizedBox(width: 6),
+              Expanded(child: stat('이상 대응', v.abnormalCount, _amber, onResponse)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(child: stat('남은 할 일', tasks, _amber, () => onFilter(FeedFilter.task))),
+              const SizedBox(width: 6),
+              Expanded(child: stat('안 본 기록', unread, Colors.white, () => onFilter(FeedFilter.unread))),
+              const SizedBox(width: 6),
+              Expanded(child: stat('체온 미기록', missed.length, Colors.white, () => _showMissed(context, ref, missed))),
+            ],
+          ),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.l, Gap.l, Gap.l, Gap.s),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('지금 챙길 일', style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
-            Text('${_sinceText(v.since, v.now)} 이후 기록이에요', style: const TextStyle(fontSize: T.caption, color: inkSub)),
-            if (allClear)
-              Padding(
-                padding: const EdgeInsets.only(top: Gap.xs),
-                child: Text('✓ 넘겨받을 일을 모두 확인했어요',
-                    style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: hoDone.ink)),
-              ),
-          ]),
-        ),
-        // 첫 화면에서 아래 카드가 보이도록 숫자 칸 2줄로: 긴급·이상 대응 / 할 일·안 본 기록·미기록
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.m, Gap.xs, Gap.m, Gap.m),
-          child: Column(children: [
-            Row(children: [Expanded(child: rows[0]), const SizedBox(width: Gap.s), Expanded(child: rows[1])]),
-            const SizedBox(height: Gap.s),
-            Row(children: [
-              Expanded(child: rows[2]),
-              const SizedBox(width: Gap.s),
-              Expanded(child: rows[3]),
-              const SizedBox(width: Gap.s),
-              Expanded(child: rows[4]),
-            ]),
-          ]),
-        ),
-      ]),
     );
   }
 
@@ -229,34 +235,55 @@ class _SummaryCard extends ConsumerWidget {
       builder: (s) => SafeArea(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.of(s).size.height * 0.75),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.xs),
-              child: Text('체온을 아직 안 잰 별님 ${missed.length}명',
-                  style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.m),
-              child: Text('누르면 바로 체온을 잴 수 있어요.', style: TextStyle(fontSize: T.body, color: inkSub)),
-            ),
-            if (missed.isEmpty) const EmptyNote('체온을 안 잰 별님이 없어요'),
-            Flexible(
-              child: ListView(shrinkWrap: true, padding: const EdgeInsets.only(bottom: Gap.l), children: [
-                for (final r in missed)
-                  ListTile(
-                    minTileHeight: 72,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: Gap.page),
-                    leading: ResidentAvatar(name: r.name, classColor: repo.classOf(r.classId).color),
-                    title: Text('${r.name} 별님',
-                        style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w700, color: inkMain)),
-                    subtitle: Text(repo.classOf(r.classId).name),
-                    trailing: const Text('체온 재기 ›',
-                        style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: brandDark)),
-                    onTap: () => Navigator.pop(s, r.id),
-                  ),
-              ]),
-            ),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.xs),
+                child: Text(
+                  '체온을 아직 안 잰 별님 ${missed.length}명',
+                  style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.m),
+                child: Text(
+                  '누르면 바로 체온을 잴 수 있어요.',
+                  style: TextStyle(fontSize: T.body, color: inkSub),
+                ),
+              ),
+              if (missed.isEmpty) const EmptyNote('체온을 안 잰 별님이 없어요'),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(bottom: Gap.l),
+                  children: [
+                    for (final r in missed)
+                      ListTile(
+                        minTileHeight: 72,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: Gap.page),
+                        leading: ResidentAvatar(
+                          name: r.name,
+                          classColor: repo.classOf(r.classId).color,
+                          residentId: r.id,
+                        ),
+                        title: Text(
+                          '${r.name} 별님',
+                          style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w700, color: inkMain),
+                        ),
+                        subtitle: Text(repo.classOf(r.classId).name),
+                        trailing: const Text(
+                          '체온 재기 ›',
+                          style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: brandDark),
+                        ),
+                        onTap: () => Navigator.pop(s, r.id),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -264,21 +291,12 @@ class _SummaryCard extends ConsumerWidget {
   }
 }
 
-/// 요약 숫자 칸: 큰 숫자 + 이름. 0이면 조용하게, 0이 아니면 색 테두리 + 색 바탕 + 진한 글자.
+/// 요약 숫자 칸 (시제품 .stat): 옅은 흰 면 위에 큰 숫자 + 이름. 0이면 숫자를 흐리게.
 class _Stat extends StatelessWidget {
-  const _Stat({
-    required this.label,
-    required this.value,
-    required this.symbol,
-    required this.bar,
-    required this.ink,
-    required this.onTap,
-  });
+  const _Stat({required this.label, required this.value, required this.color, required this.onTap});
   final String label;
   final int value;
-  final String symbol;
-  final Color bar;
-  final Color ink;
+  final Color color;
   final VoidCallback onTap;
 
   @override
@@ -289,45 +307,91 @@ class _Stat extends StatelessWidget {
       label: '$label $value',
       excludeSemantics: true,
       child: Material(
-        color: on ? Color.alphaBlend(bar.withValues(alpha: 0.12), surface) : surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.button),
-          side: BorderSide(color: on ? bar : line, width: on ? 2 : 1),
-        ),
+        color: Colors.white.withValues(alpha: on ? 0.13 : 0.07),
+        borderRadius: BorderRadius.circular(11),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 80),
+            constraints: const BoxConstraints(minHeight: 66),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Gap.s, vertical: Gap.s),
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text('$value',
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$value',
                     style: TextStyle(
                       fontSize: T.number,
                       height: 1.1,
                       fontWeight: FontWeight.w800,
-                      color: on ? ink : inkSub,
+                      color: color,
                       fontFeatures: const [FontFeature.tabularFigures()],
-                    )),
-                const SizedBox(height: 2),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text('$symbol $label',
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
                       maxLines: 1,
                       style: TextStyle(
                         fontSize: T.caption,
-                        fontWeight: on ? FontWeight.w800 : FontWeight.w600,
-                        color: on ? ink : inkSub,
-                      )),
-                ),
-              ]),
+                        fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+                        color: hoOnDarkSub,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// 목록 구역 이름 (시제품 .sec): 작고 굵은 보조 글자. [dot]이 있으면 앞에 색 점.
+class _Sec extends StatelessWidget {
+  const _Sec(this.text, {this.color = inkSub, this.dot, this.sub});
+  final String text;
+  final Color color;
+  final Color? dot;
+  final String? sub;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(2, Gap.l, 2, Gap.s),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            if (dot != null) ...[
+              Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 7),
+            ],
+            Flexible(
+              child: Text(
+                text,
+                style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: color),
+              ),
+            ),
+          ],
+        ),
+        if (sub != null)
+          Text(
+            sub!,
+            style: const TextStyle(fontSize: T.caption, color: inkSub),
+          ),
+      ],
+    ),
+  );
 }
 
 /// 보기 칩: 글자 크기에 맞춰 늘어나고, 옆으로 밀어서 더 본다.
@@ -339,20 +403,18 @@ class _ViewChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: Gap.page),
-        child: Row(children: [
-          for (final f in FeedFilter.values)
-            Padding(
-              padding: const EdgeInsets.only(right: Gap.s),
-              child: HoChip(
-                label: '${f.label} ${view.countFor(f)}',
-                selected: selected == f,
-                onTap: () => onSelect(f),
-              ),
-            ),
-        ]),
-      );
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.symmetric(horizontal: Gap.page),
+    child: Row(
+      children: [
+        for (final f in FeedFilter.values)
+          Padding(
+            padding: const EdgeInsets.only(right: Gap.s),
+            child: HoChip(label: '${f.label} ${view.countFor(f)}', selected: selected == f, onTap: () => onSelect(f)),
+          ),
+      ],
+    ),
+  );
 }
 
 class _RangeFooter extends StatelessWidget {
@@ -366,12 +428,20 @@ class _RangeFooter extends StatelessWidget {
     final d = view.since;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Gap.xl),
-      child: Column(children: [
-        Text('내 지난 근무(${d.month}월 ${d.day}일$name)부터 보여요',
-            textAlign: TextAlign.center, style: const TextStyle(fontSize: T.caption, color: inkSub)),
-        const Text('그 전 기록은 별님 아카이브에 있어요',
-            textAlign: TextAlign.center, style: TextStyle(fontSize: T.caption, color: inkSub)),
-      ]),
+      child: Column(
+        children: [
+          Text(
+            '✦ 내 지난 근무(${d.month}월 ${d.day}일$name)부터 보여요',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: T.caption, color: inkSub),
+          ),
+          const Text(
+            '그 전 기록은 별님 아카이브에서 볼 수 있어요',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: T.caption, color: inkSub),
+          ),
+        ],
+      ),
     );
   }
 }

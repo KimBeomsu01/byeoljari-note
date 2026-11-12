@@ -45,7 +45,7 @@ void main() {
     // 퀵 체온이 은하수자리·이서준으로 열림, 36.5에서 시작
     expect(find.descendant(of: find.byType(QuickTempScreen), matching: find.text('이서준')), findsOneWidget);
     expect(find.text('은하수자리 · 2 / 6'), findsOneWidget);
-    expect(find.text('36.5'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('이서준 36.5도')), findsOneWidget); // 체온은 디지털 숫자로 그린다
 
     // + 19번 → 38.4
     final plus = find.bySemanticsLabel('0.1도 올리기');
@@ -53,7 +53,7 @@ void main() {
       await tester.tap(plus);
     }
     await tester.pump();
-    expect(find.text('38.4'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('이서준 38.4도')), findsOneWidget);
 
     // 0.3초만 누르면 저장 안 됨
     final dial = find.text('눌러서 기록');

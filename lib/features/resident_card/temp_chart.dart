@@ -36,7 +36,7 @@ class TempChart extends StatelessWidget {
         child: SizedBox(
           height: 200,
           width: double.infinity,
-          child: CustomPaint(painter: _TempChartPainter(points, baseline, from, to)),
+          child: CustomPaint(painter: _TempChartPainter(points, baseline, from, to, Theme.of(context).textTheme.bodyMedium?.fontFamily)),
         ),
       ),
     );
@@ -44,14 +44,15 @@ class TempChart extends StatelessWidget {
 }
 
 class _TempChartPainter extends CustomPainter {
-  _TempChartPainter(this.points, this.baseline, this.from, this.to);
+  _TempChartPainter(this.points, this.baseline, this.from, this.to, this.fontFamily);
+  final String? fontFamily;
   final List<Measurement> points;
   final int baseline;
   final DateTime from;
   final DateTime to;
 
   static const _left = 46.0;
-  static const _top = 24.0;
+  static const _top = 34.0;
   static const _bottom = 28.0;
 
   @override
@@ -72,7 +73,7 @@ class _TempChartPainter extends CustomPainter {
 
     void text(String s, Offset at, {Color color = inkSub, double size = T.caption, bool center = false, FontWeight? weight}) {
       final tp = TextPainter(
-        text: TextSpan(text: s, style: TextStyle(color: color, fontSize: size, fontWeight: weight)),
+        text: TextSpan(text: s, style: TextStyle(color: color, fontSize: size, fontWeight: weight, fontFamily: fontFamily)),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, center ? at - Offset(tp.width / 2, tp.height / 2) : at);
@@ -87,7 +88,7 @@ class _TempChartPainter extends CustomPainter {
     text(formatTemp(lo), Offset(0, _top + h - 10));
     text('${from.month}/${from.day}', Offset(_left, _top + h + 6));
     final toLabel = TextPainter(
-      text: TextSpan(text: '${to.month}/${to.day}', style: const TextStyle(fontSize: T.caption)),
+      text: TextSpan(text: '${to.month}/${to.day}', style: TextStyle(fontSize: T.caption, fontFamily: fontFamily)),
       textDirection: TextDirection.ltr,
     )..layout();
     text('${to.month}/${to.day}', Offset(_left + w - toLabel.width, _top + h + 6));
@@ -100,12 +101,23 @@ class _TempChartPainter extends CustomPainter {
     for (var d = _left; d < _left + w; d += 8) {
       canvas.drawLine(Offset(d, by), Offset(math.min(d + 4, _left + w), by), base);
     }
-    text('평소 ${formatTemp(baseline)}', Offset(_left + 4, by - 22), color: stageColors[Stage.normal]!.ink, weight: FontWeight.w700);
+    // 범례: 오른쪽 위에 "┄ 평소 37.1" (점과 겹치지 않게)
+    final legend = TextPainter(
+      text: TextSpan(
+          text: '평소 ${formatTemp(baseline)}',
+          style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: stageColors[Stage.normal]!.ink, fontFamily: fontFamily)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final lx = size.width - 6 - legend.width;
+    legend.paint(canvas, Offset(lx, 0));
+    for (var d = lx - 26.0; d < lx - 6; d += 8) {
+      canvas.drawLine(Offset(d, legend.height / 2), Offset(d + 4, legend.height / 2), base);
+    }
 
     // 선
     final trend = Paint()
-      ..color = inkSub
-      ..strokeWidth = 1.5
+      ..color = const Color(0xFF87A98E) // 시제품 세이지 초록
+      ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
     final path = Path();
     for (var i = 0; i < points.length; i++) {
