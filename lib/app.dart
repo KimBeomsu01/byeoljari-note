@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/providers.dart';
 import 'core/theme.dart';
+import 'features/alert_case/notice_center.dart';
 import 'features/handover/handover_screen.dart';
 import 'features/quick_temp/quick_temp_controller.dart';
 import 'features/quick_temp/quick_temp_screen.dart';
+import 'features/schedule/schedule_screen.dart';
 
 class ByeoljariApp extends StatelessWidget {
   const ByeoljariApp({super.key});
@@ -23,7 +25,7 @@ class ByeoljariApp extends StatelessWidget {
             child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 430), child: child),
           ),
         ),
-        home: const AppShell(),
+        home: const NoticeBannerHost(child: AppShell()),
       );
 }
 
@@ -42,7 +44,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final qtOpen = ref.watch(quickTempProvider.select((s) => s.open));
     final repo = ref.watch(repoProvider);
     final me = ref.watch(currentUserProvider);
-    final notices = repo.noticesFor(me);
+    final unseen = repo.unseenNoticeCount(me);
 
     return Scaffold(
       appBar: qtOpen
@@ -54,10 +56,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                 _RoleSwitch(),
                 IconButton(
                   tooltip: '알림',
-                  onPressed: () => _showNotices(context, ref),
+                  onPressed: () => showNoticeCenter(context, ref),
                   icon: Badge(
-                    isLabelVisible: notices.isNotEmpty,
-                    label: Text('${notices.length}'),
+                    isLabelVisible: unseen > 0,
+                    label: Text('$unseen'),
                     child: const Icon(Icons.notifications_none),
                   ),
                 ),
@@ -66,7 +68,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       body: Stack(children: [
         IndexedStack(index: _tab, children: const [
           HandoverScreen(),
-          Center(child: Text('일정 (일정 담당 화면 자리)', style: TextStyle(color: inkSub))),
+          ScheduleScreen(),
         ]),
         // 퀵 체온: 가운데 버튼에서 펼쳐지는 전체 화면 레이어
         IgnorePointer(
@@ -95,26 +97,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       ),
     );
   }
-
-  void _showNotices(BuildContext context, WidgetRef ref) {
-    final repo = ref.read(repoProvider);
-    final list = repo.noticesFor(ref.read(currentUserProvider));
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => ListView(padding: const EdgeInsets.all(16), children: [
-        const Text('알림', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-        if (list.isEmpty) const Padding(padding: EdgeInsets.all(16), child: Text('받은 알림이 없어요')),
-        for (final n in list)
-          ListTile(
-            leading: Icon(n.important ? Icons.priority_high : Icons.notifications, color: n.important ? Colors.red : brandDark),
-            title: Text(n.title),
-            subtitle: Text(n.body),
-            trailing: Text('${n.at.hour}:${n.at.minute.toString().padLeft(2, '0')}'),
-          ),
-      ]),
-    );
-  }
 }
 
 /// 시연용 역할 바꾸기 (통합 명세 10-2). 실제 앱으로는 옮기지 않는다.
@@ -127,8 +109,36 @@ class _RoleSwitch extends ConsumerWidget {
     return PopupMenuButton<String>(
       tooltip: '역할 바꾸기 (시연)',
       initialValue: me,
-      onSelected: (v) => ref.read(currentUserProvider.notifier).state = v,
-      itemBuilder: (_) => [for (final id in choices) PopupMenuItem(value: id, child: Text(repo.staff(id).displayName))],
+      onSelected: (v) async {
+        if (v == '_skip30') {
+          repo.advanceClock(const Duration(minutes: 30));
+        } else if (v == '_reset') {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (d) => AlertDialog(
+              title: const Text('시연 처음 상태로 돌릴까요?'),
+              content: const Text('이 기기에 저장된 기록이 모두 지워지고 10월 28일 09:41 상태로 돌아가요.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('취소')),
+                FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('처음 상태로')),
+              ],
+            ),
+          );
+          if (ok == true) {
+            await repo.resetDemo();
+            ref.invalidate(quickTempProvider);
+            ref.read(currentUserProvider.notifier).state = 'kim_haneul';
+          }
+        } else {
+          ref.read(currentUserProvider.notifier).state = v;
+        }
+      },
+      itemBuilder: (_) => [
+        for (final id in choices) PopupMenuItem(value: id, child: Text(repo.staff(id).displayName)),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: '_skip30', child: Text('⏩ 시계 30분 앞으로')),
+        const PopupMenuItem(value: '_reset', child: Text('↺ 시연 처음 상태로')),
+      ],
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Chip(label: Text(repo.staff(me).displayName, style: const TextStyle(fontSize: 12))),

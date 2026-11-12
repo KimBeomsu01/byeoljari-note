@@ -1,5 +1,7 @@
 // 시연 3단계: 이서준 재측정 할 일 [완료하기] → 퀵 체온 → 38.4 → 0.5초 → 기록 완료 → 이상 대응 시트.
 import 'package:byeoljari_note/app.dart';
+import 'package:byeoljari_note/features/handover/entry_card.dart';
+import 'package:byeoljari_note/features/quick_temp/quick_temp_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,15 +15,21 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: ByeoljariApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('긴급 0 · 이상 대응 1 · 남은 할 일 3'), findsOneWidget);
+    expect(find.bySemanticsLabel('이상 대응 1'), findsOneWidget);
+    expect(find.bySemanticsLabel('남은 할 일 3'), findsOneWidget);
 
-    // 이서준 할 일의 [완료하기]
-    final seojunTask = find.ancestor(of: find.text('이서준 · 재측정'), matching: find.byType(ListTile));
-    await tester.tap(find.descendant(of: seojunTask, matching: find.text('완료하기')));
+    // 이서준 할 일의 [완료하기] (인수인계 기록 카드)
+    final card = find.ancestor(of: find.text('이서준'), matching: find.byType(EntryCard));
+    final done = find.descendant(of: card, matching: find.text('완료하기'));
+    await tester.scrollUntilVisible(done, 200,
+        scrollable: find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down).first);
+    await tester.ensureVisible(done); // 하단 메뉴에 가리지 않게 위로
+    await tester.pumpAndSettle();
+    await tester.tap(done);
     await tester.pumpAndSettle();
 
     // 퀵 체온이 은하수자리·이서준으로 열림, 36.5에서 시작
-    expect(find.text('이서준'), findsOneWidget);
+    expect(find.descendant(of: find.byType(QuickTempScreen), matching: find.text('이서준')), findsOneWidget);
     expect(find.text('은하수자리 · 2 / 6'), findsOneWidget);
     expect(find.text('36.5'), findsOneWidget);
 
@@ -71,7 +79,14 @@ void main() {
     // 퀵 체온 접고 인수인계로
     await tester.tap(find.bySemanticsLabel('퀵 체온 접기'));
     await tester.pumpAndSettle();
-    expect(find.text('긴급 0 · 이상 대응 2 · 남은 할 일 2'), findsOneWidget);
+    // 아까 아래로 내려 둔 목록을 맨 위로 (요약 카드)
+    await tester.fling(
+        find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down).first,
+        const Offset(0, 3000),
+        3000);
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('이상 대응 2'), findsOneWidget);
+    expect(find.bySemanticsLabel('남은 할 일 2'), findsOneWidget);
   });
 
   testWidgets('권한 없는 반은 잠겨 있다 (김하늘은 은하수자리만)', (tester) async {

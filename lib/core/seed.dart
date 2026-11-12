@@ -74,10 +74,19 @@ final Map<String, int> seedBaselines = {
     for (var i = 0; i < e.value.length; i++) '${e.key}-${i + 1}': e.value[i].$2,
 };
 
+/// 학교에 다니는 별님 (통학 차량 반 공지와 맞춤).
+const _commuters = {'송지은', '서소율', '김민준', '고준우', '서연우'};
+
 final residents = <Resident>[
   for (final e in _roster.entries)
     for (var i = 0; i < e.value.length; i++)
-      Resident(id: '${e.key}-${i + 1}', classId: e.key, name: e.value[i].$1, order: i),
+      Resident(
+        id: '${e.key}-${i + 1}',
+        classId: e.key,
+        name: e.value[i].$1,
+        order: i,
+        commutesToSchool: _commuters.contains(e.value[i].$1),
+      ),
 ];
 
 Resident residentByName(String name) => residents.firstWhere((r) => r.name == name);
@@ -132,3 +141,122 @@ final medicationGuidelines = <MedicationGuideline>[
   ),
   // 김윤서: 지침 없음 (지침 없음 화면 시연)
 ];
+
+// ── 근무조 (10-2). 교대 시간은 [확인 필요]: 오전 07~15, 오후 14~22, 야간 22~07로 가정.
+List<Shift> seedShifts() {
+  DateTime d(int day, int h) => DateTime(2026, 10, day, h);
+  return [
+    Shift(id: 'sh-1027-am', type: ShiftType.am, startAt: d(27, 7), endAt: d(27, 15), staffIds: const ['park_jieun', 'lee_sujin', 'han_jimin', 'kim_haneul']),
+    Shift(id: 'sh-1027-pm', type: ShiftType.pm, startAt: d(27, 14), endAt: d(27, 22), staffIds: const ['oh_sehun', 'jung_daun', 'jung_haeun', 'oh_jimin']),
+    Shift(id: 'sh-1027-night', type: ShiftType.night, startAt: d(27, 22), endAt: d(28, 7), staffIds: const ['oh_jimin', 'choi_minho']),
+    Shift(id: 'sh-1028-am', type: ShiftType.am, startAt: d(28, 7), endAt: d(28, 15), staffIds: amShiftStaff),
+    Shift(id: 'sh-1028-pm', type: ShiftType.pm, startAt: d(28, 14), endAt: d(28, 22), staffIds: const ['oh_sehun', 'jung_daun', 'han_jimin', 'jung_haeun']),
+    Shift(id: 'sh-1028-night', type: ShiftType.night, startAt: d(28, 22), endAt: d(29, 7), staffIds: const ['oh_jimin']),
+  ];
+}
+
+// ── 일정 (일정 명세). 가상 예시이며 반별로 조금씩 다르게 만든다.
+const _therapy = {
+  'aquarius': ('감각 통합 활동', '1층 교육실'),
+  'pisces': ('개별화 교육', '1층 교육실'),
+  'bear': ('물리 치료', '1층 치료실'),
+  'milkyway': ('작업 치료', '1층 치료실'),
+  'aries': ('언어 치료', '2층 상담실'),
+  'whale': ('개별화 교육', '2층 교육실'),
+};
+const _art = {
+  'aquarius': '음악 활동',
+  'pisces': '미술 활동',
+  'bear': '산책',
+  'milkyway': '체육 활동',
+  'aries': '원예 활동',
+  'whale': '음악 활동',
+};
+
+/// 한 별님의 하루 일정. 날짜만 같으면 늘 같은 결과 (저장할 필요 없음).
+List<ScheduleItem> scheduleFor(Resident r, DateTime date) {
+  final day = DateTime(date.year, date.month, date.day);
+  final cls = classes.firstWhere((c) => c.id == r.classId);
+  final homeroom = staff.firstWhere((s) => s.id == cls.homeroomId).displayName;
+  final weekend = day.weekday >= DateTime.saturday;
+  var n = 0;
+  ScheduleItem it(int sh, int sm, int eh, int em, String title, String place, ScheduleKind kind,
+          {String? who, TempSlot? slot}) =>
+      ScheduleItem(
+        id: 'sch-${r.id}-${day.month}${day.day}-${n++}',
+        residentId: r.id,
+        classId: r.classId,
+        date: day,
+        startAt: day.add(Duration(hours: sh, minutes: sm)),
+        endAt: day.add(Duration(hours: eh, minutes: em)),
+        title: title,
+        place: place,
+        kind: kind,
+        staffName: who,
+        tempSlot: slot,
+      );
+
+  if (weekend) {
+    return [
+      it(8, 0, 8, 50, '아침 식사', '식당', ScheduleKind.meal),
+      it(9, 30, 10, 0, '건강 확인', '${cls.name} 생활실', ScheduleKind.living, who: homeroom, slot: TempSlot.am),
+      it(10, 0, 11, 30, '여가 활동', '강당', ScheduleKind.living),
+      it(12, 0, 12, 50, '점심 식사', '식당', ScheduleKind.meal),
+      it(15, 0, 16, 0, '목욕', '2층 목욕실', ScheduleKind.bath, slot: TempSlot.pmBath),
+      it(17, 30, 18, 20, '저녁 식사', '식당', ScheduleKind.meal),
+    ];
+  }
+  if (r.commutesToSchool) {
+    return [
+      it(7, 30, 8, 10, '아침 식사', '식당', ScheduleKind.meal),
+      it(8, 10, 8, 30, '건강 확인 · 등교 준비', '${cls.name} 생활실', ScheduleKind.living, who: homeroom, slot: TempSlot.am),
+      it(8, 40, 14, 30, '학교', '특수학교', ScheduleKind.school),
+      it(15, 0, 15, 30, '귀가 · 휴식', '${cls.name} 생활실', ScheduleKind.living, slot: TempSlot.pmReturn),
+      it(16, 0, 17, 0, _art[r.classId]!, '강당', ScheduleKind.art),
+      it(17, 30, 18, 20, '저녁 식사', '식당', ScheduleKind.meal),
+    ];
+  }
+  final (therapyTitle, therapyPlace) = _therapy[r.classId]!;
+  // 목욕 시간은 반마다 다르다 (13:00 / 13:40 / 14:20 …).
+  final bathStart = 13 * 60 + (cls.order % 3) * 40;
+  return [
+    it(7, 30, 8, 10, '아침 식사', '식당', ScheduleKind.meal),
+    it(9, 0, 9, 30, '건강 확인', '${cls.name} 생활실', ScheduleKind.living, who: homeroom, slot: TempSlot.am),
+    it(10, 0, 11, 0, therapyTitle, therapyPlace, ScheduleKind.therapy),
+    it(11, 50, 12, 40, '점심 식사', '식당', ScheduleKind.meal),
+    it(bathStart ~/ 60, bathStart % 60, (bathStart + 40) ~/ 60, (bathStart + 40) % 60, '목욕', '2층 목욕실', ScheduleKind.bath,
+        slot: TempSlot.pmBath),
+    it(15, 30, 16, 30, _art[r.classId]!, '강당', ScheduleKind.art),
+    it(17, 30, 18, 20, '저녁 식사', '식당', ScheduleKind.meal),
+  ];
+}
+
+// ── 아카이브용 지난 기록 (10-3). 모두 가상 예시.
+List<Entry> seedPastEntries() {
+  Entry e(String id, String who, DateTime at, String name, String body, {String kind = '관찰 기록', int photos = 0}) {
+    final r = residentByName(name);
+    return Entry(
+      id: 'past-$id',
+      scope: EntryScope.resident,
+      authorId: who,
+      kindLabel: kind,
+      createdAt: at,
+      classId: r.classId,
+      residentId: r.id,
+      body: body,
+      photoCount: photos,
+    );
+  }
+
+  return [
+    e('1', 'park_jieun', DateTime(2025, 9, 1, 16, 20), '이서준', '낯선 소리(드라이기)에 놀라 귀를 막고 한참 울었어요. 조용한 방으로 옮기니 10분 뒤 진정했어요.'),
+    e('2', 'park_jieun', DateTime(2025, 11, 14, 10, 5), '이서준', '목욕 전에 소리 나는 장난감을 주면 덜 불안해해요.'),
+    e('3', 'park_jieun', DateTime(2026, 2, 3, 19, 30), '이서준', '저녁에 미열이 있었지만 다음 날 아침 평소대로 돌아왔어요.'),
+    e('4', 'lee_sujin', DateTime(2026, 4, 10, 11, 0), '이서준', '새 담임으로 첫 주. 큰 소리가 나면 손을 잡아 주면 금방 편안해져요.'),
+    e('5', 'lee_sujin', DateTime(2026, 10, 20, 15, 40), '이서준', '작업 치료 시간에 블록 쌓기를 끝까지 했어요.', photos: 1),
+    e('6', 'jung_haeun', DateTime(2026, 10, 25, 18, 10), '박승민', '저녁을 평소의 절반만 먹었어요.'),
+    e('7', 'park_jieun', DateTime(2026, 10, 26, 9, 30), '한나리', '왼쪽 무릎 상처 소독 3일째. 잘 아물고 있어요.'),
+    e('8', 'lee_sujin', DateTime(2026, 10, 24, 14, 0), '최도윤', '요즘 오전에 졸려해요. 밤잠을 확인해 주세요.'),
+    e('9', 'han_jimin', DateTime(2026, 10, 23, 16, 30), '정서아', '산책 중 신발이 불편해 보였어요. 새 신발 신청했어요.'),
+  ];
+}

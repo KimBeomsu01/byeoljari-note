@@ -11,7 +11,7 @@
    cd byeoljari-note
    flutter pub get
    ```
-3. 실행: `flutter run -d chrome` (Windows에서 PowerShell로 컴파일 오류가 나면 `run_chrome.bat`의 경로를 자기 Flutter 위치로 고쳐서 실행)
+3. 실행: `flutter run -d chrome` (Windows는 `run_web.bat` / `run_chrome.bat`를 더블클릭해도 돼요. 안의 Flutter 경로를 자기 PC에 맞게 고치세요)
 4. 테스트: `flutter test`
 
 > OneDrive·iCloud처럼 동기화되는 폴더 안에 받지 마세요. 빌드가 느려지거나 깨질 수 있어요.

@@ -1,99 +1,106 @@
-// HO-1 최신 기록 (임시 최소안). 지금은 퀵 체온과의 연결 확인용으로 대응 칸과 할 일만 보여준다.
-// 인수인계 담당자가 인수인계 명세 3.1대로 채운다.
+// 인수인계 탭: [최신 기록 | 별님별 기록] 세그먼트 + "기록 남기기" 버튼 (인수인계 명세 3장).
+// 이 화면은 메모리 저장소를 바로 읽으므로 "불러오는 중·실패" 상태가 생기지 않는다.
+// 서버 저장소로 바꿀 때 5-5 상태를 붙인다.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/judgment.dart';
-import '../../core/models.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
-import '../quick_temp/quick_temp_controller.dart';
+import 'handover_common.dart';
+import 'handover_view.dart';
+import 'latest_feed.dart';
+import 'resident_board.dart';
+import 'write_sheet.dart';
 
-class HandoverScreen extends ConsumerWidget {
+class HandoverScreen extends ConsumerStatefulWidget {
   const HandoverScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(repoProvider);
-    final cases = repo.openCases.where((c) => c.recoveredAt == null).toList();
-    final tasks = repo.entries.where((e) => e.task != null && !e.task!.done).toList();
-    final urgent = cases.where((c) => c.isUrgent).length;
+  ConsumerState<HandoverScreen> createState() => _HandoverScreenState();
+}
 
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 120), children: [
-      Text('긴급 $urgent · 이상 대응 ${cases.length - urgent} · 남은 할 일 ${tasks.length}',
-          style: const TextStyle(fontSize: 13, color: inkSub)),
-      const SizedBox(height: 12),
-      const Text('긴급 · 이상 대응', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 8),
-      if (cases.isEmpty) const Text('진행 중인 건이 없어요', style: TextStyle(color: inkSub)),
-      for (final c in cases) _CaseCard(c: c),
-      const SizedBox(height: 20),
-      const Text('남은 할 일', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 8),
-      for (final e in tasks)
-        Card(
-          elevation: 0,
-          color: Colors.white,
-          child: ListTile(
-            title: Text('${repo.resident(e.residentId!).name} · ${e.task!.label}'),
-            subtitle: Text(e.body ??
-                (e.measurementId != null
-                    ? '${formatTemp(repo.measurement(e.measurementId!).value)}℃ 주의 · ${repo.staff(e.authorId).displayName}'
-                    : '')),
-            trailing: FilledButton.tonal(
-              onPressed: () {
-                if (e.task!.kind == TaskKind.temp) {
-                  ref.read(quickTempProvider.notifier).openFor(e.residentId!);
-                } else {
-                  repo.completeTask(e.id, ref.read(currentUserProvider), ref.read(clockProvider)());
-                }
-              },
-              child: const Text('완료하기'),
-            ),
+class _HandoverScreenState extends ConsumerState<HandoverScreen> {
+  int _seg = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final repo = ref.watch(repoProvider);
+    final me = ref.watch(currentUserProvider);
+    final unread = HandoverView(repo, me, ref.read(clockProvider)()).unread.length;
+
+    return Stack(children: [
+      Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(color: const Color(0xFFE8EAE3), borderRadius: BorderRadius.circular(14)),
+            child: Row(children: [
+              _Seg(label: '최신 기록', badge: unread, selected: _seg == 0, onTap: () => setState(() => _seg = 0)),
+              _Seg(label: '별님별 기록', selected: _seg == 1, onTap: () => setState(() => _seg = 1)),
+            ]),
           ),
         ),
+        Expanded(
+          child: IndexedStack(index: _seg, children: const [LatestFeed(), ResidentBoard()]),
+        ),
+      ]),
+      Positioned(
+        right: 16,
+        bottom: 16,
+        child: FloatingActionButton.extended(
+          heroTag: 'handover-write',
+          backgroundColor: hoSummaryBg,
+          foregroundColor: Colors.white,
+          onPressed: () => showWriteSheet(context, ref, classId: _seg == 1 ? ref.read(handoverClassProvider) : null),
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('기록 남기기', style: TextStyle(fontWeight: FontWeight.w800)),
+        ),
+      ),
     ]);
   }
 }
 
-class _CaseCard extends ConsumerWidget {
-  const _CaseCard({required this.c});
-  final Case c;
+class _Seg extends StatelessWidget {
+  const _Seg({required this.label, required this.selected, required this.onTap, this.badge = 0});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final int badge;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(repoProvider);
-    final r = repo.resident(c.residentId);
-    final last = repo.latestOf(r.id)!;
-    final col = stageColors[c.isUrgent ? Stage.danger : c.severity]!;
-    final who = c.assigneeId != null ? '${repo.staff(c.assigneeId!).displayName} 담당' : (c.status == CaseStatus.unacked ? '아직 아무도 확인 안 함' : '확인됨 · 담당 없음');
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: col.soft, borderRadius: BorderRadius.circular(14), border: Border.all(color: col.line, width: c.isUrgent ? 2 : 1)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-          '${c.isUrgent ? '⚠ 긴급' : '${c.severity.symbol} 이상 대응'} · ${last.judgment.stage.label} ${formatTemp(last.value)}℃ · 평소보다 ${formatDiff(last.judgment.diff)}',
-          style: TextStyle(color: col.ink, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 4),
-        Text('${repo.classOf(c.classId).name} ${r.name}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        Text('대응 단계 ${c.stage} · $who', style: const TextStyle(fontSize: 13, color: inkSub)),
-        const SizedBox(height: 8),
-        Row(children: [
-          if (c.status == CaseStatus.unacked)
-            OutlinedButton(
-              onPressed: () => repo.acknowledge(c.id, ref.read(currentUserProvider), ref.read(clockProvider)()),
-              child: const Text('확인했어요'),
+  Widget build(BuildContext context) => Expanded(
+        child: Semantics(
+          button: true,
+          selected: selected,
+          label: badge > 0 ? '$label, 안 본 기록 $badge' : label,
+          excludeSemantics: true,
+          child: Material(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(11),
+              onTap: onTap,
+              child: SizedBox(
+                height: 44,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text(label,
+                      style: TextStyle(
+                          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                          color: selected ? inkMain : inkSub)),
+                  if (badge > 0) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(color: hoUnreadBadge, borderRadius: BorderRadius.circular(99)),
+                      child: Text('$badge',
+                          style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w800)),
+                    ),
+                  ],
+                ]),
+              ),
             ),
-          const SizedBox(width: 8),
-          FilledButton.tonal(
-            onPressed: () => ref.read(quickTempProvider.notifier).openFor(r.id),
-            child: const Text('재측정 입력'),
           ),
-        ]),
-      ]),
-    );
-  }
+        ),
+      );
 }
