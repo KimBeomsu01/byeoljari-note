@@ -61,7 +61,7 @@ class _UploadSheetState extends ConsumerState<UploadSheet> {
           IconButton(
             tooltip: '닫기',
             iconSize: 22,
-            style: IconButton.styleFrom(backgroundColor: const Color(0xFFF3F4F1)),
+            style: IconButton.styleFrom(backgroundColor: const Color(0xFFFDF0EC)),
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.close, color: inkSub),
@@ -81,7 +81,7 @@ class _UploadSheetState extends ConsumerState<UploadSheet> {
             foregroundPainter: const DashedBorderPainter(color: Color(0xFFB4BCB1), radius: 14, width: 1.5),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 22),
-              decoration: BoxDecoration(color: const Color(0xFFFAFAF7), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(color: const Color(0xFFFFFAF8), borderRadius: BorderRadius.circular(14)),
               child: const Column(children: [
                 Icon(Icons.upload_outlined, size: 30, color: inkSub),
                 SizedBox(height: 6),
@@ -237,10 +237,10 @@ class _Table extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: Table(
             defaultColumnWidth: const IntrinsicColumnWidth(),
-            border: const TableBorder(horizontalInside: BorderSide(color: Color(0xFFEEF0EC))),
+            border: const TableBorder(horizontalInside: BorderSide(color: Color(0xFFFBEAE5))),
             children: [
               TableRow(
-                decoration: const BoxDecoration(color: Color(0xFFF3F5EF)),
+                decoration: const BoxDecoration(color: Color(0xFFFDF1ED)),
                 children: [for (final h in _head) cell(h, bold: true)],
               ),
               for (final r in rows)

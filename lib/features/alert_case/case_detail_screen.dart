@@ -711,8 +711,8 @@ class _GridBtn extends StatelessWidget {
     final danger = stageColors[Stage.danger]!;
     final normal = stageColors[Stage.normal]!;
     final iconColor = denied ? inkSub : (b.danger ? danger.ink : (b.primary ? normal.ink : brandDark));
-    final bg = denied ? paper : (b.danger ? danger.soft : (b.primary ? const Color(0xFFE4ECDC) : surface));
-    final border = denied ? line : (b.danger ? danger.line : (b.primary ? const Color(0xFF93AD89) : line));
+    final bg = denied ? paper : (b.danger ? danger.soft : (b.primary ? const Color(0xFFE3F0D8) : surface));
+    final border = denied ? line : (b.danger ? danger.line : (b.primary ? const Color(0xFF86B56C) : line));
     return Semantics(
       hint: b.denied,
       child: OutlinedButton(

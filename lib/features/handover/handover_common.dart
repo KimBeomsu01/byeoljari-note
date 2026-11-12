@@ -27,10 +27,10 @@ const Color hoDoneLine = Color(0xFFCFE3D6);
 const Color hoDoneInk = Color(0xFF3F6C53);
 
 /// 카드 아래 칸 구분선 (시제품 #eef0ec).
-const Color hoFootLine = Color(0xFFEEF0EC);
+const Color hoFootLine = Color(0xFFFBEAE5);
 
 /// 세그먼트·답글 펼침 바탕 (시제품 #eceee6).
-const Color hoSegBg = Color(0xFFECEEE6);
+const Color hoSegBg = Color(0xFFFBE7E2);
 
 /// 어두운 요약 카드 위 글자 (시제품 #d7ded9). 짙은 바탕 위라 대비가 충분하다.
 const Color hoOnDarkSub = Color(0xFFD7DED9);

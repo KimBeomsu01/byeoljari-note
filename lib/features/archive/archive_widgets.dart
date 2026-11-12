@@ -148,8 +148,8 @@ const voidLabel = VoidTag();
 /// 시제품 아카이브 색 (반 공지 글자·점, 기록 찾기 테두리 등).
 const noticeInk = Color(0xFF5F4F80);
 const noticeDot = Color(0xFFA89AC2);
-const segTrack = Color(0xFFECEEE6);
-const softGrey = Color(0xFFF5F6F2);
+const segTrack = Color(0xFFFBE7E2);
+const softGrey = Color(0xFFFFF3F0);
 const unreadLine = Color(0xFFE7C27A);
 const okInk = Color(0xFF3F6C53);
 const okSoft = Color(0xFFE9F3ED);
@@ -289,7 +289,7 @@ class SheetTitle extends StatelessWidget {
         IconButton(
           tooltip: '닫기',
           constraints: const BoxConstraints(minWidth: tapHeight, minHeight: tapHeight),
-          style: IconButton.styleFrom(backgroundColor: const Color(0xFFF3F4F1), foregroundColor: inkSub),
+          style: IconButton.styleFrom(backgroundColor: const Color(0xFFFDF0EC), foregroundColor: inkSub),
           icon: const Icon(Icons.close, size: 24),
           onPressed: () => Navigator.of(context).maybePop(),
         ),

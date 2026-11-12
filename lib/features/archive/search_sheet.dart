@@ -60,7 +60,7 @@ class _SearchSheetState extends State<_SearchSheet> {
               hintText: '내용 또는 기록자 · 예: 소리',
               counterText: '',
               filled: true,
-              fillColor: Color(0xFFFAFAF6),
+              fillColor: Color(0xFFFFFAF8),
               constraints: BoxConstraints(minHeight: tapHeight),
             ),
           ),

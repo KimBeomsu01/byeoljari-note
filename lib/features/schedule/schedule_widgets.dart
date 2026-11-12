@@ -35,8 +35,8 @@ class SlotPill extends StatelessWidget {
   final String label;
   final SlotStatus? status;
 
-  static const _missed = (Color(0xFF4D554F), Color(0xFFEEF1F4), Color(0xFFB7C1CC));
-  static const _later = (Color(0xFF4D554F), Color(0xFFF1F2EE), line);
+  static const _missed = (Color(0xFF6B5446), Color(0xFFFCEEEA), Color(0xFFB7C1CC));
+  static const _later = (Color(0xFF6B5446), Color(0xFFFCEEEA), line);
 
   @override
   Widget build(BuildContext context) {
@@ -90,12 +90,12 @@ Color get nowRed => stageColors[Stage.danger]!.ink;
 
 /// 일정 종류 색 (판정 색과 겹치지 않게 차분한 색). 색만으로 구분하지 않도록 늘 글자와 함께 쓴다.
 const kindColors = <ScheduleKind, (Color bg, Color fg)>{
-  ScheduleKind.meal: (Color(0xFFF1E9D8), Color(0xFF6B5524)),
+  ScheduleKind.meal: (Color(0xFFFCEFE0), Color(0xFF6B5524)),
   ScheduleKind.school: (Color(0xFFE3E7F5), Color(0xFF3B4A80)),
-  ScheduleKind.therapy: (Color(0xFFE6F0EE), Color(0xFF2F6259)),
+  ScheduleKind.therapy: (Color(0xFFE6F2DE), Color(0xFF2F6259)),
   ScheduleKind.art: (Color(0xFFF2E6F0), Color(0xFF74416A)),
   ScheduleKind.bath: (Color(0xFFE2EEF6), Color(0xFF2E5C7A)),
-  ScheduleKind.living: (Color(0xFFECEDE8), Color(0xFF4F5650)),
+  ScheduleKind.living: (Color(0xFFFAE6E1), Color(0xFF4F5650)),
 };
 
 class KindTag extends StatelessWidget {

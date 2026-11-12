@@ -283,7 +283,7 @@ class _Header extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(tapHeight, tapHeight),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  backgroundColor: const Color(0xFFF2F7F0),
+                  backgroundColor: const Color(0xFFF1F8EA),
                   foregroundColor: okInk,
                   side: const BorderSide(color: okLine),
                   shape: const StadiumBorder(),

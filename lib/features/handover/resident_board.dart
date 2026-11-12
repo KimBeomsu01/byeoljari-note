@@ -196,7 +196,7 @@ class _ResidentTile extends ConsumerWidget {
     } else if (tasks.isNotEmpty) {
       border = starYellow;
       borderW = 1.5;
-      bg = const Color(0xFFFFFCF5);
+      bg = const Color(0xFFFFFBF6);
       status = '할 일 ${dueLabel(tasks.first.task!, view.now)}';
       statusInk = hoTaskInk;
       statusBg = hoTaskBg;

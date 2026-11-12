@@ -165,7 +165,7 @@ class _ItemTile extends StatelessWidget {
     final card = Container(
       padding: const EdgeInsets.fromLTRB(13, 11, 13, 12),
       decoration: BoxDecoration(
-        color: isPast ? const Color(0xFFFBFBF8) : surface,
+        color: isPast ? const Color(0xFFFFFBF9) : surface,
         borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: isNow ? stageColors[Stage.danger]!.line : line, width: isNow ? 2 : 1),
       ),

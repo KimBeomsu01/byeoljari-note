@@ -166,7 +166,7 @@ class _EntryCardState extends ConsumerState<EntryCard> {
         if (e.photoCount > 0 && !folded) ...[const SizedBox(height: Gap.s), _PhotoPlaceholder(count: e.photoCount)],
         if (e.task != null) ...[const SizedBox(height: Gap.s), _TaskBox(entry: e)],
         const SizedBox(height: Gap.m),
-        Divider(height: 1, color: e.scope == EntryScope.facility ? const Color(0xFFEFE9DA) : hoFootLine),
+        Divider(height: 1, color: e.scope == EntryScope.facility ? const Color(0xFFFBEEDF) : hoFootLine),
         const SizedBox(height: Gap.s),
         _Footer(
           entry: e,
@@ -183,7 +183,7 @@ class _EntryCardState extends ConsumerState<EntryCard> {
           Container(
             margin: const EdgeInsets.only(top: Gap.s),
             padding: const EdgeInsets.all(Gap.m),
-            decoration: BoxDecoration(color: const Color(0xFFF5F6F2), borderRadius: BorderRadius.circular(11)),
+            decoration: BoxDecoration(color: const Color(0xFFFFF3F0), borderRadius: BorderRadius.circular(11)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -302,7 +302,7 @@ class _ResidentChip extends ConsumerWidget {
       label: '${r.name} 별님 아카이브 열기',
       excludeSemantics: true,
       child: Material(
-        color: const Color(0xFFFAFAF7),
+        color: const Color(0xFFFFFAF8),
         shape: const StadiumBorder(side: BorderSide(color: line)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(

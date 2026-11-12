@@ -811,7 +811,7 @@ class _DialPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), Color(0xFFEDF0E3)],
+          colors: [Color(0xFFFFFFFF), Color(0xFFEAF3DF)],
         ).createShader(rect),
     );
     canvas.drawCircle(
@@ -850,7 +850,7 @@ class _DialPainter extends CustomPainter {
 
     // 안쪽 원 (얇은 테두리)
     final core = r * 0.64;
-    canvas.drawCircle(c, core, Paint()..color = saved ? const Color(0xFFF1F8EF) : const Color(0xFFFBFBF6));
+    canvas.drawCircle(c, core, Paint()..color = saved ? const Color(0xFFF0F8E9) : const Color(0xFFFFFBF9));
     canvas.drawCircle(
       c,
       core,
@@ -1077,10 +1077,10 @@ class _GuideBtn extends StatelessWidget {
     label: '$hint $text',
     excludeSemantics: true,
     child: Material(
-      color: on ? const Color(0xFFE4ECDC) : Colors.white.withValues(alpha: 0.45),
+      color: on ? const Color(0xFFE3F0D8) : Colors.white.withValues(alpha: 0.45),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: on ? const Color(0xFF93AD89) : const Color(0xFFCBD5C4), width: 1.2),
+        side: BorderSide(color: on ? const Color(0xFF86B56C) : const Color(0xFFCBD5C4), width: 1.2),
       ),
       child: InkWell(
         onTap: onTap,

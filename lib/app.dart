@@ -24,7 +24,7 @@ class ByeoljariApp extends StatelessWidget {
         theme: buildTheme(fontFamily: fontFamilyForScreenshots),
         // 폰 화면 폭으로 보여준다 (PC 브라우저에서도).
         builder: (context, child) => ColoredBox(
-          color: const Color(0xFFD5DDE8),
+          color: const Color(0xFFFBE3DF),
           child: Center(
             child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 430), child: child),
           ),
@@ -61,7 +61,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 const Text('별자리노트', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: inkSub)),
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   // 시제품의 ✦ (글꼴에 없을 수 있어 아이콘으로)
-                  Icon(Icons.auto_awesome, size: 20, color: stageColors[Stage.danger]!.line),
+                  Icon(Icons.auto_awesome, size: 20, color: coral),
                   const SizedBox(width: 6),
                   Text(_tab == 0 ? '인수인계' : '반별 일정'),
                 ]),
@@ -240,11 +240,11 @@ class _BottomBar extends StatelessWidget {
                       width: 68,
                       height: 68,
                       decoration: BoxDecoration(
-                        color: brandDark,
+                        color: qtOpen ? inkMain : quickOrange,
                         shape: BoxShape.circle,
                         border: Border.all(color: surface, width: 4),
                       ),
-                      child: Icon(qtOpen ? Icons.close : Icons.thermostat, color: Colors.white, size: 32),
+                      child: Icon(qtOpen ? Icons.close : Icons.thermostat, color: qtOpen ? Colors.white : inkMain, size: 32),
                     ),
                     Text(qtOpen ? '닫기' : '퀵 체온',
                         style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: inkMain)),

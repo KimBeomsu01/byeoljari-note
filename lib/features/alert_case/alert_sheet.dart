@@ -96,8 +96,8 @@ class _AlertSheet extends ConsumerWidget {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(56),
         foregroundColor: brandDark,
-        backgroundColor: const Color(0xFFE4ECDC),
-        side: const BorderSide(color: Color(0xFF93AD89), width: 1.5),
+        backgroundColor: const Color(0xFFE3F0D8),
+        side: const BorderSide(color: Color(0xFF86B56C), width: 1.5),
       ),
       icon: const Icon(Icons.timer_outlined, size: 24),
       label: const Text('30분 뒤 다시 재기', style: TextStyle(fontWeight: FontWeight.w800)),
@@ -225,7 +225,7 @@ class _AlertSheet extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: Gap.m, vertical: 10),
               decoration: BoxDecoration(
-                color: acks.isEmpty ? const Color(0xFFEFF0EA) : stageColors[Stage.normal]!.soft,
+                color: acks.isEmpty ? const Color(0xFFFBECE7) : stageColors[Stage.normal]!.soft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: IconLine(

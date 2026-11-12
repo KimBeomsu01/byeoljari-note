@@ -20,29 +20,40 @@ const stageColors = <Stage, StageColors>{
 };
 
 // ── 색 (이름은 예전 코드와 맞춰 두고 값만 바꿨다)
-/// 짙은 녹회색: 주 버튼, 선택된 탭, 퀵 체온 버튼, 요약 카드.
-const Color brandDark = Color(0xFF2F3A34);
+// 색은 혜진원 홈페이지에서 가져왔다 (수채화 분홍 바탕, 코랄 메뉴, 코끼리·로고 초록, 로고 남색, QUICK MENU 주황).
 
-/// 따뜻한 미색 바탕.
-const Color paper = Color(0xFFF7F7F2);
+/// 혜진원 초록: 주 버튼, 선택된 탭·칩, 요약 카드.
+const Color brandDark = Color(0xFF3D7535);
+
+/// 연한 분홍 바탕 (홈페이지 수채화 배경).
+const Color paper = Color(0xFFFFF7F5);
+
+/// 코랄 분홍 (홈페이지 메뉴 띠): 제목 ✦, 강조 점.
+const Color coral = Color(0xFFE8696C);
+
+/// 로고 남색: 링크·보조 강조.
+const Color navy = Color(0xFF2B479A);
+
+/// QUICK MENU 주황: 가운데 '퀵 체온' 버튼.
+const Color quickOrange = Color(0xFFF5A23F);
 
 /// 카드·시트 바탕.
 const Color surface = Color(0xFFFFFFFF);
 
-/// 본문 글자.
-const Color inkMain = Color(0xFF2B2F2C);
+/// 본문 글자: 짙은 갈색 (홈페이지 글자색). 흰 바탕 대비 약 13:1.
+const Color inkMain = Color(0xFF3E2C22);
 
-/// 보조 글자 (시제품의 진한 쪽 보조색). 이보다 옅은 회색은 쓰지 않는다.
-const Color inkSub = Color(0xFF4D554F);
+/// 보조 글자. 흰 바탕 대비 약 7:1. 이보다 옅은 색은 쓰지 않는다.
+const Color inkSub = Color(0xFF6B5446);
 
-/// 카드 테두리·구분선.
-const Color line = Color(0xFFE2E6E0);
+/// 카드 테두리·구분선: 옅은 분홍.
+const Color line = Color(0xFFF0DBD5);
 
-/// 미확인·새 기록 표시 (시제품 미확인 배지).
-const Color starYellow = Color(0xFFD9A44E);
+/// 미확인·새 기록 표시: 달력 '오늘' 노랑.
+const Color starYellow = Color(0xFFF2B93B);
 
-/// 연한 녹색 면 (퀵 체온 바탕, 선택된 칩 등).
-const Color sage = Color(0xFFE9F0E6);
+/// 연한 초록 면 (퀵 체온 바탕, 선택된 칩 등).
+const Color sage = Color(0xFFEAF4E2);
 
 /// 퀵 체온의 "기록 완료" 초록. 판정 색(평소)과 다른 색이다.
 const Color recordedGreen = Color(0xFFCFE8CF);
