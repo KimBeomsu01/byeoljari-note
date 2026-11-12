@@ -3,6 +3,12 @@
 
 카카오 테크 포 임팩트 2조 "혜진아왜요쌤" · Flutter 앱
 
+## 바로 보기 (폰·컴퓨터)
+**https://kimbeomsu01.github.io/byeoljari-note/** — `main`에 올리면 몇 분 뒤 자동으로 바뀌어요.
+- 아이폰: Safari로 열고 공유 → "홈 화면에 추가"하면 앱처럼 쓸 수 있어요.
+- 가상 데이터만 있는 시연판이에요. 기록은 각 기기 브라우저에만 저장돼요.
+- 처음 시연 상태로 돌리려면: 오른쪽 위 이름 버튼 → "시연 처음 상태로".
+
 ## 처음 받는 사람
 1. Flutter SDK 설치 (stable, 3.50 이상) — https://docs.flutter.dev/get-started/install
 2. 저장소 받기

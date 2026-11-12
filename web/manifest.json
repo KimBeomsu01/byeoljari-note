@@ -1,11 +1,11 @@
 {
-    "name": "byeoljari_note",
-    "short_name": "byeoljari_note",
+    "name": "별자리노트",
+    "short_name": "별자리노트",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "별자리노트 - 혜진원 체온 이상 공유 앱",
+    "background_color": "#EEF2F7",
+    "theme_color": "#1E3A66",
+    "description": "별자리노트 시연판 (가상 데이터)",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
