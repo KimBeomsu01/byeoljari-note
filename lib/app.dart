@@ -6,6 +6,7 @@ import 'core/models.dart';
 import 'core/providers.dart';
 import 'core/theme.dart';
 import 'features/alert_case/notice_center.dart';
+import 'features/desk/desk_shell.dart';
 import 'features/handover/handover_screen.dart';
 import 'features/quick_temp/quick_temp_controller.dart';
 import 'features/quick_temp/quick_temp_screen.dart';
@@ -17,19 +18,49 @@ class ByeoljariApp extends StatelessWidget {
   /// 스크린샷 테스트에서 한글 글꼴을 지정할 때만 쓴다.
   final String? fontFamilyForScreenshots;
 
+  /// 넓은 화면(PC)에서 폰 배치를 고른 경우 true.
+  static final phoneViewOnWide = ValueNotifier<bool>(false);
+
+  /// 이 폭 이상이면 사무국 PC 화면 (통합 명세 6-7).
+  static const double deskMinWidth = 1000;
+
+  static bool _isDesk(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= deskMinWidth && !phoneViewOnWide.value;
+
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: '별자리노트',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(fontFamily: fontFamilyForScreenshots),
-        // 폰 화면 폭으로 보여준다 (PC 브라우저에서도).
-        builder: (context, child) => ColoredBox(
-          color: const Color(0xFFFBE3DF),
-          child: Center(
-            child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 430), child: child),
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+        valueListenable: phoneViewOnWide,
+        builder: (context, _, _) => MaterialApp(
+          title: '별자리노트',
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(fontFamily: fontFamilyForScreenshots),
+          builder: (context, child) {
+            if (_isDesk(context)) return child!;
+            final wide = MediaQuery.sizeOf(context).width >= deskMinWidth;
+            // 폰 화면 폭으로 보여준다 (PC 브라우저에서 폰 배치를 고른 경우도).
+            return ColoredBox(
+              color: const Color(0xFFFBE3DF),
+              child: Stack(children: [
+                Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 430), child: child)),
+                if (wide)
+                  Positioned(
+                    left: 24,
+                    top: 24,
+                    child: FilledButton.icon(
+                      onPressed: () => phoneViewOnWide.value = false,
+                      icon: const Icon(Icons.desktop_windows_outlined),
+                      label: const Text('PC 화면으로 보기'),
+                    ),
+                  ),
+              ]),
+            );
+          },
+          home: Builder(
+            builder: (context) => _isDesk(context)
+                ? DeskShell(onPhoneView: () => phoneViewOnWide.value = true)
+                : const NoticeBannerHost(child: AppShell()),
           ),
         ),
-        home: const NoticeBannerHost(child: AppShell()),
       );
 }
 

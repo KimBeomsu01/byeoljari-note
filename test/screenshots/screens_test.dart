@@ -1,4 +1,4 @@
-// 화면 확인용 스크린샷 (Windows 전용: 맑은 고딕으로 한글을 그린다).
+// 화면 확인용 스크린샷 (앱과 같은 카카오 글씨로 그린다).
 // 실행: flutter test --update-goldens --tags screenshots test/screenshots
 // 결과: test/screenshots/out/*.png  (보통 테스트에서는 건너뛴다)
 @Tags(['screenshots'])
@@ -17,10 +17,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _loadFonts() async {
   Future<ByteData> f(String p) async => ByteData.view(Uint8List.fromList(await File(p).readAsBytes()).buffer);
-  final ko = FontLoader('Malgun')
-    ..addFont(f(r'C:\Windows\Fonts\malgun.ttf'))
-    ..addFont(f(r'C:\Windows\Fonts\malgunbd.ttf'));
-  await ko.load();
+  // 앱과 같은 카카오 글씨를 올린다 (테스트에서는 pubspec 글꼴이 자동으로 안 올라온다).
+  final small = FontLoader('KakaoSmall')
+    ..addFont(f('assets/fonts/KakaoSmallSans-Regular.ttf'))
+    ..addFont(f('assets/fonts/KakaoSmallSans-Bold.ttf'));
+  await small.load();
+  final big = FontLoader('KakaoBig')..addFont(f('assets/fonts/KakaoBigSans-Bold.ttf'));
+  await big.load();
   final icons = FontLoader('MaterialIcons')
     ..addFont(f(r'D:\dev\flutter\bin\cache\artifacts\material_fonts\materialicons-regular.otf'));
   await icons.load();
@@ -38,7 +41,7 @@ void main() {
     tester.view.physicalSize = Size(w * 2, h * 2);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const ProviderScope(child: ByeoljariApp(fontFamilyForScreenshots: 'Malgun')));
+    await tester.pumpWidget(const ProviderScope(child: ByeoljariApp()));
     await tester.pumpAndSettle();
   }
 
@@ -98,5 +101,25 @@ void main() {
   testWidgets('10 작은 폰 인수인계', (t) async {
     await start(t, w: 360, h: 640);
     await _shot(t, '10_small');
+  });
+
+  testWidgets('11 PC 오늘 현황', (t) async {
+    await start(t, w: 1440, h: 900);
+    await _shot(t, '11_desk_today');
+  });
+
+  testWidgets('12 PC 대응 현황', (t) async {
+    await start(t, w: 1440, h: 900);
+    await t.tap(find.text('긴급·이상 대응 현황').first);
+    await t.pumpAndSettle();
+    final row = find.textContaining('박승민');
+    if (row.evaluate().isNotEmpty) await t.tap(row.first);
+    await _shot(t, '12_desk_cases');
+  });
+
+  testWidgets('13 PC 별님 기록', (t) async {
+    await start(t, w: 1440, h: 900);
+    await t.tap(find.text('별님 기록').first);
+    await _shot(t, '13_desk_resident');
   });
 }

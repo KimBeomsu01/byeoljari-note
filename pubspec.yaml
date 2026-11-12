@@ -63,6 +63,18 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # 카카오 글씨 (SIL OFL 1.1, assets/fonts/OFL.txt). 팀 시제품과 같은 글꼴.
+  fonts:
+    - family: KakaoSmall
+      fonts:
+        - asset: assets/fonts/KakaoSmallSans-Regular.ttf
+        - asset: assets/fonts/KakaoSmallSans-Bold.ttf
+          weight: 700
+    - family: KakaoBig
+      fonts:
+        - asset: assets/fonts/KakaoBigSans-Bold.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

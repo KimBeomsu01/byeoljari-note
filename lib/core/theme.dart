@@ -88,8 +88,14 @@ class Radii {
 /// 모든 누르는 것의 최소 높이 (시제품 40 → 앱 기준 44 이상, 넉넉하게 48).
 const double tapHeight = 48;
 
-/// [fontFamily]는 화면 확인용 스크린샷 테스트에서만 넘긴다. 앱은 기기 기본 글꼴을 쓴다.
+/// 본문 글꼴: 카카오 작은글씨, 제목·큰 숫자: 카카오 큰글씨 (팀 시제품과 같음, SIL OFL 1.1).
+const String fontSmall = 'KakaoSmall';
+const String fontBig = 'KakaoBig';
+
+/// [fontFamily]를 넘기면 그 글꼴로 바꾼다 (테스트용).
 ThemeData buildTheme({String? fontFamily}) {
+  final family = fontFamily ?? fontSmall;
+  final big = fontFamily ?? fontBig;
   final scheme = ColorScheme.fromSeed(
     seedColor: brandDark,
     primary: brandDark,
@@ -99,25 +105,25 @@ ThemeData buildTheme({String? fontFamily}) {
     onSurfaceVariant: inkSub,
     outline: line,
   );
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, scaffoldBackgroundColor: paper, fontFamily: fontFamily);
+  final base = ThemeData(useMaterial3: true, colorScheme: scheme, scaffoldBackgroundColor: paper, fontFamily: family);
   final text = base.textTheme
       .copyWith(
-        displaySmall: TextStyle(fontFamily: fontFamily, fontSize: T.display, fontWeight: FontWeight.w600, height: 1.1),
-        headlineSmall: TextStyle(fontFamily: fontFamily, fontSize: T.headline, fontWeight: FontWeight.w700, height: 1.3),
-        titleLarge: TextStyle(fontFamily: fontFamily, fontSize: T.title, fontWeight: FontWeight.w700, height: 1.35),
-        titleMedium: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w700, height: 1.4),
-        titleSmall: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w600, height: 1.4),
-        bodyLarge: TextStyle(fontFamily: fontFamily, fontSize: T.body, height: 1.5),
-        bodyMedium: TextStyle(fontFamily: fontFamily, fontSize: T.body, height: 1.5),
-        bodySmall: TextStyle(fontFamily: fontFamily, fontSize: T.caption, height: 1.45),
-        labelLarge: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w600),
-        labelMedium: TextStyle(fontFamily: fontFamily, fontSize: T.caption, fontWeight: FontWeight.w600),
-        labelSmall: TextStyle(fontFamily: fontFamily, fontSize: T.caption, fontWeight: FontWeight.w600),
+        displaySmall: TextStyle(fontFamily: big, fontSize: T.display, fontWeight: FontWeight.w600, height: 1.1),
+        headlineSmall: TextStyle(fontFamily: big, fontSize: T.headline, fontWeight: FontWeight.w700, height: 1.3),
+        titleLarge: TextStyle(fontFamily: big, fontSize: T.title, fontWeight: FontWeight.w700, height: 1.35),
+        titleMedium: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700, height: 1.4),
+        titleSmall: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600, height: 1.4),
+        bodyLarge: TextStyle(fontFamily: family, fontSize: T.body, height: 1.5),
+        bodyMedium: TextStyle(fontFamily: family, fontSize: T.body, height: 1.5),
+        bodySmall: TextStyle(fontFamily: family, fontSize: T.caption, height: 1.45),
+        labelLarge: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600),
+        labelMedium: TextStyle(fontFamily: family, fontSize: T.caption, fontWeight: FontWeight.w600),
+        labelSmall: TextStyle(fontFamily: family, fontSize: T.caption, fontWeight: FontWeight.w600),
       )
-      .apply(bodyColor: inkMain, displayColor: inkMain, fontFamily: fontFamily);
+      .apply(bodyColor: inkMain, displayColor: inkMain);
 
   final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.button));
-  final buttonText = TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w700);
+  final buttonText = TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700);
   const buttonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
 
   return base.copyWith(
@@ -129,7 +135,7 @@ ThemeData buildTheme({String? fontFamily}) {
       scrolledUnderElevation: 0,
       centerTitle: false,
       toolbarHeight: 60,
-      titleTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain),
+      titleTextStyle: TextStyle(fontFamily: big, fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
@@ -158,14 +164,14 @@ ThemeData buildTheme({String? fontFamily}) {
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
-      labelStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w600, color: inkMain),
+      labelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600, color: inkMain),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       side: const BorderSide(color: line, width: 1.5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.pill)),
       backgroundColor: surface,
       selectedColor: brandDark,
       secondarySelectedColor: brandDark,
-      secondaryLabelStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w700, color: Colors.white),
+      secondaryLabelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700, color: Colors.white),
       checkmarkColor: Colors.white,
     ),
     cardTheme: CardThemeData(
@@ -179,16 +185,16 @@ ThemeData buildTheme({String? fontFamily}) {
     ),
     listTileTheme: ListTileThemeData(
       minVerticalPadding: 12,
-      titleTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w600, color: inkMain),
-      subtitleTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.caption, color: inkSub, height: 1.45),
-      leadingAndTrailingTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.caption, color: inkSub),
+      titleTextStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600, color: inkMain),
+      subtitleTextStyle: TextStyle(fontFamily: family, fontSize: T.caption, color: inkSub, height: 1.45),
+      leadingAndTrailingTextStyle: TextStyle(fontFamily: family, fontSize: T.caption, color: inkSub),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      hintStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, color: inkSub),
-      labelStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, color: inkSub),
+      hintStyle: TextStyle(fontFamily: family, fontSize: T.body, color: inkSub),
+      labelStyle: TextStyle(fontFamily: family, fontSize: T.body, color: inkSub),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: line, width: 1.5)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: line, width: 1.5)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: brandDark, width: 2)),
@@ -200,13 +206,13 @@ ThemeData buildTheme({String? fontFamily}) {
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: surface,
-      titleTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.title, fontWeight: FontWeight.w700, color: inkMain),
-      contentTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, color: inkMain, height: 1.5),
+      titleTextStyle: TextStyle(fontFamily: family, fontSize: T.title, fontWeight: FontWeight.w700, color: inkMain),
+      contentTextStyle: TextStyle(fontFamily: family, fontSize: T.body, color: inkMain, height: 1.5),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: inkMain,
-      contentTextStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, color: Colors.white, height: 1.4),
+      contentTextStyle: TextStyle(fontFamily: family, fontSize: T.body, color: Colors.white, height: 1.4),
       insetPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
     ),
     dividerTheme: const DividerThemeData(color: line, thickness: 1, space: 1),
@@ -220,8 +226,8 @@ ThemeData buildTheme({String? fontFamily}) {
       ),
     ),
     tabBarTheme: TabBarThemeData(
-      labelStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w700),
-      unselectedLabelStyle: TextStyle(fontFamily: fontFamily, fontSize: T.body, fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700),
+      unselectedLabelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w500),
       labelColor: brandDark,
       unselectedLabelColor: inkSub,
       indicatorColor: brandDark,
