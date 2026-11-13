@@ -148,3 +148,85 @@ class _TempChartPainter extends CustomPainter {
   bool shouldRepaint(_TempChartPainter old) =>
       old.points != points || old.baseline != baseline || old.from != from || old.to != to;
 }
+
+/// 별님카드 위쪽의 작은 14일 그래프 (시안 70px): 평소 체온 점선 + 초록 선, 평소가 아닌 점은 판정 색 점.
+/// 날짜·눈금은 누르면 여는 큰 그래프([TempChart])에서 본다.
+class TempSparkline extends StatelessWidget {
+  const TempSparkline({super.key, required this.points, required this.baseline, required this.from, required this.to});
+  final List<Measurement> points;
+  final int baseline;
+  final DateTime from;
+  final DateTime to;
+
+  @override
+  Widget build(BuildContext context) {
+    if (points.isEmpty) {
+      return const SizedBox(
+        height: 70,
+        child: Center(child: Text('최근 2주 동안 잰 체온이 없어요', style: TextStyle(fontSize: T.caption, color: inkSub))),
+      );
+    }
+    return SizedBox(
+      height: 70,
+      width: double.infinity,
+      child: CustomPaint(painter: _SparkPainter(points, baseline, from, to)),
+    );
+  }
+}
+
+class _SparkPainter extends CustomPainter {
+  _SparkPainter(this.points, this.baseline, this.from, this.to);
+  final List<Measurement> points;
+  final int baseline;
+  final DateTime from;
+  final DateTime to;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final values = [...points.map((m) => m.value), baseline];
+    var lo = values.reduce(math.min).toDouble();
+    var hi = values.reduce(math.max).toDouble();
+    if (hi - lo < 8) {
+      final mid = (hi + lo) / 2;
+      lo = mid - 4;
+      hi = mid + 4;
+    }
+    const pad = 7.0;
+    final h = size.height - pad * 2;
+    final w = size.width - pad * 2;
+    final span = to.difference(from).inMinutes.clamp(1, 1 << 31);
+    double x(DateTime t) => pad + w * (t.difference(from).inMinutes / span).clamp(0.0, 1.0);
+    double y(num v) => pad + h * (1 - (v - lo) / (hi - lo));
+
+    // 평소 체온 점선
+    final dash = Paint()
+      ..color = lineStrong
+      ..strokeWidth = 1;
+    final by = y(baseline);
+    for (var d = 0.0; d < size.width; d += 8) {
+      canvas.drawLine(Offset(d, by), Offset(math.min(d + 4, size.width), by), dash);
+    }
+
+    final trend = Paint()
+      ..color = stageColors[Stage.normal]!.ink
+      ..strokeWidth = 2.5
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final path = Path();
+    for (var i = 0; i < points.length; i++) {
+      final o = Offset(x(points[i].measuredAt), y(points[i].value));
+      i == 0 ? path.moveTo(o.dx, o.dy) : path.lineTo(o.dx, o.dy);
+    }
+    canvas.drawPath(path, trend);
+
+    for (final m in points) {
+      if (m.judgment.stage == Stage.normal) continue;
+      canvas.drawCircle(Offset(x(m.measuredAt), y(m.value)), 5, Paint()..color = stageColors[m.judgment.stage]!.ink);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SparkPainter old) =>
+      old.points != points || old.baseline != baseline || old.from != from || old.to != to;
+}

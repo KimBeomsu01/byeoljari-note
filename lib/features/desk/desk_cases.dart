@@ -12,6 +12,7 @@ import '../../core/theme.dart';
 import '../../core/ui.dart';
 import '../alert_case/case_ui.dart';
 import 'desk_common.dart';
+import 'desk_today.dart' show DeskStageBar, deskEventText;
 
 class DeskCasesView extends ConsumerStatefulWidget {
   const DeskCasesView({super.key, this.caseId, required this.onSelect, required this.onResident});
@@ -147,7 +148,7 @@ class _DeskCasesViewState extends ConsumerState<DeskCasesView> {
         Text('${formatTemp(c.firstTemp)}℃', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: col.ink)),
         last == null
             ? const Text('조치 기록 없음', style: TextStyle(fontSize: T.caption, color: inkSub))
-            : TwoLine(eventText(repo, last), '${whenLabel(last.at, now)} · ${eventActor(repo, last)}',
+            : TwoLine(deskEventText(repo, last), '${whenLabel(last.at, now)} · ${eventActor(repo, last)}',
                 const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: inkMain)),
         Text(c.assigneeId == null ? '미지정' : staffName(repo, c.assigneeId!),
             style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: c.assigneeId == null ? inkSub : inkMain)),
@@ -208,7 +209,7 @@ class _CaseDetail extends ConsumerWidget {
           Expanded(
             child: Text('${cls.name} ${r.name} 별님',
                 key: const ValueKey('desk-case-detail-title'),
-                style: const TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain)),
+                style: const TextStyle(fontFamily: fontBig, fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain)),
           ),
         ]),
         const SizedBox(height: Gap.m),
@@ -217,7 +218,7 @@ class _CaseDetail extends ConsumerWidget {
           decoration: BoxDecoration(color: col.soft, borderRadius: BorderRadius.circular(Radii.card), border: Border.all(color: col.line)),
           child: Wrap(spacing: Gap.l, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
             Text(latest == null ? '기록 없음' : '${formatTemp(latest.value)}℃',
-                style: TextStyle(fontSize: latest == null ? T.title : T.display, fontWeight: FontWeight.w700, color: inkMain)),
+                style: TextStyle(fontFamily: fontBig, fontSize: latest == null ? T.title : T.number, fontWeight: FontWeight.w800, color: col.ink)),
             Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
               if (latest != null)
                 Text('평소 ${formatTemp(latest.judgment.baseline)}℃보다 ${formatDiff(latest.judgment.diff)}',
@@ -228,14 +229,7 @@ class _CaseDetail extends ConsumerWidget {
           ]),
         ),
         const SizedBox(height: Gap.m),
-        Wrap(spacing: 6, runSpacing: 6, children: [
-          for (var s = 1; s <= 4; s++)
-            StatusPill(
-              '${circledStage[s - 1]} ${InMemoryRepository.stageLabel(s)}${s == c.stage ? ' · 지금' : ''}',
-              color: s == c.stage ? brandDark : inkSub,
-              filled: s == c.stage,
-            ),
-        ]),
+        DeskStageBar(stage: c.stage),
         const SizedBox(height: Gap.m),
         kv('확인한 사람', acks.isEmpty ? '아직 아무도 확인 안 함' : acks.map((e) => '${staffName(repo, e.actorId)} ${hhmm(e.at)}').join(', ')),
         kv('담당자', c.assigneeId == null ? '미지정' : staffName(repo, c.assigneeId!)),
@@ -257,7 +251,7 @@ class _CaseDetail extends ConsumerWidget {
           ),
         ]),
         const SizedBox(height: Gap.l),
-        const Text('대응 기록 (시간순)', style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
+        const Text('대응 기록 (시간순)', style: TextStyle(fontFamily: fontBig, fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain)),
         const SizedBox(height: Gap.s),
         if (events.isEmpty) const Text('조치 기록 없음', style: TextStyle(fontSize: T.body, color: inkSub)),
         for (final e in events)
@@ -267,7 +261,7 @@ class _CaseDetail extends ConsumerWidget {
               SizedBox(width: 60, child: Text(hhmm(e.at), style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkSub))),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(eventText(repo, e),
+                  Text(deskEventText(repo, e),
                       style: TextStyle(
                         fontSize: T.body,
                         color: e.voidedBy == null ? inkMain : inkSub,

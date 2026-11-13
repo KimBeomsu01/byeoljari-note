@@ -66,6 +66,19 @@ class Harness {
     await tester.pumpAndSettle();
   }
 
+  /// S3 [다른 일 · 대응 기록] 화면 (할 수 있는 일 전부 · 체온 기록 · 대응 기록).
+  /// 방금 뜬 안내(스낵바)가 줄을 가리지 않게 먼저 치운다.
+  Future<void> openMore() async {
+    final row = find.textContaining('다른 일 · 대응 기록');
+    if (row.evaluate().isEmpty) {
+      await tester.dragUntilVisible(row, find.byType(ListView).last, const Offset(0, -200));
+      await tester.pumpAndSettle();
+    }
+    ScaffoldMessenger.of(tester.element(row)).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+    await tap(row);
+  }
+
   // S3는 길어서 아래쪽 버튼·기록은 화면 밖에 있다: 화면 밖까지 찾고 ensureVisible로 끌어온다.
   Future<void> tapText(String text) => tap(find.text(text, skipOffstage: false).last);
 
@@ -74,7 +87,7 @@ class Harness {
     container.read(quickTempProvider.notifier).openFor(residentId);
     container.read(quickTempProvider.notifier).setValue(value);
     await tester.pumpAndSettle();
-    final g = await tester.startGesture(tester.getCenter(find.text('눌러서 기록')));
+    final g = await tester.startGesture(tester.getCenter(find.text('꾹 눌러 기록')));
     await tester.pump(const Duration(milliseconds: 16));
     await tester.pump(const Duration(milliseconds: 550));
     await tester.pump();
@@ -110,8 +123,9 @@ void main() {
 
     // ── 김하늘: 퀵 체온 38.4 → S1
     await h.saveViaQuickTemp(seojun, 384);
-    expect(inSheet('▲ 이상 대응'), findsOneWidget);
-    expect(inSheet('38.4℃'), findsOneWidget);
+    expect(inSheet('▲ 이상 대응을 시작했어요'), findsOneWidget);
+    expect(inSheet('이서준 별님 38.4℃'), findsOneWidget);
+    expect(inSheet('30분 뒤 다시 재기 (10:11)'), findsOneWidget, reason: '지금 할 일 하나만 초록');
     expect(inSheet('평소보다 1.3도 높아요'), findsOneWidget);
     expect(inSheet('아직 아무도 확인 안 했어요'), findsOneWidget);
     expect(find.text('간호사에게 전화'), findsOneWidget);
@@ -121,13 +135,16 @@ void main() {
     // S1 [자세히 보기] → S3
     await h.tapText('자세히 보기');
     expect(find.byType(CaseDetailScreen), findsOneWidget);
-    expect(find.text('이서준 · 이상 대응'), findsOneWidget);
-    expect(find.text('미확인'), findsOneWidget);
-    // 대응 단계는 할 일 버튼 아래에 있다
-    await tester.dragUntilVisible(find.text('① 관찰·재측정'), find.byType(ListView).last, const Offset(0, -200));
-    expect(find.text('① 관찰·재측정'), findsOneWidget);
-    expect(find.text('지금'), findsOneWidget);
-    // 생활관은 투약 기록 권한이 없다: 흐리게 + 누르면 이유
+    expect(find.text('이서준 별님'), findsOneWidget);
+    expect(find.text('이상 대응'), findsOneWidget);
+    expect(find.text('아직 아무도 확인 안 했어요'), findsOneWidget);
+    // 대응 단계: 얇은 막대 + ① 관찰 (지금)
+    expect(find.bySemanticsLabel('대응 단계 1, 관찰·재측정'), findsOneWidget);
+    // 다음에 할 일 하나
+    expect(find.text('재측정 입력'), findsOneWidget);
+    expect(find.text('투약 기록'), findsNothing, reason: '나머지 할 일은 [다른 일] 안에');
+    // 생활관은 투약 기록 권한이 없다: [다른 일] 안에 흐리게 + 누르면 이유
+    await h.openMore();
     await h.tapText('투약 기록');
     expect(find.text('간호사·원장님만 투약을 기록할 수 있어요'), findsOneWidget);
 
@@ -136,16 +153,18 @@ void main() {
     await h.switchTo('park_soyeon');
     expect(find.text('새 이상 대응'), findsOneWidget, reason: '역할을 바꾸면 안 본 알림이 배너로');
     await h.tap(find.text('새 이상 대응'));
-    expect(find.text('이서준 · 이상 대응'), findsOneWidget);
+    expect(find.text('이서준 별님'), findsOneWidget);
 
     await h.tapText('확인했어요');
     expect(h.repo.caseById(caseId).status, CaseStatus.acked);
-    expect(find.textContaining('박소연 간호사 ', skipOffstage: false), findsWidgets); // 확인한 사람 줄
+    expect(find.text('박소연 간호사가 확인했어요'), findsOneWidget); // 누가 알고 있나 한 줄
     await h.tapText('제가 맡을게요');
     expect(h.repo.caseById(caseId).assigneeId, 'park_soyeon');
-    expect(find.text('박소연 간호사', skipOffstage: false), findsOneWidget, reason: '담당');
+    expect(find.text('박소연 간호사가 맡았어요'), findsOneWidget, reason: '담당');
+    expect(find.text('확인했어요'), findsNothing, reason: '확인·담당 끝나면 하단 버튼 없음');
     expect(h.repo.noticesFor('kim_haneul').first.body, '박소연 간호사가 맡았어요');
 
+    await h.openMore();
     await h.tapText('투약 기록');
     expect(find.text('기록하기'), findsOneWidget);
     await tester.enterText(find.byType(TextField), '지침대로 해열제 줌 (원장님 전화 지시)');
@@ -175,7 +194,7 @@ void main() {
     expect(r2.escalated, isTrue);
     await h.openCase(caseId);
     expect(find.text('⚠ 긴급'), findsOneWidget);
-    expect(find.text('이서준 · 긴급'), findsOneWidget);
+    expect(find.text('긴급'), findsOneWidget);
     expect(find.text('처음 38.4℃ → 최근 39.1℃'), findsOneWidget);
 
     // ── 원장 한경수: 중요 알림 배너 → [병원으로 보내세요] → 단계 ④
@@ -183,12 +202,14 @@ void main() {
     await h.switchTo('han_kyungsoo');
     expect(find.bySemanticsLabel(RegExp('^중요 알림, 긴급으로 바뀌었어요')), findsOneWidget);
     await h.tap(find.text('긴급으로 바뀌었어요').first);
-    expect(find.text('이서준 · 긴급'), findsOneWidget);
+    expect(find.text('긴급'), findsOneWidget);
+    // 원장 + 긴급: 다음에 할 일 = [병원으로 보내세요]
     await h.tapText('병원으로 보내세요');
     await h.tapText('보내기');
     expect(h.repo.caseById(caseId).stage, 4);
-    expect(find.text('🩺 원장님 지시 · 병원으로 보내세요', skipOffstage: false), findsOneWidget);
     expect(find.text('병원 결과 기록'), findsOneWidget);
+    await h.openMore();
+    expect(find.text('🩺 원장님 지시 · 병원으로 보내세요', skipOffstage: false), findsOneWidget);
 
     // ── 간호사: 병원 결과 기록 → 대응 종료
     await h.toRoot();
@@ -197,6 +218,7 @@ void main() {
     await h.tapText('병원 결과 기록');
     await h.tapText('진료 후 귀원');
     await h.tapText('기록하기');
+    await h.openMore();
     expect(find.text('🏥 병원 · 진료 후 귀원', skipOffstage: false), findsOneWidget);
     await h.tapText('대응 종료');
     await h.tapText('병원 진료 후 귀원');
@@ -205,8 +227,11 @@ void main() {
     expect(closed.isOpen, isFalse);
     expect(closed.closeReason, '병원 진료 후 귀원');
     expect(find.text('종료'), findsWidgets);
-    expect(find.text('종료된 건이에요. 기록은 그대로 남아 있어요.'), findsOneWidget);
     expect(find.text('대응 종료'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('종료된 건이에요. 기록은 그대로 남아 있어요.'), findsOneWidget);
+    expect(find.text('종료했어요 · 병원 진료 후 귀원'), findsOneWidget);
 
     // ── 사무국 박서연: 보기만 (진행 중인 박승민 건)
     await h.toRoot();
@@ -230,7 +255,7 @@ void main() {
     h.repo.saveMeasurement(residentId: seungminId, value: 368, by: 'park_soyeon', at: h.repo.now());
     await h.switchTo('park_soyeon');
     await h.openCase(c.id);
-    expect(find.text('종료 대기'), findsOneWidget);
+    expect(find.text('✓ 평소 체온으로 돌아왔어요'), findsOneWidget);
     expect(find.text('한 번 더 재고 종료하기'), findsOneWidget);
     await h.tapText('지금 종료하기');
     expect(find.text('대응을 종료할까요?'), findsOneWidget);
@@ -247,6 +272,7 @@ void main() {
     await h.tapText('재측정 입력');
     expect(find.text('이 반 체온 입력 권한이 없어요'), findsOneWidget);
     expect(find.byType(CaseDetailScreen), findsOneWidget);
+    await h.openMore();
     await h.tapText('대응 종료');
     expect(find.text('담당자·간호사·원장님이 종료할 수 있어요'), findsOneWidget);
     // [재측정 입력]은 퀵 체온을 그 별님으로 연다 (이서준: 김하늘 권한 있음)
@@ -267,12 +293,16 @@ void main() {
     final seojun = residentByName('이서준').id;
     await h.saveViaQuickTemp(seojun, 391); // 위험: 전화 버튼이 맨 위
     expect(tester.takeException(), isNull);
-    expect(inSheet('⚠ 긴급'), findsOneWidget);
+    expect(inSheet('⚠ 긴급 대응을 시작했어요'), findsOneWidget);
     expect(inSheet('간호사에게 전화'), findsOneWidget);
     await h.tapText('자세히 보기');
     await h.switchTo('han_kyungsoo');
     expect(tester.takeException(), isNull);
     await tester.drag(find.byType(ListView).last, const Offset(0, -2000));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await h.openMore();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -4000));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('별님 카드로'), findsOneWidget);
@@ -290,7 +320,7 @@ void main() {
         await h.start();
         final seojun = residentByName('이서준').id;
         await h.saveViaQuickTemp(seojun, 384);
-        expect(inSheet('▲ 이상 대응'), findsOneWidget);
+        expect(inSheet('▲ 이상 대응을 시작했어요'), findsOneWidget);
         await tester.drag(find.byType(BottomSheet), const Offset(0, -1000));
         await tester.pumpAndSettle();
         await h.tapText('자세히 보기');
@@ -301,6 +331,11 @@ void main() {
           await tester.drag(find.byType(ListView).last, const Offset(0, -3000));
           await tester.pumpAndSettle();
           await tester.drag(find.byType(ListView).last, const Offset(0, 3000));
+          await tester.pumpAndSettle();
+          await h.openMore();
+          await tester.drag(find.byType(ListView).last, const Offset(0, -4000));
+          await tester.pumpAndSettle();
+          await tester.pageBack();
           await tester.pumpAndSettle();
         }
         // 🔔 목록

@@ -11,9 +11,9 @@ import '../../core/providers.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../core/ui.dart';
-import '../quick_temp/quick_temp_controller.dart';
 import 'handover_common.dart';
 import 'handover_view.dart';
+import 'task_actions.dart';
 
 class EntryCard extends ConsumerStatefulWidget {
   const EntryCard({super.key, required this.entry, required this.view, this.foldReadNotice = true, this.onCompleted});
@@ -781,48 +781,10 @@ class _Footer extends ConsumerWidget {
     if (t.kind == TaskKind.temp) {
       // 체온 할 일 → 퀵 체온, 그 별님 선택된 채로. 저장하면 할 일이 자동 완료된다 (C4).
       onCompleted?.call();
-      ref.read(quickTempProvider.notifier).openFor(entry.residentId!);
+      openQuickTempFor(context, ref, entry.residentId!);
       return;
     }
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      builder: (s) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.l),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                '완료할까요?',
-                style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain),
-              ),
-              const SizedBox(height: Gap.s),
-              Text(
-                '할 일: ${t.label}',
-                style: const TextStyle(fontSize: T.body, color: inkMain),
-              ),
-              const SizedBox(height: Gap.xl),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(onPressed: () => Navigator.pop(s, false), child: const Text('취소')),
-                  ),
-                  const SizedBox(width: Gap.s),
-                  Expanded(
-                    child: FilledButton(onPressed: () => Navigator.pop(s, true), child: const Text('완료했어요')),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (ok != true || !context.mounted) return;
-    onCompleted?.call();
-    ref.read(repoProvider).completeTask(entry.id, ref.read(currentUserProvider), ref.read(clockProvider)());
-    showToast(context, '${t.label} 완료');
+    await confirmCompleteTask(context, ref, entry, beforeComplete: onCompleted);
   }
 }
 

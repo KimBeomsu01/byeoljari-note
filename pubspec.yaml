@@ -74,6 +74,8 @@ flutter:
       fonts:
         - asset: assets/fonts/KakaoBigSans-Bold.ttf
           weight: 700
+        - asset: assets/fonts/KakaoBigSans-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:

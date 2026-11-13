@@ -3,11 +3,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/judgment.dart';
 import '../../core/models.dart';
+import '../../core/providers.dart';
 import '../../core/theme.dart';
-import '../../core/ui.dart';
+import '../quick_temp/quick_temp_controller.dart';
 
 const _weekdays = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -18,182 +20,125 @@ bool isWeekend(DateTime d) => d.weekday >= DateTime.saturday;
 /// '10월 28일 (수)'
 String dateLabel(DateTime d) => '${d.month}월 ${d.day}일 (${_weekdays[d.weekday - 1]})';
 
-/// 시제품 날짜 막대: '오늘 · 10월 28일 수요일' / '10월 31일 토요일'.
+/// '오늘 10월 28일 수요일' / '10월 31일 토요일'.
 String longDateLabel(DateTime d, {bool today = false}) =>
-    '${today ? '오늘 · ' : ''}${d.month}월 ${d.day}일 ${_weekdays[d.weekday - 1]}요일';
+    '${today ? '오늘 ' : ''}${d.month}월 ${d.day}일 ${_weekdays[d.weekday - 1]}요일';
 
-/// 시제품의 작은 표 알약 모서리 (둥근 네모).
-const double tagRadius = 7;
-
-/// 연한 반 색 (선택된 반 칩, 오늘 날짜): 흰 바탕 위에 반 색 [alpha].
+/// 연한 반 색 (오늘 날짜): 흰 바탕 위에 반 색 [alpha].
 Color classTint(int color, [double alpha = 0.2]) => Color.alphaBlend(Color(color).withValues(alpha: alpha), surface);
-
-/// 시제품 카드의 체온 알약: '오전 ✓ 36.5° 평소' / '오후 예정' / '오전 미기록'.
-/// 기호 + 글자 + 색을 함께 쓴다 (5-4). [label]은 '오전' · '오후' · '오전 체온' 등.
-class SlotPill extends StatelessWidget {
-  const SlotPill({super.key, required this.label, required this.status});
-  final String label;
-  final SlotStatus? status;
-
-  static const _missed = (Color(0xFF6B5446), Color(0xFFFCEEEA), Color(0xFFB7C1CC));
-  static const _later = (Color(0xFF6B5446), Color(0xFFFCEEEA), line);
-
-  @override
-  Widget build(BuildContext context) {
-    final s = status;
-    final m = s?.measurement;
-    final String text;
-    final String spoken;
-    final (Color, Color, Color) c;
-    if (s == null) {
-      text = '$label 없음';
-      spoken = '$label 재는 때 없음';
-      c = _later;
-    } else if (s.state == SlotState.recorded && m != null) {
-      final st = m.judgment.stage;
-      final sc = stageColors[st]!;
-      text = '$label ${st.symbol} ${formatTemp(m.value)}° ${st.label}';
-      spoken = '$label ${formatTemp(m.value)}도 ${st.label}';
-      c = (sc.ink, sc.soft, sc.line);
-    } else if (s.state == SlotState.missed) {
-      text = '$label 미기록';
-      spoken = '$label 미기록, 아직 안 쟀어요';
-      c = _missed;
-    } else {
-      text = '$label 예정';
-      spoken = '$label 예정 ${hm(s.at)}';
-      c = _later;
-    }
-    return Semantics(
-      label: spoken,
-      excludeSemantics: true,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: c.$2,
-          borderRadius: BorderRadius.circular(tagRadius),
-          border: Border.all(color: c.$3),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: T.caption, fontWeight: FontWeight.w700, color: c.$1, height: 1.3, fontFeatures: const [FontFeature.tabularFigures()])),
-      ),
-    );
-  }
-}
 
 /// '09:05'
 String hm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
-/// 판정 '빨강'(지금 일정, 긴급)에 쓰는 색.
+/// 지금 일정·긴급에 쓰는 빨강.
 Color get nowRed => stageColors[Stage.danger]!.ink;
 
-/// 일정 종류 색 (판정 색과 겹치지 않게 차분한 색). 색만으로 구분하지 않도록 늘 글자와 함께 쓴다.
-const kindColors = <ScheduleKind, (Color bg, Color fg)>{
-  ScheduleKind.meal: (Color(0xFFFCEFE0), Color(0xFF6B5524)),
-  ScheduleKind.school: (Color(0xFFE3E7F5), Color(0xFF3B4A80)),
-  ScheduleKind.therapy: (Color(0xFFE6F2DE), Color(0xFF2F6259)),
-  ScheduleKind.art: (Color(0xFFF2E6F0), Color(0xFF74416A)),
-  ScheduleKind.bath: (Color(0xFFE2EEF6), Color(0xFF2E5C7A)),
-  ScheduleKind.living: (Color(0xFFFAE6E1), Color(0xFF4F5650)),
-};
+/// '오후 체온 · 목욕 전' → '오후 체온'.
+String slotShortName(TempSlot s) => s.label.split(' · ').first;
 
-class KindTag extends StatelessWidget {
-  const KindTag(this.kind, {super.key});
-  final ScheduleKind kind;
-
-  @override
-  Widget build(BuildContext context) {
-    final (bg, fg) = kindColors[kind]!;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(tagRadius)),
-      child: Text(kind.label, style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: fg, height: 1.35)),
-    );
-  }
-}
-
-/// 그날 측정 시점 중 오전 / 오후 하나씩.
-(SlotStatus?, SlotStatus?) amPm(List<SlotStatus> slots) {
-  SlotStatus? am;
-  SlotStatus? pm;
+/// 목록 오른쪽 칩이 보여줄 측정 시점: 이미 시작된 것 중 가장 늦은 것, 없으면 첫 것.
+SlotStatus? currentSlot(List<SlotStatus> slots, DateTime now) {
+  if (slots.isEmpty) return null;
+  SlotStatus? pick;
   for (final s in slots) {
-    if (s.slot.isMorning) {
-      am ??= s;
-    } else {
-      pm ??= s;
-    }
+    if (!s.at.isAfter(now)) pick = s;
   }
-  return (am, pm);
+  return pick ?? slots.first;
 }
 
-/// 카드·하루 일정 머리의 '오전' / '오후' 칸. 기호 + 글자 + 색을 함께 쓴다 (5-4, 5-7).
-/// 한 줄에 한 가지: ① 오전/오후 ② 체온(크게) 또는 상태 ③ 판정 표시 또는 설명.
-class SlotCell extends StatelessWidget {
-  const SlotCell({super.key, required this.label, required this.status});
-  final String label; // '오전' | '오후'
-  final SlotStatus? status;
+/// 체온 재기: 측정 권한이 있는 반이면 그 별님이 선택된 퀵 체온을 연다. 없으면 안내만.
+/// [popToFirst] 하루 일정처럼 위에 쌓인 화면에서 열 때는 먼저 첫 화면으로 돌아간다 (퀵 체온은 앱 공통 틀 위의 레이어).
+void openQuickTempFor(BuildContext context, WidgetRef ref, Resident r, {bool popToFirst = false}) {
+  final me = ref.read(currentUserProvider);
+  if (!measurableClasses(me).contains(r.classId)) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('이 반은 체온 측정 권한이 없어요')));
+    return;
+  }
+  if (popToFirst) Navigator.of(context).popUntil((route) => route.isFirst);
+  ref.read(quickTempProvider.notifier).openFor(r.id);
+}
 
-  static const _tabular = [FontFeature.tabularFigures()];
+/// 시안의 오른쪽 상태 칩: '✓ 36.4' / '! 37.6 주의' / 점선 '아직 안 잼' / '▲ 이상 대응 중' / '⚠ 긴급' / '13:00 예정'.
+/// 기호 + 글자 + 색을 함께 쓴다 (5-4). [openCase]가 있으면 체온보다 먼저 보여준다.
+class TempChip extends StatelessWidget {
+  const TempChip({super.key, required this.slot, this.openCase, this.slotName});
+  final SlotStatus? slot;
+  final Case? openCase;
+
+  /// 읽어 주는 말 앞머리 ('오전 체온'). 없으면 시점 이름.
+  final String? slotName;
+
+  static const _dashed = Color(0xFFB39A8F);
 
   @override
   Widget build(BuildContext context) {
-    final s = status;
+    final s = slot;
     final m = s?.measurement;
-    final missed = s?.state == SlotState.missed;
-    late final Widget main;
-    Widget? sub;
-    Color bg = surface;
-    Color border = line;
-    late final String spoken;
-    if (s == null) {
-      main = const Text('없음', style: TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: inkSub));
-      sub = const Text('재는 때가 없어요', style: TextStyle(fontSize: T.caption, color: inkSub));
-      bg = paper;
-      spoken = '$label 체온 재는 때 없음';
+    final name = slotName ?? (s == null ? '체온' : slotShortName(s.slot));
+    String text;
+    String spoken;
+    Color fg = inkSub;
+    Color? bg;
+    Color? border;
+    var dashed = false;
+    final c = openCase;
+    if (c != null) {
+      final sc = stageColors[c.isUrgent ? Stage.danger : Stage.abnormal]!;
+      text = c.isUrgent ? '⚠ 긴급' : '▲ 이상 대응 중';
+      spoken = c.isUrgent ? '긴급' : '이상 대응 중';
+      fg = sc.ink;
+      bg = sc.soft;
+    } else if (s == null) {
+      return const SizedBox.shrink();
     } else if (s.state == SlotState.recorded && m != null) {
       final st = m.judgment.stage;
-      final c = stageColors[st]!;
-      main = Text('${formatTemp(m.value)}℃',
-          style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: c.ink, fontFeatures: _tabular));
-      sub = StageTag(st);
-      bg = c.soft;
-      border = c.line;
-      spoken = '$label 체온 ${formatTemp(m.value)}도 ${st.label}';
-    } else if (missed) {
-      main = const Text('미기록', style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain));
-      sub = const Text('아직 안 쟀어요', style: TextStyle(fontSize: T.caption, color: inkSub));
-      spoken = '$label 체온 미기록, 아직 안 쟀어요';
+      final sc = stageColors[st]!;
+      text = st == Stage.normal
+          ? '${st.symbol} ${formatTemp(m.value)}'
+          : '${st.symbol} ${formatTemp(m.value)} ${st.label}';
+      spoken = '$name ${formatTemp(m.value)}도 ${st.label}';
+      fg = sc.ink;
+      bg = sc.soft;
+    } else if (s.state == SlotState.missed) {
+      text = '아직 안 잼';
+      spoken = '$name 아직 안 쟀어요';
+      dashed = true;
     } else {
-      main = Text('예정 ${hm(s.at)}',
-          style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w800, color: inkMain, fontFeatures: _tabular));
-      spoken = '$label 체온 예정 ${hm(s.at)}';
+      text = '${hm(s.at)} 예정';
+      spoken = '$name ${hm(s.at)} 예정';
+      border = lineStrong;
     }
-    return Semantics(
-      label: spoken,
-      excludeSemantics: true,
-      child: CustomPaint(
-        foregroundPainter: missed ? const DashedBorderPainter(color: inkSub, radius: Radii.button, width: 2) : null,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(Radii.button),
-            border: missed ? null : Border.all(color: border, width: 1.5),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(label, style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkSub)),
-            const SizedBox(height: 2),
-            main,
-            if (sub != null) ...[const SizedBox(height: 4), sub],
-          ]),
-        ),
+    final label = Text(
+      text,
+      maxLines: 1,
+      softWrap: false,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: fg,
+        height: 1.3,
+        fontFeatures: const [FontFeature.tabularFigures()],
       ),
     );
+    final chip = dashed
+        ? CustomPaint(
+            foregroundPainter: const DashedBorderPainter(color: _dashed, radius: 999, width: 1.5),
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: label),
+          )
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(999),
+              border: border == null ? null : Border.all(color: border, width: 1.5),
+            ),
+            child: label,
+          );
+    return Semantics(label: spoken, excludeSemantics: true, child: chip);
   }
 }
 
-/// 점선 테두리 (미기록).
+/// 점선 테두리 (아직 안 잼).
 class DashedBorderPainter extends CustomPainter {
   const DashedBorderPainter({required this.color, this.radius = 12, this.width = 1.5});
   final Color color;
@@ -207,12 +152,13 @@ class DashedBorderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = width;
     final rect = Offset(width / 2, width / 2) & Size(size.width - width, size.height - width);
-    final path = Path()..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
+    final r = radius.clamp(0.0, rect.shortestSide / 2);
+    final path = Path()..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(r)));
     for (final metric in path.computeMetrics()) {
       var d = 0.0;
       while (d < metric.length) {
-        canvas.drawPath(metric.extractPath(d, d + 5), paint);
-        d += 9;
+        canvas.drawPath(metric.extractPath(d, d + 4), paint);
+        d += 7;
       }
     }
   }

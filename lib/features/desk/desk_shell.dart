@@ -17,7 +17,7 @@ extension DeskMenuInfo on DeskMenu {
   String get label => switch (this) {
         DeskMenu.today => '오늘 현황',
         DeskMenu.residents => '별님 기록',
-        DeskMenu.cases => '긴급·이상 대응 현황',
+        DeskMenu.cases => '긴급·이상 대응',
         DeskMenu.schedule => '반별 일정',
         DeskMenu.export => '기록 내보내기',
       };
@@ -60,12 +60,23 @@ class _DeskShellState extends ConsumerState<DeskShell> {
 
   /// 다른 메뉴에서 넘어올 때 미리 열 기록 (예: 최초 측정 `m:측정ID`).
   String? openRecordKey;
+
+  /// 오늘 현황의 반 타일에서 넘어올 때 좁힐 반.
+  String? openClassId;
   int navSeq = 0;
+
+  void goClass(String classId) => setState(() {
+        menu = DeskMenu.residents;
+        openClassId = classId;
+        openRecordKey = null;
+        navSeq++;
+      });
 
   void goResident(String id, {String? recordKey}) => setState(() {
         menu = DeskMenu.residents;
         residentId = id;
         openRecordKey = recordKey;
+        openClassId = null;
         navSeq++;
       });
 
@@ -78,7 +89,6 @@ class _DeskShellState extends ConsumerState<DeskShell> {
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(repoProvider); // 새 측정·이상 건이 오면 다시 그린다 (6-7-7)
-    final now = repo.now();
     final me = ref.watch(currentUserProvider);
     String meName;
     try {
@@ -88,11 +98,12 @@ class _DeskShellState extends ConsumerState<DeskShell> {
     }
 
     final Widget content = switch (menu) {
-      DeskMenu.today => DeskTodayView(onResident: (id) => goResident(id), onCase: goCase),
+      DeskMenu.today => DeskTodayView(onResident: (id) => goResident(id), onCase: goCase, onClass: goClass),
       DeskMenu.residents => DeskResidentView(
           key: ValueKey('res-$navSeq'),
           residentId: residentId,
           initialRecordKey: openRecordKey,
+          initialClassId: openClassId,
           onSelect: (id) => setState(() {
             residentId = id;
             openRecordKey = null;
@@ -118,26 +129,23 @@ class _DeskShellState extends ConsumerState<DeskShell> {
       child: Scaffold(
       backgroundColor: paper,
       body: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _SideMenu(compact: compact, current: menu, openCount: repo.openCases.length, onTap: (m) => setState(() => menu = m)),
+        _SideMenu(
+          compact: compact,
+          current: menu,
+          openCount: repo.openCases.length,
+          urgent: repo.openCases.any((c) => c.isUrgent),
+          user: meName,
+          onPhoneView: widget.onPhoneView,
+          onTap: (m) => setState(() => menu = m),
+        ),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            _TopBar(
-              condition: '${mdLabel(now)} · 전체 ${repo.classes.length}개 반',
-              updated: hhmm(now),
-              user: meName,
-              onPhoneView: widget.onPhoneView,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1360),
+              child: Padding(padding: EdgeInsets.fromLTRB(compact ? 16 : 36, compact ? 16 : 32, compact ? 16 : 36, 0), child: content),
             ),
-            const Divider(height: 1),
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1360),
-                  child: Padding(padding: EdgeInsets.fromLTRB(compact ? 16 : 24, compact ? 12 : 20, compact ? 16 : 24, 0), child: content),
-                ),
-              ),
-            ),
-          ]),
+          ),
         ),
       ]),
     ),
@@ -156,71 +164,138 @@ class _ScaledTextScaler extends TextScaler {
   double get textScaleFactor => base.scale(1) * factor;
 }
 
+/// 시안의 선택 초록 면 · 옅은 글자.
+const Color _selBg = Color(0xFFEEF5EA);
+const Color _muted = Color(0xFF7A6458);
+const Color _menuLine = Color(0xFFF1DFD9);
+
 class _SideMenu extends StatelessWidget {
-  const _SideMenu({required this.current, required this.onTap, required this.openCount, this.compact = false});
+  const _SideMenu({
+    required this.current,
+    required this.onTap,
+    required this.openCount,
+    required this.user,
+    this.urgent = false,
+    this.onPhoneView,
+    this.compact = false,
+  });
   final bool compact;
   final DeskMenu current;
   final ValueChanged<DeskMenu> onTap;
   final int openCount;
+  final bool urgent;
+  final String user;
+  final VoidCallback? onPhoneView;
+
+  Color get _badgeColor => stageColors[urgent ? Stage.danger : Stage.abnormal]!.ink;
 
   @override
-  Widget build(BuildContext context) => compact ? _rail() : Container(
-        width: 220,
-        decoration: const BoxDecoration(color: surface, border: Border(right: BorderSide(color: line))),
-        child: ListView(padding: const EdgeInsets.fromLTRB(12, 20, 12, 20), children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-              Text.rich(TextSpan(children: [
-                TextSpan(text: '✦ ', style: TextStyle(color: coral)),
-                TextSpan(text: '별자리노트'),
-              ]), style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: brandDark)),
-              Text('사무국 PC', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkSub)),
-            ]),
-          ),
-          for (final m in DeskMenu.values)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Material(
-                color: m == current ? sage : Colors.transparent,
-                borderRadius: BorderRadius.circular(Radii.button),
-                child: InkWell(
-                  key: ValueKey('desk-menu-${m.name}'),
-                  borderRadius: BorderRadius.circular(Radii.button),
-                  onTap: () => onTap(m),
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 52),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    child: Row(children: [
-                      Icon(m.icon, size: 22, color: m == current ? brandDark : inkSub),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(m.label,
-                            style: TextStyle(
-                              fontSize: T.body,
-                              fontWeight: m == current ? FontWeight.w800 : FontWeight.w600,
-                              color: m == current ? brandDark : inkMain,
-                            )),
-                      ),
-                      if (m == DeskMenu.cases && openCount > 0)
-                        Text('$openCount건', style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: stageColors[Stage.danger]!.ink)),
-                      if (m.later) const Text('후속', style: TextStyle(fontSize: T.caption, color: inkSub)),
+  Widget build(BuildContext context) => compact ? _rail() : _wide();
+
+  /// 넓은 창: 폭 232, 제목 · 메뉴(높이 52) · 아래쪽에 사용자와 '폰 화면으로 보기'.
+  Widget _wide() => Container(
+        width: 232,
+        decoration: const BoxDecoration(color: surface, border: Border(right: BorderSide(color: _menuLine))),
+        child: LayoutBuilder(builder: (context, box) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 28, 16, 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: (box.maxHeight - 48).clamp(0, double.infinity)),
+              child: IntrinsicHeight(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(12, 0, 12, 24),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('별자리노트', style: TextStyle(fontFamily: fontBig, fontSize: 22, fontWeight: FontWeight.w800, color: brandDark)),
+                      SizedBox(height: 2),
+                      Text('사무국', style: TextStyle(fontSize: T.caption, color: inkSub)),
                     ]),
                   ),
-                ),
+                  for (final m in DeskMenu.values) ...[
+                    _item(m),
+                    const SizedBox(height: 6),
+                  ],
+                  const Spacer(),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('$user · 보기 전용', key: const ValueKey('desk-user'), style: const TextStyle(fontSize: T.caption, color: inkSub)),
+                  ),
+                  if (onPhoneView != null) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        key: const ValueKey('desk-phone-view'),
+                        onPressed: onPhoneView,
+                        style: TextButton.styleFrom(minimumSize: const Size(48, 48), padding: const EdgeInsets.symmetric(horizontal: 12)),
+                        icon: const Icon(Icons.smartphone, size: 20),
+                        label: const Text('폰 화면으로 보기', style: TextStyle(fontSize: 16)),
+                      ),
+                    ),
+                  ],
+                ]),
               ),
             ),
-        ]),
+          );
+        }),
       );
 
-  /// 좁은 창: 아이콘 + 짧은 이름만 있는 띠 (폭 88).
+  Widget _item(DeskMenu m) {
+    final sel = m == current;
+    final showBadge = m == DeskMenu.cases && openCount > 0;
+    return Semantics(
+      selected: sel,
+      button: true,
+      label: '${m.label}${showBadge ? ', 진행 중 $openCount건' : ''}${m.later ? ', 준비 중' : ''}',
+      excludeSemantics: true,
+      child: Material(
+        color: sel ? _selBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(Radii.button),
+        child: InkWell(
+          key: ValueKey('desk-menu-${m.name}'),
+          borderRadius: BorderRadius.circular(Radii.button),
+          onTap: () => onTap(m),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: tapHeight),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            alignment: Alignment.centerLeft,
+            child: Row(children: [
+              Expanded(
+                child: Text(m.label,
+                    style: TextStyle(
+                      fontSize: T.body,
+                      fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+                      color: sel ? brandDark : (m.later ? _muted : inkMain),
+                    )),
+              ),
+              if (showBadge)
+                Container(
+                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: _badgeColor, borderRadius: BorderRadius.circular(12)),
+                  child: Text('$openCount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white, height: 1.2)),
+                ),
+              if (m.later) const Text('준비 중', style: TextStyle(fontSize: 14, color: _muted)),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 좁은 창(1280 미만): 아이콘 + 짧은 이름만 있는 띠 (폭 88). 아래쪽에 폰 화면 단추.
   Widget _rail() => Container(
         width: 88,
-        decoration: const BoxDecoration(color: surface, border: Border(right: BorderSide(color: line))),
+        decoration: const BoxDecoration(color: surface, border: Border(right: BorderSide(color: _menuLine))),
         child: ListView(padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6), children: [
           const Padding(
             padding: EdgeInsets.only(bottom: 16),
-            child: Icon(Icons.auto_awesome, color: coral, size: 26, semanticLabel: '별자리노트 사무국 PC'),
+            child: Text('별자리\n노트',
+                textAlign: TextAlign.center,
+                semanticsLabel: '별자리노트 사무국',
+                style: TextStyle(fontFamily: fontBig, fontSize: 15, fontWeight: FontWeight.w800, color: brandDark, height: 1.2)),
           ),
           for (final m in DeskMenu.values)
             Padding(
@@ -228,7 +303,7 @@ class _SideMenu extends StatelessWidget {
               child: Tooltip(
                 message: m.label,
                 child: Material(
-                  color: m == current ? sage : Colors.transparent,
+                  color: m == current ? _selBg : Colors.transparent,
                   borderRadius: BorderRadius.circular(Radii.button),
                   child: InkWell(
                     key: ValueKey('desk-menu-${m.name}'),
@@ -240,17 +315,17 @@ class _SideMenu extends StatelessWidget {
                         Badge(
                           isLabelVisible: m == DeskMenu.cases && openCount > 0,
                           label: Text('$openCount'),
-                          backgroundColor: stageColors[Stage.danger]!.ink,
+                          backgroundColor: _badgeColor,
                           child: Icon(m.icon, size: 26, color: m == current ? brandDark : inkSub),
                         ),
                         const SizedBox(height: 4),
                         Text(m.shortLabel,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               height: 1.2,
-                              fontWeight: m == current ? FontWeight.w800 : FontWeight.w600,
-                              color: m == current ? brandDark : inkMain,
+                              fontWeight: m == current ? FontWeight.w700 : FontWeight.w400,
+                              color: m == current ? brandDark : (m.later ? _muted : inkMain),
                             )),
                       ]),
                     ),
@@ -258,36 +333,19 @@ class _SideMenu extends StatelessWidget {
                 ),
               ),
             ),
-        ]),
-      );
-}
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.condition, required this.updated, required this.user, this.onPhoneView});
-  final String condition;
-  final String updated;
-  final String user;
-  final VoidCallback? onPhoneView;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        color: surface,
-        constraints: const BoxConstraints(minHeight: 64),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        child: Row(children: [
-          const Icon(Icons.today_outlined, color: inkSub, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Wrap(spacing: 16, crossAxisAlignment: WrapCrossAlignment.center, children: [
-              Text(condition, key: const ValueKey('desk-condition'), style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
-              Text('마지막 갱신 $updated', key: const ValueKey('desk-updated'), style: const TextStyle(fontSize: T.body, color: inkSub)),
-            ]),
+          const SizedBox(height: 12),
+          Tooltip(
+            message: '$user · 보기 전용',
+            child: const Icon(Icons.visibility_outlined, color: inkSub, size: 22, semanticLabel: '보기 전용'),
           ),
-          Text(user, style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain)),
-          if (onPhoneView != null) ...[
-            const SizedBox(width: 12),
-            TextButton.icon(onPressed: onPhoneView, icon: const Icon(Icons.smartphone, size: 20), label: const Text('폰 화면으로 보기')),
-          ],
+          if (onPhoneView != null)
+            IconButton(
+              key: const ValueKey('desk-phone-view'),
+              tooltip: '폰 화면으로 보기',
+              onPressed: onPhoneView,
+              constraints: const BoxConstraints(minWidth: 52, minHeight: 52),
+              icon: const Icon(Icons.smartphone, color: brandDark),
+            ),
         ]),
       );
 }

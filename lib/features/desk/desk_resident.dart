@@ -62,8 +62,11 @@ List<ArchiveRecord> deskTimeline(InMemoryRepository repo, String residentId,
 }
 
 class DeskResidentView extends ConsumerStatefulWidget {
-  const DeskResidentView({super.key, this.residentId, this.initialRecordKey, required this.onSelect, required this.onCase});
+  const DeskResidentView({super.key, this.residentId, this.initialRecordKey, this.initialClassId, required this.onSelect, required this.onCase});
   final String? residentId;
+
+  /// 오늘 현황의 반 타일에서 넘어오면 그 반으로 좁혀 연다.
+  final String? initialClassId;
   final String? initialRecordKey;
   final ValueChanged<String> onSelect;
   final ValueChanged<String> onCase;
@@ -87,6 +90,7 @@ class _DeskResidentViewState extends ConsumerState<DeskResidentView> {
   void initState() {
     super.initState();
     selectedKey = widget.initialRecordKey;
+    classFilter = widget.initialClassId;
     // 다른 메뉴에서 넘어오면 고른 별님이 목록에서 보이게 한다.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final id = widget.residentId;
@@ -94,7 +98,7 @@ class _DeskResidentViewState extends ConsumerState<DeskResidentView> {
       final repo = ref.read(repoProvider);
       final all = [for (final c in repo.classes) ...repo.residentsOf(c.id)];
       final i = all.indexWhere((r) => r.id == id);
-      if (i > 2) listScroll.jumpTo(math.min((i - 2) * 56.0, listScroll.position.maxScrollExtent));
+      if (i > 2) listScroll.jumpTo(math.min((i - 2) * 64.0, listScroll.position.maxScrollExtent));
     });
     keyword.addListener(() => setState(() {}));
   }
@@ -195,6 +199,7 @@ class _DeskResidentViewState extends ConsumerState<DeskResidentView> {
             onChanged: (v) => setState(() => classFilter = v),
           ),
         ),
+        if (classFilter != null) _classToday(repo, classFilter!),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: TextField(
@@ -207,7 +212,7 @@ class _DeskResidentViewState extends ConsumerState<DeskResidentView> {
         Expanded(
           child: list.isEmpty
               ? const EmptyNote('조건에 맞는 별님이 없어요')
-              : ListView(controller: listScroll, itemExtent: 56, children: [
+              : ListView(controller: listScroll, itemExtent: 64, children: [
                   for (final r in list)
                     Material(
                       color: r.id == widget.residentId ? sage : surface,
@@ -233,6 +238,20 @@ class _DeskResidentViewState extends ConsumerState<DeskResidentView> {
                 ]),
         ),
       ]),
+    );
+  }
+
+  /// 고른 반의 오늘 기록 인원 · 마지막 측정 (오늘 현황 반 타일에서 옮겨 옴).
+  Widget _classToday(InMemoryRepository repo, String classId) {
+    final now = repo.now();
+    final s = classStats(repo, now).firstWhere((x) => x.c.id == classId);
+    return Padding(
+      key: const ValueKey('desk-res-class-today'),
+      padding: const EdgeInsets.fromLTRB(14, 6, 12, 0),
+      child: Text(
+        '오늘 기록 ${s.recorded}/${s.members}명 · ${s.lastAt == null ? '오늘 측정 없음' : '마지막 측정 ${hhmm(s.lastAt!)}'}',
+        style: const TextStyle(fontSize: T.caption, color: inkSub),
+      ),
     );
   }
 
@@ -290,7 +309,7 @@ class _DeskResidentViewState extends ConsumerState<DeskResidentView> {
           const SizedBox(width: Gap.m),
           Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Text('${r.name} 별님', key: const ValueKey('desk-resident-header'),
-                style: const TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain)),
+                style: const TextStyle(fontFamily: fontBig, fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain)),
             Text('${cls.name} · 담임 $homeroom', style: const TextStyle(fontSize: T.body, color: inkSub)),
           ]),
         ]),
@@ -583,7 +602,7 @@ class _RecordPanel extends ConsumerWidget {
           '체온',
           Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
             Text('${formatTemp(m.value)}℃',
-                style: TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, decoration: m.isVoided ? TextDecoration.lineThrough : null)),
+                style: TextStyle(fontFamily: fontBig, fontSize: T.title, fontWeight: FontWeight.w800, decoration: m.isVoided ? TextDecoration.lineThrough : null)),
             StageTag(m.judgment.stage),
           ])
         ));
@@ -631,7 +650,7 @@ class _RecordPanel extends ConsumerWidget {
             color: sage,
             padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
             child: Row(children: [
-              Expanded(child: Text(title, style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain))),
+              Expanded(child: Text(title, style: const TextStyle(fontFamily: fontBig, fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain))),
               IconButton(key: const ValueKey('desk-panel-close'), tooltip: '닫기 (Esc)', icon: const Icon(Icons.close), onPressed: onClose),
             ]),
           ),

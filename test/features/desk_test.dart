@@ -11,10 +11,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<InMemoryRepository> pumpDesk(WidgetTester tester, {Size size = const Size(1440, 900)}) async {
+Future<InMemoryRepository> pumpDesk(WidgetTester tester, {Size size = const Size(1440, 900), double textScale = 1}) async {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
+  tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.view.reset);
+  addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   await tester.pumpWidget(ProviderScope(child: MaterialApp(theme: buildTheme(), home: const DeskShell())));
   await tester.pumpAndSettle();
   return ProviderScope.containerOf(tester.element(find.byType(DeskShell))).read(repoProvider);
@@ -59,11 +61,13 @@ void main() {
     expect(today.length, 2); // 시연 시작 상태: 한지호 37.4 → 36.8
 
     final expected = repo.classes.expand((c) => repo.residentsOf(c.id)).where((r) => todayMeasurementsOf(repo, r.id, now).isNotEmpty).length;
-    expect(textOf(tester, find.byKey(const ValueKey('desk-sum-recorded'))), contains('$expected명'));
+    final total = repo.classes.fold<int>(0, (a, c) => a + repo.residentsOf(c.id).length);
+    // 한 문장 요약: 기록 없는 별님 수 (여러 번 재도 한 명)
+    expect(textOf(tester, find.byKey(const ValueKey('desk-summary'))), contains('오늘 체온 기록 없는 별님 ${total - expected}명'));
     final mw = classStats(repo, now).firstWhere((s) => s.c.id == 'milkyway');
     final mwToday = repo.residentsOf('milkyway').where((r) => todayMeasurementsOf(repo, r.id, now).isNotEmpty).length;
     expect(mw.recorded, mwToday);
-    expect(find.text('${mw.recorded} / ${mw.members}명'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('desk-class-milkyway')), matching: find.text('${mw.recorded}/${mw.members}')), findsOneWidget);
     expect(find.text('미기록'), findsNothing);
 
     // 별님 기록 → 한지호
@@ -87,10 +91,17 @@ void main() {
     expect(find.byKey(ValueKey('desk-att-$jaehee')), findsOneWidget);
     final before = (repo.caseById(c.id).status, repo.eventsOf(c.id).length, repo.caseById(c.id).assigneeId, repo.noticesFor('park_seoyeon').length);
 
-    // 오늘 현황의 상태 → 대응 현황에서 그 건이 선택됨
-    await tester.ensureVisible(find.byKey(ValueKey('desk-att-case-${c.id}')));
+    // 오늘 현황 카드를 누르면 오른쪽 상세 → '대응 현황에서 보기'로 그 건이 선택됨
+    await tester.ensureVisible(find.byKey(ValueKey('desk-att-$jaehee')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('desk-att-case-${c.id}')));
+    await tester.tap(find.byKey(ValueKey('desk-att-$jaehee')));
+    await tester.pumpAndSettle();
+    expect(textOf(tester, find.byKey(const ValueKey('desk-detail-title'))), contains('노재희'));
+    expect(find.text('아직 아무도 안 함'), findsOneWidget);
+    expect(find.textContaining('보기 전용'), findsWidgets);
+    await tester.ensureVisible(find.byKey(const ValueKey('desk-detail-case')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('desk-detail-case')));
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('desk-case-${c.id}')), findsOneWidget);
     expect(textOf(tester, find.byKey(const ValueKey('desk-case-detail-title'))), contains('노재희'));
@@ -112,9 +123,14 @@ void main() {
 
   testWidgets('③ 오늘 현황에서 이서준을 누르면 그 별님 기록, "소리" 검색에 2025년 박지은 기록 + 담임 변경선', (tester) async {
     await pumpDesk(tester);
-    await tester.ensureVisible(find.byKey(ValueKey('desk-att-name-$seojun')));
+    await tester.ensureVisible(find.byKey(ValueKey('desk-att-$seojun')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('desk-att-name-$seojun')));
+    await tester.tap(find.byKey(ValueKey('desk-att-$seojun')));
+    await tester.pumpAndSettle();
+    expect(find.text('10:15 다시 재기 예정').evaluate().isNotEmpty || find.textContaining('다시 재기 예정').evaluate().isNotEmpty, isTrue);
+    await tester.ensureVisible(find.byKey(const ValueKey('desk-detail-resident')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('desk-detail-resident')));
     await tester.pumpAndSettle();
     expect(textOf(tester, find.byKey(const ValueKey('desk-resident-header'))), '이서준 별님');
     expect(find.textContaining('은하수자리 · 담임 이수진'), findsOneWidget);
@@ -186,7 +202,9 @@ void main() {
   testWidgets('⑤ 폰에서 이서준 39.1 저장 → 요약·표가 바로 바뀌고, 보던 상세는 그대로', (tester) async {
     final repo = await pumpDesk(tester);
     final openBefore = repo.openCases.length;
-    expect(textOf(tester, find.byKey(const ValueKey('desk-sum-open'))), contains('$openBefore건'));
+    expect(openBefore, 1);
+    expect(textOf(tester, find.byKey(const ValueKey('desk-summary'))), contains('긴급은 없어요. 이상 대응 1건'));
+    expect(find.descendant(of: find.byKey(const ValueKey('desk-menu-cases')), matching: find.text('1')), findsOneWidget);
 
     // 대응 현황에서 박승민 건을 보고 있는 중
     final seungmin = repo.openCases.first;
@@ -203,10 +221,13 @@ void main() {
     expect(find.text('⚠ 긴급'), findsWidgets);
 
     await openMenu(tester, DeskMenu.today);
-    expect(textOf(tester, find.byKey(const ValueKey('desk-sum-open'))), contains('${openBefore + 1}건'));
+    expect(textOf(tester, find.byKey(const ValueKey('desk-summary'))), contains('긴급 1건'));
     final row = find.byKey(ValueKey('desk-att-$seojun'));
     expect(find.descendant(of: row, matching: find.text('39.1℃')), findsOneWidget);
-    expect(find.descendant(of: row, matching: find.textContaining('긴급')), findsWidgets);
+    expect(find.descendant(of: row, matching: find.textContaining('⚠ 위험')), findsWidgets);
+    // 긴급이 맨 위 → 오른쪽 상세도 그 별님
+    expect(textOf(tester, find.byKey(const ValueKey('desk-detail-title'))), contains('이서준'));
+    expect(find.text('⚠ 긴급'), findsWidgets);
   });
 
   testWidgets('최초 측정 보기 → 별님 기록에서 그 측정 상세가 열림', (tester) async {
@@ -259,6 +280,35 @@ void main() {
       await openMenu(tester, DeskMenu.schedule);
       expect(find.textContaining('다음 단계'), findsOneWidget);
       await openMenu(tester, DeskMenu.export);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('반 타일을 누르면 그 반 별님 기록 (마지막 측정 시각과 함께)', (tester) async {
+    final repo = await pumpDesk(tester);
+    expect(find.text('먼저 살펴볼 별님 2'), findsOneWidget);
+    expect(find.text('준비 중'), findsNWidgets(2));
+    await tester.ensureVisible(find.byKey(const ValueKey('desk-class-aries')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('desk-class-aries')));
+    await tester.pumpAndSettle();
+    expect(textOf(tester, find.byKey(const ValueKey('desk-res-class-today'))), contains('마지막 측정'));
+    for (final r in repo.residentsOf('aries')) {
+      expect(find.byKey(ValueKey('desk-res-${r.id}')), findsOneWidget);
+    }
+    expect(find.byKey(ValueKey('desk-res-$seojun')), findsNothing);
+  });
+
+  for (final (size, scale) in const [(Size(1280, 800), 1.0), (Size(1280, 800), 1.3), (Size(1024, 700), 1.3)]) {
+    testWidgets('오늘 현황 ${size.width.toInt()}×${size.height.toInt()} 글자 ${scale}배 넘침 없음', (tester) async {
+      final repo = await pumpDesk(tester, size: size, textScale: scale);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byKey(ValueKey('desk-att-$seojun')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await openMenu(tester, DeskMenu.cases);
+      await tester.tap(find.byKey(ValueKey('desk-case-${repo.openCases.first.id}')));
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
   }

@@ -44,10 +44,23 @@ const Color surface = Color(0xFFFFFFFF);
 const Color inkMain = Color(0xFF3E2C22);
 
 /// 보조 글자. 흰 바탕 대비 약 7:1. 이보다 옅은 색은 쓰지 않는다.
-const Color inkSub = Color(0xFF6B5446);
+const Color inkSub = Color(0xFF6B5549);
 
 /// 카드 테두리·구분선: 옅은 분홍.
-const Color line = Color(0xFFF0DBD5);
+const Color line = Color(0xFFF0DCD5);
+
+/// 테두리 버튼 선.
+const Color lineStrong = Color(0xFFE6CFC7);
+
+/// 목록 안 구분선.
+const Color lineSoft = Color(0xFFF5E6E1);
+
+/// '재기' 같은 체온 행동 버튼 바탕·글자.
+const Color actionSoft = Color(0xFFFDECD6);
+const Color actionInk = Color(0xFF8A4A0A);
+
+/// 확인 안 됨 띠 (위험 빨강 옅은 바탕).
+const Color alertSoft = Color(0xFFFBEAEA);
 
 /// 미확인·새 기록 표시: 달력 '오늘' 노랑.
 const Color starYellow = Color(0xFFF2B93B);
@@ -60,12 +73,13 @@ const Color recordedGreen = Color(0xFFCFE8CF);
 
 // ── 글자 크기: 시제품(12~14)보다 한 단계씩 크게, 최소 14
 class T {
-  static const double caption = 14; // 시각, 작성자 같은 보조 정보
-  static const double body = 16; // 본문, 버튼
-  static const double title = 19; // 카드 제목, 별님 이름
-  static const double headline = 24; // 화면 제목
-  static const double number = 28; // 요약 숫자
-  static const double display = 46; // 체온 숫자
+  // 클로드 디자인 개선 시안 (2026-11-12) 기준
+  static const double caption = 15; // 보조 설명 (작은글씨 400 · #6b5549)
+  static const double body = 17; // 본문 문장 (작은글씨 400)
+  static const double title = 21; // 이름·카드 제목 (큰글씨 700)
+  static const double headline = 28; // 화면 제목 (큰글씨 800)
+  static const double number = 34; // 카드 안 큰 체온
+  static const double display = 96; // 퀵 체온 숫자
 }
 
 // ── 간격·모양
@@ -79,18 +93,21 @@ class Gap {
 }
 
 class Radii {
-  static const double card = 13; // 카드 (시제품)
-  static const double sheet = 26; // 시트 위쪽
-  static const double button = 12; // 버튼
+  static const double card = 20; // 카드 (시안)
+  static const double sheet = 28; // 시트 위쪽
+  static const double button = 14; // 버튼
   static const double pill = 999; // 상태 표시
 }
 
 /// 모든 누르는 것의 최소 높이 (시제품 40 → 앱 기준 44 이상, 넉넉하게 48).
-const double tapHeight = 48;
+const double tapHeight = 52;
 
 /// 본문 글꼴: 카카오 작은글씨, 제목·큰 숫자: 카카오 큰글씨 (팀 시제품과 같음, SIL OFL 1.1).
 const String fontSmall = 'KakaoSmall';
 const String fontBig = 'KakaoBig';
+
+/// 기호용 대체 글꼴 (기기에 있는 것을 순서대로 쓴다).
+const List<String> symbolFallback = ['Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Color Emoji', 'Noto Color Emoji'];
 
 /// [fontFamily]를 넘기면 그 글꼴로 바꾼다 (테스트용).
 ThemeData buildTheme({String? fontFamily}) {
@@ -105,7 +122,14 @@ ThemeData buildTheme({String? fontFamily}) {
     onSurfaceVariant: inkSub,
     outline: line,
   );
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, scaffoldBackgroundColor: paper, fontFamily: family);
+  // 카카오 글씨에 없는 기호(✓ ⚠ ▾ ✦, 이모지)는 기기 글꼴로 대신 그린다.
+  final base = ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: paper,
+    fontFamily: family,
+    fontFamilyFallback: symbolFallback,
+  );
   final text = base.textTheme
       .copyWith(
         displaySmall: TextStyle(fontFamily: big, fontSize: T.display, fontWeight: FontWeight.w600, height: 1.1),

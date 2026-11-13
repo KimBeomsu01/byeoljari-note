@@ -113,6 +113,29 @@ class HandoverView {
     }
   }
 
+  /// 첫 화면 '이어받은 할 일' (개선 시안 1): 한 줄 = 한 별님 = 한 버튼. 급한 순(기한이 이른 것부터).
+  /// 체온 할 일은 별님마다 한 줄로 묶고([재기]), 메모 할 일은 한 줄씩([완료]).
+  List<TaskRow> get taskRows {
+    final rows = <TaskRow>[];
+    final byResident = <String, List<Entry>>{};
+    for (final e in openTasks) {
+      if (e.task!.kind == TaskKind.temp && e.residentId != null) {
+        byResident.putIfAbsent(e.residentId!, () => []).add(e);
+      } else {
+        rows.add(TaskRow([e]));
+      }
+    }
+    for (final list in byResident.values) {
+      list.sort(TaskRow._byDue);
+      rows.add(TaskRow(list));
+    }
+    rows.sort((a, b) => TaskRow._byDue(a.first, b.first));
+    return rows;
+  }
+
+  /// 안 본 기록 중 전체 공지 (첫 화면 "· 공지 n").
+  int get unreadNotices => unread.where((e) => e.scope == EntryScope.facility).length;
+
   List<Entry> get pinnedNotices => visible.where(isPinnedNotice).toList();
 
   /// 칩 옆 숫자. 미확인만 "남은 수".
@@ -142,5 +165,22 @@ class HandoverView {
       if (c.residentId == residentId) return c;
     }
     return null;
+  }
+}
+
+/// 첫 화면 할 일 한 줄. [entries]는 같은 별님의 열린 할 일 (급한 순, 메모 할 일은 하나).
+class TaskRow {
+  TaskRow(this.entries);
+  final List<Entry> entries;
+
+  Entry get first => entries.first;
+  bool get isTemp => first.task!.kind == TaskKind.temp;
+  String? get residentId => first.residentId;
+
+  static int _byDue(Entry a, Entry b) {
+    final da = a.task!.dueAt, db = b.task!.dueAt;
+    if (da != null && db != null && da != db) return da.compareTo(db);
+    if ((da == null) != (db == null)) return da == null ? 1 : -1;
+    return a.createdAt.compareTo(b.createdAt);
   }
 }

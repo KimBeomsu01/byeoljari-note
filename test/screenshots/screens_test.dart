@@ -22,8 +22,13 @@ Future<void> _loadFonts() async {
     ..addFont(f('assets/fonts/KakaoSmallSans-Regular.ttf'))
     ..addFont(f('assets/fonts/KakaoSmallSans-Bold.ttf'));
   await small.load();
-  final big = FontLoader('KakaoBig')..addFont(f('assets/fonts/KakaoBigSans-Bold.ttf'));
+  final big = FontLoader('KakaoBig')
+    ..addFont(f('assets/fonts/KakaoBigSans-Bold.ttf'))
+    ..addFont(f('assets/fonts/KakaoBigSans-ExtraBold.ttf'));
   await big.load();
+  // 기호(✓ ⚠ ▾)는 Windows 기호 글꼴로 (앱 테마의 symbolFallback 이름과 같게).
+  final sym = FontLoader('Segoe UI Symbol')..addFont(f(r'C:\Windows\Fonts\seguisym.ttf'));
+  await sym.load();
   final icons = FontLoader('MaterialIcons')
     ..addFont(f(r'D:\dev\flutter\bin\cache\artifacts\material_fonts\materialicons-regular.otf'));
   await icons.load();
@@ -56,6 +61,8 @@ void main() {
 
   testWidgets('03 별님별 기록', (t) async {
     await start(t);
+    await t.tap(find.bySemanticsLabel(RegExp(r'전체 기록 열기$')));
+    await t.pumpAndSettle();
     await t.tap(find.text('별님별 기록'));
     await _shot(t, '03_board');
   });
@@ -134,4 +141,14 @@ void main() {
       await _shot(t, '15_desk_cases_${w.toInt()}');
     });
   }
+
+  testWidgets('16 이상 대응 상세 좁은 폰 큰 글자', (t) async {
+    t.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+    await start(t, w: 320, h: 640);
+    final container = ProviderScope.containerOf(ctx(t));
+    openCaseDetail(ctx(t), container.read(repoProvider).openCases.first.id);
+    await _shot(t, '16_case_small');
+    expect(t.takeException(), isNull);
+  });
 }

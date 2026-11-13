@@ -239,7 +239,7 @@ class DeskCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: Gap.m),
               child: Row(children: [
-                Expanded(child: Text(title!, style: const TextStyle(fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain))),
+                Expanded(child: Text(title!, style: const TextStyle(fontFamily: fontBig, fontSize: T.title, fontWeight: FontWeight.w800, color: inkMain))),
                 ?trailing,
               ]),
             ),
@@ -248,7 +248,7 @@ class DeskCard extends StatelessWidget {
       );
 }
 
-/// 화면 제목 줄: ✦ 제목 + 설명.
+/// 화면 제목 줄: 큰 제목 + 한 줄 설명 (개선 시안: ✦ 없이 큰글씨 800).
 class DeskHeading extends StatelessWidget {
   const DeskHeading(this.title, {super.key, this.sub, this.trailing});
   final String title;
@@ -261,11 +261,11 @@ class DeskHeading extends StatelessWidget {
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text.rich(TextSpan(children: [
-                const TextSpan(text: '✦ ', style: TextStyle(color: coral)),
-                TextSpan(text: title),
-              ]), style: const TextStyle(fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain)),
-              if (sub != null) Text(sub!, style: const TextStyle(fontSize: T.body, color: inkSub)),
+              Text(title, style: const TextStyle(fontFamily: fontBig, fontSize: 32, fontWeight: FontWeight.w800, color: inkMain, height: 1.3)),
+              if (sub != null) ...[
+                const SizedBox(height: 4),
+                Text(sub!, style: const TextStyle(fontSize: 16, color: inkSub)),
+              ],
             ]),
           ),
           ?trailing,

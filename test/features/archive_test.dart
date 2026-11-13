@@ -8,6 +8,7 @@ import 'package:byeoljari_note/features/alert_case/case_detail_screen.dart';
 import 'package:byeoljari_note/features/archive/archive_screen.dart';
 import 'package:byeoljari_note/features/archive/archive_timeline.dart';
 import 'package:byeoljari_note/features/resident_card/resident_card_screen.dart';
+import 'package:byeoljari_note/features/resident_card/temp_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,11 +30,11 @@ Future<InMemoryRepository> pumpArchive(WidgetTester tester, String residentId, {
 
 Finder get list => find.byType(Scrollable).first;
 
-/// 시제품처럼 [기록 찾기] 시트에서 검색어를 넣고 [결과 보기].
+/// 위쪽 돋보기 → [기록 찾기] 시트에서 검색어를 넣고 [결과 보기].
 Future<void> search(WidgetTester tester, String q) async {
-  await tester.ensureVisible(find.text('기록 찾기'));
+  await tester.drag(list, const Offset(0, 20000));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('기록 찾기'));
+  await tester.tap(find.byTooltip('기록 찾기'));
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField), q);
   await tester.tap(find.text('결과 보기'));
@@ -81,17 +82,20 @@ void main() {
       final repo = await pumpArchive(tester, seojun);
 
       expect(find.text('이서준 별님'), findsOneWidget);
-      expect(find.text('은하수자리 · 담임 이수진 선생님'), findsOneWidget);
-      expect(find.text('은하수자리 별님 목록'), findsOneWidget);
-      expect(find.text('별님카드 보기'), findsOneWidget);
-      expect(find.text('이 별님의 기록 아카이브'), findsOneWidget);
-      expect(find.text('전체 기록 · 전체 기간'), findsOneWidget);
+      expect(find.text('평소 체온 37.1℃ · '), findsOneWidget);
+      expect(find.text('담임 이수진'), findsOneWidget);
+      expect(find.text('은하수자리 별님'), findsOneWidget);
+      expect(find.text('별님카드'), findsOneWidget);
+      expect(find.byTooltip('기록 찾기'), findsOneWidget);
+      for (final t in ['모두', '체온', '관찰', '공지']) {
+        expect(find.text(t), findsOneWidget);
+      }
       expect(find.text('오늘 · 10월 28일'), findsOneWidget);
       expect(find.text('37.6℃'), findsOneWidget); // 측정과 자동 기록이 한 줄
       expect(find.text('! 주의'), findsOneWidget);
       expect(find.text('이서준 별님 기록 남기기'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('○ 할 일 남음: 재측정'), 200, scrollable: list);
-      expect(find.textContaining('은하수자리 전원에게 기록', skipOffstage: false), findsWidgets);
+      expect(find.textContaining('평소보다 0.5도 높아요 · 다시 재기 남음'), findsOneWidget);
+      expect(find.textContaining('· 반 공지 ·', skipOffstage: false), findsWidgets);
 
       // 어제 묶음: 평소 체온 2건이 한 줄로 접혀 있다 → 누르면 펼쳐진다
       await tester.scrollUntilVisible(find.text('어제 · 10월 27일'), 200, scrollable: list);
@@ -109,14 +113,14 @@ void main() {
       expect(repo.isRead('past-1', 'kim_haneul'), isFalse);
     });
 
-    testWidgets("'소리' 검색 → 2025년 박지은 기록 + 담임 변경선, 결과 수, [새 기록 확인] 숨김", (tester) async {
+    testWidgets("'소리' 검색 → 2025년 박지은 기록 + 담임 변경선, 결과 수, [다 봤어요] 숨김", (tester) async {
       final repo = await pumpArchive(tester, seojun);
       final n = buildArchiveRecords(repo, seojun).where((r) => matchesQuery(repo, r, '소리')).length;
-      expect(find.text('새 기록 확인'), findsOneWidget);
+      expect(find.text('다 봤어요'), findsOneWidget);
 
       await search(tester, '소리');
 
-      expect(find.text('새 기록 확인'), findsNothing);
+      expect(find.text('다 봤어요'), findsNothing);
       expect(find.text('‘소리’ 찾는 중 · 전체 기간'), findsOneWidget);
       expect(find.text('찾은 기록 $n건'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('2026년 3월부터 담임이 이수진 선생님으로 바뀌었어요'), 200, scrollable: list);
@@ -132,45 +136,47 @@ void main() {
       expect(find.text('찾는 기록이 없어요'), findsOneWidget);
       await tester.tap(find.text('모든 기록 보기').last);
       await tester.pumpAndSettle();
-      expect(find.text('새 기록 확인'), findsOneWidget);
+      expect(find.text('다 봤어요'), findsOneWidget);
     });
 
-    testWidgets('범위 칩: 반 공지 / 체온 / 관찰 기록, 칩을 고르면 [새 기록 확인]이 숨는다', (tester) async {
+    testWidgets('종류 탭: 공지 / 체온 / 관찰, 탭을 고르면 [다 봤어요]이 숨는다', (tester) async {
       final repo = await pumpArchive(tester, seojun);
       final recs = buildArchiveRecords(repo, seojun);
       final nNotice = recs.where((r) => r.matches(ArchiveFilter.classNotice)).length;
       final nObs = recs.where((r) => r.matches(ArchiveFilter.observation)).length;
       final nTemp = recs.where((r) => r.matches(ArchiveFilter.temp)).length;
 
-      await tester.tap(find.text('반 공지 $nNotice'));
+      expect(nTemp, greaterThan(0));
+      await tester.tap(find.text('공지'));
       await tester.pumpAndSettle();
-      expect(find.text('새 기록 확인'), findsNothing);
-      expect(find.textContaining('은하수자리 전원에게 기록', skipOffstage: false), findsNWidgets(nNotice));
+      expect(find.text('다 봤어요'), findsNothing);
+      expect(find.textContaining('· 반 공지 ·', skipOffstage: false), findsNWidgets(nNotice));
       expect(find.text('37.6℃', skipOffstage: false), findsNothing);
       expect(find.textContaining('담임이 이수진', skipOffstage: false), findsNothing); // 반 공지만 볼 때는 담임 변경선 생략
 
-      await tester.tap(find.text('관찰 기록 $nObs'));
+      expect(nObs, greaterThan(0));
+      await tester.tap(find.text('관찰'));
       await tester.pumpAndSettle();
       expect(find.text('37.6℃', skipOffstage: false), findsNothing);
       expect(find.textContaining('블록 쌓기', skipOffstage: false), findsOneWidget);
 
-      await tester.tap(find.text('체온 $nTemp'));
+      await tester.tap(find.text('체온'));
       await tester.pumpAndSettle();
       expect(find.text('37.6℃', skipOffstage: false), findsOneWidget);
       expect(find.textContaining('블록 쌓기', skipOffstage: false), findsNothing);
     });
 
-    testWidgets('[새 기록 확인]은 이 별님 기록과 반 공지를 archive로 확인 처리한다', (tester) async {
+    testWidgets('[다 봤어요]은 이 별님 기록과 반 공지를 archive로 확인 처리한다', (tester) async {
       final repo = await pumpArchive(tester, seojun);
       final unread = buildArchiveRecords(repo, seojun).where((r) => isUnread(repo, r, 'kim_haneul')).toList();
       expect(unread, isNotEmpty);
-      expect(find.text('새 기록 ${unread.length}건'), findsOneWidget);
+      expect(find.text('새 기록 ${unread.length}개'), findsOneWidget);
 
-      await tester.tap(find.text('새 기록 확인'));
+      await tester.tap(find.text('다 봤어요'));
       await tester.pumpAndSettle();
 
-      expect(find.text('새 기록 ${unread.length}건을 확인했어요'), findsOneWidget);
-      expect(find.text('새 기록 확인'), findsNothing);
+      expect(find.text('새 기록 ${unread.length}개를 다 봤어요'), findsOneWidget);
+      expect(find.text('다 봤어요'), findsNothing);
       for (final r in unread) {
         expect(repo.isRead(r.readTarget!.id, 'kim_haneul'), isTrue);
         expect(repo.readersOf(r.readTarget!.id).firstWhere((x) => x.staffId == 'kim_haneul').source, 'archive');
@@ -216,11 +222,15 @@ void main() {
       expect(t.style?.decoration, TextDecoration.lineThrough);
     });
 
-    testWidgets('이상 건이 연결된 체온 행 → [대응 이력 보기] → S3', (tester) async {
+    testWidgets('이상 건이 연결된 체온 카드 → 상세 → [대응 이력 보기] → S3', (tester) async {
       await pumpArchive(tester, residentByName('박승민').id);
       expect(find.text('38.2℃'), findsOneWidget);
       expect(find.text('▲ 이상'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('대응 이력 보기'), 200, scrollable: list);
+      expect(find.text('대응 이력 보기'), findsNothing); // 카드에는 없고 상세에서
+      await tester.tap(find.text('38.2℃'));
+      await tester.pumpAndSettle();
+      final sheet = find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable));
+      await tester.scrollUntilVisible(find.text('대응 이력 보기'), 200, scrollable: sheet);
       await tester.ensureVisible(find.text('대응 이력 보기'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('대응 이력 보기'));
@@ -242,23 +252,23 @@ void main() {
       final n7 = buildArchiveRecords(repo, seojun)
           .where((r) => today.difference(DateTime(r.at.year, r.at.month, r.at.day)).inDays < 7)
           .length;
-      await tester.tap(find.text('기록 찾기'));
+      await tester.tap(find.byTooltip('기록 찾기'));
       await tester.pumpAndSettle();
       expect(find.text('검색어'), findsOneWidget);
       expect(find.text('기간'), findsOneWidget);
       await tester.tap(find.text('최근 7일'));
       await tester.tap(find.text('결과 보기'));
       await tester.pumpAndSettle();
-      expect(find.text('전체 기록 · 최근 7일'), findsOneWidget);
+      expect(find.text('최근 7일 기록'), findsOneWidget);
       expect(find.text('찾은 기록 $n7건'), findsOneWidget);
-      expect(find.text('새 기록 확인'), findsNothing);
+      expect(find.text('다 봤어요'), findsNothing);
 
-      await tester.tap(find.text('기록 찾기'));
+      await tester.tap(find.text('조건 바꾸기'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('조건 초기화'));
       await tester.pumpAndSettle();
-      expect(find.text('전체 기록 · 전체 기간'), findsOneWidget);
-      expect(find.text('새 기록 확인'), findsOneWidget);
+      expect(find.textContaining('찾은 기록'), findsNothing);
+      expect(find.text('다 봤어요'), findsOneWidget);
     });
   });
 
@@ -270,26 +280,44 @@ void main() {
       repo.close(s.caseItem!.id, 'park_soyeon', repo.now(), '회복');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('별님카드 보기'));
+      await tester.tap(find.text('별님카드'));
       await tester.pumpAndSettle();
       expect(find.byType(ResidentCardScreen), findsOneWidget);
       expect(find.text('37.1℃'), findsOneWidget);
-      expect(find.text('최근 2주 동안 잰 체온의 가운데 값이에요'), findsOneWidget);
+      expect(find.text('최근 14일 중간값'), findsOneWidget);
+      expect(find.text('평소에 조금 높은 별님이에요.\n36.2~37.4℃는 평소 체온이에요.'), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp('최근 14일 체온 그래프')), findsOneWidget);
-      expect(find.text('투약 지침 보기'), findsOneWidget);
+      expect(find.text('박소연 간호사'), findsOneWidget); // 투약 지침 쓴 사람
+      expect(find.text('1건'), findsOneWidget); // 대응 이력
+      final n = buildArchiveRecords(repo, seojun).length;
+      expect(find.text('$n건'), findsOneWidget); // 기록 모아보기
 
-      await tester.scrollUntilVisible(find.text('종료 · 회복'), 200, scrollable: list);
+      // 작은 그래프 → 큰 그래프 시트
+      await tester.tap(find.byType(TempSparkline));
+      await tester.pumpAndSettle();
+      expect(find.text('가장 높았던 때'), findsOneWidget);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // 대응 이력 → 시트 목록
+      await tester.ensureVisible(find.text('대응 이력'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('대응 이력'));
+      await tester.pumpAndSettle();
       expect(find.text('이상 대응'), findsOneWidget);
       expect(find.text('종료 · 회복'), findsOneWidget);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(find.text('기록 모아보기'), -200, scrollable: list);
+      await tester.ensureVisible(find.text('기록 모아보기'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('기록 모아보기'));
       await tester.pumpAndSettle();
       expect(find.byType(ResidentCardScreen), findsNothing);
       expect(find.byType(ArchiveScreen), findsOneWidget);
     });
 
-    testWidgets('투약 지침 보기 → S4, 작은 폰에서 넘치지 않음', (tester) async {
+    testWidgets('투약 지침 → S4, 작은 폰에서 넘치지 않음', (tester) async {
       tester.view.physicalSize = const Size(360, 640) * 2;
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
@@ -300,7 +328,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.tap(find.text('투약 지침 보기'));
+      await tester.ensureVisible(find.text('투약 지침'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('투약 지침'));
       await tester.pumpAndSettle();
       expect(find.text('이서준 투약 지침'), findsOneWidget);
     });
@@ -308,7 +338,11 @@ void main() {
     testWidgets('시작 상태: 이서준은 대응 이력이 없다', (tester) async {
       await tester.pumpWidget(ProviderScope(child: MaterialApp(home: ResidentCardScreen(residentId: seojun))));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('대응 이력이 없어요'), 200, scrollable: list);
+      expect(find.text('0건'), findsOneWidget);
+      await tester.ensureVisible(find.text('대응 이력'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('대응 이력'));
+      await tester.pumpAndSettle();
       expect(find.text('대응 이력이 없어요'), findsOneWidget);
     });
   });
@@ -391,14 +425,13 @@ void main() {
     }
 
     for (final scale in const [1.0, 1.3]) {
-      testWidgets('누르는 것은 48 이상, 종류 칸 글자가 잘리지 않는다 (글자 $scale배)', (tester) async {
+      testWidgets('누르는 것은 48 이상, 종류 탭 글자가 잘리지 않는다 (글자 $scale배)', (tester) async {
         await pumpScaled(tester, ArchiveScreen(residentId: seojun), const Size(360, 640), scale);
-        expect(tester.getSize(find.widgetWithText(OutlinedButton, '별님카드 보기')).height, greaterThanOrEqualTo(48));
-        expect(tester.getSize(find.widgetWithText(TextButton, '기록 찾기')).height, greaterThanOrEqualTo(48));
-        final repo = ProviderScope.containerOf(tester.element(find.byType(ArchiveScreen))).read(repoProvider);
-        final recs = buildArchiveRecords(repo, seojun);
+        expect(tester.getSize(find.widgetWithText(TextButton, '별님카드')).height, greaterThanOrEqualTo(48));
+        expect(tester.getSize(find.byTooltip('기록 찾기')).height, greaterThanOrEqualTo(48));
+        expect(tester.getSize(find.widgetWithText(FilledButton, '다 봤어요')).height, greaterThanOrEqualTo(48));
         for (final f in ArchiveFilter.values) {
-          final label = '${f.label} ${recs.where((r) => r.matches(f)).length}';
+          final label = archiveTabLabel(f);
           final seg = find.ancestor(of: find.text(label), matching: find.byType(InkWell)).first;
           final segBox = tester.getRect(seg);
           final textBox = tester.getRect(find.text(label));
