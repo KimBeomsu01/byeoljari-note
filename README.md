@@ -40,10 +40,10 @@
 
 ## 실행
 ### 서버 (평소 쓰는 방법)
-1. DB 컨테이너(`byeoljari-note-db`)가 먼저 떠 있어야 해요.
-2. 앱 빌드: `build_server_web.bat` (안의 Flutter 경로를 자기 PC에 맞게)
-3. 서버 띄우기: `backend` 폴더에서 `docker compose up -d`
-4. 위 주소로 접속. 다시 빌드한 뒤에는 브라우저만 새로고침하면 돼요.
+처음 설정은 **[`SETUP.md`](SETUP.md)** 를 따라 하세요 (설치 → `.env` → 빌드 → 켜기 → 문제 해결).
+1. 앱 빌드: `build_server_web.bat` (PowerShell이나 더블클릭)
+2. 서버 + DB 띄우기: `backend` 폴더에서 `docker compose up -d` (DB도 같이 켜지고, 처음엔 자동으로 만들어져요)
+3. 위 주소로 접속. 다시 빌드한 뒤에는 브라우저만 새로고침하면 돼요.
 
 ### 설치형 앱 (아이폰 · 안드로이드)
 설치형 앱은 모바일 화면(인수인계 · 체온 측정 · 별님카드)이에요. 서버 PC와 **같은 와이파이**에서 써요. `<서버 PC IP>`는 서버 PC에서 `ipconfig`로 확인해요.
@@ -65,9 +65,11 @@ flutter analyze
 ```
 
 ## 처음 받는 사람
-1. Flutter SDK (stable 3.50 이상)
-2. `git clone` 후 `flutter pub get`
-3. `backend/.env` 만들기: `POSTGRES_PASSWORD`, `APP_TEST_PASSWORD`, 필요하면 `PASSKEY_ORIGIN`
+**[`SETUP.md`](SETUP.md)** 에 처음부터 끝까지 적어 두었어요. 짧게는:
+1. Git · Docker Desktop · Flutter SDK (stable 3.50 이상) 설치
+2. `git clone` → `v1.01` 브랜치
+3. 팀장에게 받은 `.env`를 `backend/`에 넣기 (형식은 `backend/.env.example`)
+4. `build_server_web.bat` → `backend`에서 `docker compose up -d`
 
 > OneDrive·iCloud처럼 동기화되는 폴더 안에 받지 마세요. 빌드가 느려지거나 깨질 수 있어요.
 

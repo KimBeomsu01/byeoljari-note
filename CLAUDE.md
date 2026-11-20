@@ -47,7 +47,8 @@ test/core, test/features
 
 ## 서버와 DB
 - 앱 컨테이너 `byeoljari-new2-app-1`이 8093 포트에서 `build/web`을 그대로 서빙하고 `/api/*`를 처리한다. 빌드만 다시 하면 컨테이너는 그대로 둬도 된다.
-- DB 컨테이너 `byeoljari-note-db-postgres-1` (네트워크 `byeoljari-note-db_default`).
+- DB는 같은 `compose.yaml`의 `postgres` 서비스(볼륨 `pgdata`). 처음 켤 때 `backend/db-init/`이 `APP_ACCOUNTS`의 DB를 만들고, 표는 서버가 만든다. 팀원 설정 순서는 `SETUP.md`.
+- `backend/compose.override.yaml`(올리지 않음)이 있으면 그 PC만 다르게 돈다. 원래 개발 PC는 이것으로 예전 DB 컨테이너(`byeoljari-note-db`)에 그대로 붙는다.
 - 계정은 저장소에 쓰지 않는다 (공개 저장소). `backend/.env`의 `APP_ACCOUNTS` (`아이디:DB이름:demo|dev[:doctor]`, 쉼표로)와 `APP_TEST_PASSWORD`. 서버가 `GET /api/state`로 `dataset`(demo · dev)과 `doctor`를 알려 주고, 앱은 그 값으로 DB 종류와 화면을 정한다.
 - 의료진(doctor) 계정은 `/doctor`에서만, `/doctor`는 의료진 계정만 로그인된다 (서버 로그인 + 앱 둘 다 확인).
 - 의료 호출 흐름: 앱 간호쌤 호출(`callNurse`, 별님카드에 기록) → 의료 호출함(간호사) 호출함 → 간호사가 의료진에게 보냄(`forwardCall`, `MedicalCall.doctorId`) → 의료진 협진 포털. 간호사 채팅방 = 의료진별(`doc:<의사>`), 의사 채팅방 = 별님별(`res:<별님>`), 안 읽은 수는 `_reads`(스냅샷 `reads`). 채팅은 목록 사이에서 아래로 펼친다 (`pc_medical_rooms.dart`).
@@ -64,7 +65,7 @@ test/core, test/features
 - 새 기능에 저장할 자료가 생기면: 모델 JSON → `toSnapshotMap`/`_restore` → 시연 시드 → 개발 DB 예시까지 함께 넣는다.
 
 ## 명령
-Flutter SDK 3.50 이상. bat 파일은 `D:\dev\flutter` 경로를 쓴다 (자기 PC에 맞게 고친다).
+Flutter SDK 3.50 이상. `build_server_web.bat`은 `D:\dev\flutter`가 있으면 그것을, 없으면 PATH의 `flutter`를 쓴다. 다른 bat는 `D:\dev\flutter` 경로를 쓴다 (자기 PC에 맞게 고친다).
 ```
 flutter test
 flutter analyze

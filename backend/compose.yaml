@@ -1,5 +1,23 @@
 name: byeoljari-new2
+# 설정 방법은 SETUP.md. 값은 backend/.env (형식은 .env.example).
 services:
+  # DB. 처음 켤 때 APP_ACCOUNTS에 적힌 DB를 만들고(db-init), 표·시연 자료는 앱 서버가 채운다.
+  # 데이터는 볼륨 pgdata에 남는다 (`docker compose down -v`를 하면 지워진다).
+  postgres:
+    image: postgres:17.12-bookworm
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure backend/.env}
+      APP_ACCOUNTS: ${APP_ACCOUNTS:?Configure backend/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # -h localhost: 처음 채우는 동안(소켓만 열림)에는 준비 안 됨으로 본다.
+      test: ["CMD-SHELL", "pg_isready -h localhost -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    networks: [database]
   app:
     build: .
     environment:
@@ -12,6 +30,9 @@ services:
       - "8093:8080"
     volumes:
       - ../build/web:/web:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks: [database, passkeys]
   passkey-verifier:
     build: ./passkey-verifier
@@ -19,8 +40,8 @@ services:
       PASSKEY_ORIGIN: ${PASSKEY_ORIGIN:-http://localhost:8093}
     networks: [passkeys]
 networks:
+  database:
   passkeys:
     internal: true
-  database:
-    external: true
-    name: byeoljari-note-db_default
+volumes:
+  pgdata:
