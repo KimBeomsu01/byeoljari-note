@@ -5,6 +5,8 @@ import 'avatar.dart';
 import 'models.dart';
 import 'theme.dart';
 
+export 'ds.dart' show hhmm;
+
 /// 평소 체온과의 차이를 말로: "평소보다 1.4도 높아요" / "평소와 같아요".
 String plainDiff(int diff) {
   if (diff.abs() < 1) return '평소와 같아요';
@@ -12,8 +14,6 @@ String plainDiff(int diff) {
   return diff > 0 ? '평소보다 $v도 높아요' : '평소보다 $v도 낮아요';
 }
 
-/// 시각 "09:41".
-String hhmm(DateTime t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
 /// 구역 제목. 굵고 크게, 옆에 개수.
 class SectionTitle extends StatelessWidget {

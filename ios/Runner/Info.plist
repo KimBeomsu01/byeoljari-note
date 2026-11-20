@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Byeoljari Note</string>
+	<string>별자리노트</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -66,5 +66,19 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- 같은 와이파이의 도커 서버(http://PC-IP:8093)에 붙는다. 시연용이라 http를 허용한다. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>같은 와이파이에 있는 별자리노트 서버에 연결해요.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>별님 프로필 사진을 찍어서 올려요.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>사진첩에서 별님 프로필 사진을 골라 올려요.</string>
 </dict>
 </plist>

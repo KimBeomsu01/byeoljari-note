@@ -1,168 +1,439 @@
-// 시연 3단계: 이서준 재측정 할 일 → 퀵 체온 → 38.4 → 0.5초 → 기록 완료 → 이상 대응 시트.
-import 'package:byeoljari_note/app.dart';
+// 03 체온 측정 (QuickVital): 반·별님 다이얼, ±·프리셋·링 돌리기, 길게 눌러 기록, 알림 시트, 잘못 쟀어요.
+// 다른 화면이 고쳐지는 중이어도 이 화면만 보도록 app.dart 대신 같은 틀(Scaffold + 탭 바 64)에 띄운다.
+import 'dart:math' as math;
+
+import 'package:byeoljari_note/core/ds.dart';
+import 'package:byeoljari_note/core/models.dart';
 import 'package:byeoljari_note/core/providers.dart';
+import 'package:byeoljari_note/core/repository.dart';
 import 'package:byeoljari_note/core/seed.dart';
+import 'package:byeoljari_note/core/theme.dart';
+import 'package:byeoljari_note/features/alert_case/alert_sheet.dart';
 import 'package:byeoljari_note/features/quick_temp/quick_temp_controller.dart';
 import 'package:byeoljari_note/features/quick_temp/quick_temp_screen.dart';
+import 'package:byeoljari_note/core/photo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 큰 글자 검사용: 넘침 오류를 모은다. 하단 메뉴(lib/app.dart, 다른 담당)의 넘침은 따로 보고하고 여기서는 뺀다.
-List<String> Function() collectOverflows() {
-  final errors = <String>[];
-  final old = FlutterError.onError;
-  FlutterError.onError = (d) {
-    final text = d.toDiagnosticsNode().toStringDeep();
-    if (!text.contains('lib/app.dart')) errors.add(text);
-  };
-  return () {
-    FlutterError.onError = old;
-    return errors;
-  };
+final _clock = DateTime(2026, 10, 28, 14, 0);
+
+class _Harness {
+  _Harness(this.repo, this.container);
+  final InMemoryRepository repo;
+  final ProviderContainer container;
+  QuickTempState get st => container.read(quickTempProvider);
+  QuickTempController get ctrl => container.read(quickTempProvider.notifier);
 }
 
-void main() {
-  testWidgets('할 일에서 퀵 체온을 열고 0.5초 눌러 기록하면 이상 대응이 생긴다', (tester) async {
-    tester.view.physicalSize = const Size(400 * 2, 820 * 2);
-    tester.view.devicePixelRatio = 2;
-    addTearDown(tester.view.reset);
+Future<_Harness> _open(
+  WidgetTester tester, {
+  Dataset dataset = Dataset.demo,
+  Size size = const Size(390, 844),
+  String? user,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final repo = InMemoryRepository(dataset: dataset, clock: () => _clock);
+  await tester.pumpWidget(ProviderScope(
+    overrides: [
+      repoProvider.overrideWith((_) => repo),
+      screenKindProvider.overrideWithValue('mobile'),
+    ],
+    child: MaterialApp(
+      theme: buildTheme(),
+      home: const Scaffold(body: QuickTempScreen(), bottomNavigationBar: SizedBox(height: 64)),
+    ),
+  ));
+  final container = ProviderScope.containerOf(tester.element(find.byType(QuickTempScreen)));
+  if (user != null) container.read(currentUserProvider.notifier).state = user;
+  container.read(quickTempProvider.notifier).toggle();
+  await tester.pump();
+  await _settle(tester);
+  return _Harness(repo, container);
+}
 
-    await tester.pumpWidget(const ProviderScope(child: ByeoljariApp()));
-    await tester.pumpAndSettle();
-
-    // 다른 화면(인수인계 할 일 [완료하기], 이상 대응 [재측정 입력])은 openFor로 퀵 체온을 연다.
-    // 인수인계 화면은 다른 담당이 고치는 중이라, 여기서는 openFor를 바로 불러 퀵 체온만 본다.
-    final container = ProviderScope.containerOf(tester.element(find.byType(QuickTempScreen)));
-    final repo = container.read(repoProvider);
-    final seojun = residentByName('이서준').id;
-    expect(repo.openCases.length, 1);
-    expect(repo.openTempTasksOf(seojun), isNotEmpty, reason: '09:15 37.6 주의 → 재측정 할 일');
-    container.read(quickTempProvider.notifier).openFor(seojun);
-    await tester.pumpAndSettle();
-    expect(find.text('할 일 · 09:15 37.6℃ 다시 재기'), findsOneWidget);
-
-    // 퀵 체온이 은하수자리·이서준으로 열림, 36.5에서 시작
-    expect(find.descendant(of: find.byType(QuickTempScreen), matching: find.text('이서준')), findsOneWidget);
-    expect(find.bySemanticsLabel('반 고르기, 지금 은하수자리'), findsOneWidget);
-    expect(find.textContaining('6명 중'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('은하수자리 2번째, 이서준')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('이서준 36.5도')), findsOneWidget);
-    expect(find.text('36.5'), findsOneWidget); // 체온은 큰 숫자 96
-
-    // + 19번 → 38.4
-    final plus = find.bySemanticsLabel('0.1도 올리기');
-    for (var i = 0; i < 19; i++) {
-      await tester.tap(plus);
-    }
-    await tester.pump();
-    expect(find.bySemanticsLabel(RegExp('이서준 38.4도')), findsOneWidget);
-
-    // 0.3초만 누르면 저장 안 됨
-    final dial = find.text('꾹 눌러 기록');
-    var g = await tester.startGesture(tester.getCenter(dial));
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.pump(const Duration(milliseconds: 300));
-    await g.up();
-    await tester.pump();
-    expect(find.text('기록 완료'), findsNothing);
-
-    // 0.5초 넘게 누르면 기록
-    g = await tester.startGesture(tester.getCenter(dial));
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.pump(const Duration(milliseconds: 550));
-    await tester.pump();
-    await g.up();
-    await tester.pump();
-    expect(find.text('기록 완료'), findsOneWidget);
-
-    // 0.6초 뒤 이상 대응 시트
-    await tester.pump(const Duration(milliseconds: 700));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('이상 대응'), findsWidgets);
-    Finder inSheet(String t) => find.descendant(of: find.byType(BottomSheet), matching: find.text(t));
-    expect(inSheet('▲ 이상 대응을 시작했어요'), findsOneWidget);
-    expect(inSheet('이서준 별님 38.4℃'), findsOneWidget);
-    expect(inSheet('평소보다 1.3도 높아요'), findsOneWidget);
-    expect(find.text('투약 지침 보기'), findsOneWidget);
-
-    // 지침 보기 → 의료진 글 그대로
-    await tester.tap(find.text('투약 지침 보기'));
-    await tester.pumpAndSettle();
-    expect(find.text('이서준 투약 지침'), findsOneWidget);
-    // 하단 노란 버튼도 '닫기'라서, 지침 창 안의 '닫기'만 누른다.
-    await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('닫기')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.textContaining('30분 뒤 다시 재기'));
-    await tester.pumpAndSettle();
-
-    // 할 일 자동 완료 + 이상 대응 2건
-    expect(repo.openTempTasksOf(seojun), isEmpty);
-    expect(repo.openCases.length, 2);
-    await tester.tap(find.bySemanticsLabel('퀵 체온 접기'));
-    await tester.pumpAndSettle();
-    expect(container.read(quickTempProvider).open, isFalse);
-  });
-
-  testWidgets('권한 없는 반은 잠겨 있다 (김하늘은 은하수자리만)', (tester) async {
-    tester.view.physicalSize = const Size(800, 1640);
-    tester.view.devicePixelRatio = 2;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(const ProviderScope(child: ByeoljariApp()));
-    await tester.tap(find.bySemanticsLabel('퀵 체온 열기'));
-    await tester.pumpAndSettle();
-    expect(find.text('김민준'), findsOneWidget, reason: '담당 반 첫 별님');
-    // [● 은하수자리 ▾] 를 누르면 반 목록. 권한 없는 반은 흐리게(눌러도 안 바뀜).
-    await tester.tap(find.bySemanticsLabel('반 고르기, 지금 은하수자리'));
-    await tester.pumpAndSettle();
-    expect(find.text('권한 없음', findRichText: true), findsNothing);
-    expect(find.text(' 권한 없음'), findsNWidgets(5));
-    await tester.tap(find.text('고래자리').last, warnIfMissed: false);
-    await tester.pumpAndSettle();
-    expect(find.text('김민준'), findsOneWidget, reason: '잠긴 반은 눌러도 안 바뀜');
-  });
-
-  testWidgets('작은 폰(360×640)에서도 퀵 체온이 넘치지 않는다', (tester) async {
-    tester.view.physicalSize = const Size(720, 1280);
-    tester.view.devicePixelRatio = 2;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(const ProviderScope(child: ByeoljariApp()));
-    await tester.tap(find.bySemanticsLabel('퀵 체온 열기'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.text('꾹 눌러 기록'), findsOneWidget);
-  });
-
-  for (final size in const [Size(390, 844), Size(360, 640)]) {
-    testWidgets('큰 글자(1.3배)로도 퀵 체온이 넘치지 않는다 ${size.width.toInt()}×${size.height.toInt()}', (tester) async {
-      tester.view.physicalSize = size * 2;
-      tester.view.devicePixelRatio = 2;
-      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
-      addTearDown(tester.view.reset);
-      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      final overflows = collectOverflows();
-      var errors = <String>[];
-      try {
-        await tester.pumpWidget(const ProviderScope(child: ByeoljariApp()));
-        await tester.tap(find.bySemanticsLabel('퀵 체온 열기'));
-        await tester.pumpAndSettle();
-        expect(find.text('꾹 눌러 기록'), findsOneWidget);
-        // 기록 완료 상태도 넘치지 않는다
-        final g = await tester.startGesture(tester.getCenter(find.text('꾹 눌러 기록')));
-        await tester.pump(const Duration(milliseconds: 16));
-        await tester.pump(const Duration(milliseconds: 550));
-        await tester.pump();
-        await g.up();
-        await tester.pumpAndSettle();
-        expect(find.text('기록 완료'), findsOneWidget);
-        // 다이얼이 너무 작아지지 않는다 (글자 대신 다이얼을 줄이되 쓸 만한 크기)
-        final dial = tester.getSize(find.bySemanticsLabel(RegExp('체온 다이얼')));
-        expect(dial.width, greaterThanOrEqualTo(110));
-      } finally {
-        errors = overflows();
-      }
-      expect(errors, isEmpty);
-    });
+/// 알림 시트의 빨간 점이 계속 깜빡여서 pumpAndSettle 대신 시간만 흘린다.
+Future<void> _settle(WidgetTester tester, [int frames = 6]) async {
+  for (var i = 0; i < frames; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+/// 가운데 버튼을 [ms] 동안 누른다.
+Future<void> _hold(WidgetTester tester, int ms) async {
+  final g = await tester.startGesture(tester.getCenter(find.text('길게 눌러서')));
+  await tester.pump(const Duration(milliseconds: 16));
+  await tester.pump(Duration(milliseconds: ms));
+  await g.up();
+  await tester.pump();
+}
+
+int _base(InMemoryRepository repo, String rid) => repo.baselineOf(rid, repo.now()).value;
+
+void main() {
+  testWidgets('처음: 담당 반(은하수자리) 첫 별님이 가운데, 평소 체온에서 시작', (tester) async {
+    final h = await _open(tester);
+    final minjun = residentByName('김민준').id;
+    expect(find.text('은하수자리'), findsOneWidget);
+    expect(find.text('물병자리'), findsNothing, reason: '김하늘 선생님은 은하수자리만 잴 수 있다');
+    expect(h.st.residentId, minjun);
+    expect(h.st.level, QtLevel.resident);
+    expect(find.text('김민준'), findsOneWidget, reason: '선택한 별님은 이름 전체');
+    expect(find.text('서준'), findsWidgets, reason: '나머지는 이름 두 글자');
+    final base = _base(h.repo, minjun);
+    expect(h.st.value, base);
+    expect(find.text((base / 10).toStringAsFixed(1)), findsOneWidget);
+    expect(find.text('평소 ${(base / 10).toStringAsFixed(1)}°'), findsOneWidget);
+    expect(find.text('± 0.0°'), findsOneWidget);
+    expect(find.textContaining('최근 기록 '), findsOneWidget);
+    expect(find.byType(ExampleTag), findsNothing);
+  });
+
+  testWidgets('반·별님 선택: 탭 · 좌우 밀기 · 위아래 밀기 (반 2개는 나란히)', (tester) async {
+    final h = await _open(tester, user: 'park_jieun'); // 물병자리 · 은하수자리
+    expect(find.text('물병자리'), findsOneWidget);
+    expect(find.text('은하수자리'), findsOneWidget);
+    expect(h.st.classId, 'aquarius');
+    expect(h.st.residentId, residentByName('임유나').id);
+
+    // 반 탭 → 반 단계 (별님 선택 해제)
+    await tester.tap(find.text('은하수자리'));
+    await _settle(tester);
+    expect(h.st.classId, 'milkyway');
+    expect(h.st.level, QtLevel.classes);
+    expect(find.text('별님을 선택해 주세요'), findsOneWidget);
+    expect(find.text('김민준'), findsNothing);
+
+    // 별님 탭 → 별님 단계
+    await tester.tap(find.text('서준').first);
+    await _settle(tester);
+    expect(h.st.level, QtLevel.resident);
+    expect(h.st.residentId, residentByName('이서준').id);
+    expect(find.text('이서준'), findsOneWidget);
+    expect(h.st.value, _base(h.repo, residentByName('이서준').id), reason: '별님을 고르면 평소 체온에서 시작');
+
+    // 별님 다이얼 왼쪽으로 밀기 → 다음 별님
+    await tester.drag(find.text('이서준'), const Offset(-60, 0));
+    await _settle(tester);
+    expect(h.st.residentId, residentByName('한지호').id);
+    // 체온 표시를 오른쪽으로 밀기 → 지금 단계(별님) 앞으로
+    await tester.drag(find.textContaining('평소 '), const Offset(60, 0));
+    await _settle(tester);
+    expect(h.st.residentId, residentByName('이서준').id);
+
+    // 위로 밀기 → 반 단계, 아래로 밀기 → 별님 단계
+    await tester.drag(find.textContaining('평소 '), const Offset(0, -50));
+    await _settle(tester);
+    expect(h.st.level, QtLevel.classes);
+    await tester.drag(find.text('별님을 선택해 주세요'), const Offset(0, 50));
+    await _settle(tester);
+    expect(h.st.level, QtLevel.resident);
+    expect(h.st.residentId, residentByName('이서준').id, reason: '반 단계에서도 별님 자리는 남는다');
+
+    // 반 다이얼 오른쪽으로 밀기 → 앞 반 (물병자리), 첫 별님
+    await tester.drag(find.text('은하수자리'), const Offset(60, 0));
+    await _settle(tester);
+    expect(h.st.classId, 'aquarius');
+    expect(h.st.level, QtLevel.classes);
+  });
+
+  testWidgets('반 3개 이상은 선택한 반이 가운데 (간호 선생님 = 전체 반)', (tester) async {
+    final h = await _open(tester, user: 'park_soyeon');
+    expect(h.ctrl.view().classes.length, 6);
+    final center = tester.getSize(find.byType(QuickTempScreen)).width / 2;
+    expect(tester.getCenter(find.text('물병자리')).dx, moreOrLessEquals(center, epsilon: 1));
+    h.ctrl.selectClass('milkyway');
+    await _settle(tester);
+    expect(tester.getCenter(find.text('은하수자리')).dx, moreOrLessEquals(center, epsilon: 1));
+    // 선택한 별님도 가운데
+    h.ctrl.selectResident(residentByName('류은호').id);
+    await _settle(tester);
+    expect(tester.getCenter(find.text('류은호')).dx, moreOrLessEquals(center, epsilon: 1));
+  });
+
+  testWidgets('± 0.1° · 프리셋 · 링 돌리기 (34.0~42.0)', (tester) async {
+    final h = await _open(tester);
+    final base = h.st.value;
+    await tester.tap(find.bySemanticsLabel('체온 증가'));
+    await tester.pump();
+    expect(h.st.value, base + 1);
+    await tester.tap(find.bySemanticsLabel('체온 감소'));
+    await tester.tap(find.bySemanticsLabel('체온 감소'));
+    await tester.pump();
+    expect(h.st.value, base - 1);
+
+    await tester.tap(find.text('38.4°'));
+    await tester.pump();
+    expect(h.st.value, 384);
+    expect(find.text('38.4'), findsOneWidget);
+    expect(tester.getSemantics(find.bySemanticsLabel('38.4도')), isSemantics(isSelected: true));
+    expect(tester.getSemantics(find.bySemanticsLabel('36.5도')), isSemantics(isSelected: false));
+
+    // 링을 시계 방향으로 95° 돌리면 9°마다 +0.1° → +1.0°
+    final c = (tester.getCenter(find.text('-')) + tester.getCenter(find.text('+'))) / 2;
+    const r = 105.0;
+    Offset at(double deg) => c + Offset(math.sin(deg * math.pi / 180) * r, -math.cos(deg * math.pi / 180) * r);
+    final g = await tester.startGesture(at(0));
+    for (var d = 5.0; d <= 95; d += 5) {
+      await g.moveTo(at(d));
+    }
+    await g.up();
+    await tester.pump();
+    expect(h.st.value, 394);
+    expect(h.st.recorded, isNull);
+
+    // 범위 끝에서 멈춘다
+    h.ctrl.setValue(500);
+    expect(h.st.value, 420);
+    h.ctrl.nudge(-200);
+    expect(h.st.value, 340);
+  });
+
+  testWidgets('0.5초 길게 눌러야 기록된다 (평소 체온이면 시트 없음)', (tester) async {
+    final h = await _open(tester);
+    final minjun = residentByName('김민준').id;
+    final before = h.repo.measurementsOf(minjun).length;
+
+    await _hold(tester, 300);
+    expect(h.repo.measurementsOf(minjun).length, before, reason: '0.3초는 기록 안 됨');
+
+    await _hold(tester, 600);
+    expect(h.repo.measurementsOf(minjun).length, before + 1);
+    final m = h.repo.latestOf(minjun)!;
+    expect(m.value, _base(h.repo, minjun));
+    expect(m.recordedBy, 'kim_haneul');
+    expect(m.judgment.stage, Stage.normal);
+    expect(find.text('체온 ${(m.value / 10).toStringAsFixed(1)}° 기록이 완료되었습니다.'), findsOneWidget);
+    expect(find.byType(AlertActionSheet), findsNothing);
+
+    // 반 단계에서 누르면 기록 대신 안내
+    h.ctrl.setLevel(QtLevel.classes);
+    await _settle(tester);
+    await _hold(tester, 600);
+    expect(h.repo.measurementsOf(minjun).length, before + 1);
+    expect(find.text('별님을 먼저 선택해 주세요.'), findsOneWidget);
+    await _settle(tester, 30); // 토스트 사라짐
+    expect(find.text('별님을 먼저 선택해 주세요.'), findsNothing);
+  });
+
+  testWidgets('38.4 기록 → 알림 시트 + 간호 선생님 호출 · 통화 요청 · 30분 뒤 · 투약 지침', (tester) async {
+    final h = await _open(tester);
+    final minjun = residentByName('김민준').id;
+    final callsBefore = h.repo.calls.length;
+    await tester.tap(find.text('38.4°'));
+    await tester.pump();
+    await _hold(tester, 600);
+    await _settle(tester);
+
+    final m = h.repo.latestOf(minjun)!;
+    expect(m.value, 384);
+    expect(m.judgment.stage.opensCase, isTrue);
+    final c = h.repo.openCaseOf(minjun)!;
+    final call = h.repo.openCalls.where((x) => x.residentId == minjun).single;
+    expect(h.repo.calls.length, callsBefore + 1);
+    expect(call.caseId, c.id);
+    expect(find.byType(AlertActionSheet), findsOneWidget);
+    expect(find.text('간호 선생님에게 이상 알림이 전송됐어요'), findsOneWidget);
+    expect(find.text('방금'), findsOneWidget);
+    expect(find.text('▲ ${((384 - m.judgment.baseline) / 10).toStringAsFixed(1)}°'), findsOneWidget);
+
+    // [간호 선생님 바로 통화] → 열린 호출에 통화 요청 (새 호출은 안 생김)
+    await tester.ensureVisible(find.text('간호 선생님 바로 통화'));
+    await tester.tap(find.text('간호 선생님 바로 통화'));
+    await tester.pump();
+    expect(h.repo.messagesOf(call.id).where((x) => x.body == callRequestText && x.authorId == 'kim_haneul'), hasLength(1));
+    expect(h.repo.calls.length, callsBefore + 1);
+    expect(find.text('간호 선생님에게 통화 요청을 보냈어요'), findsOneWidget);
+
+    // [30분 뒤 다시 측정 알림] → 재측정 예약
+    await tester.ensureVisible(find.text('30분 뒤 다시 측정 알림'));
+    await tester.tap(find.text('30분 뒤 다시 측정 알림'));
+    await tester.pump();
+    expect(h.repo.caseById(c.id).remeasureAt, _clock.add(const Duration(minutes: 30)));
+    expect(find.text('14:30에 다시 측정하도록 남겼어요'), findsOneWidget);
+
+    // [투약 지침 확인] → 지침이 없으면 안내
+    await tester.ensureVisible(find.text('투약 지침 확인'));
+    await tester.tap(find.text('투약 지침 확인'));
+    await _settle(tester);
+    expect(find.text('김민준 투약 지침'), findsOneWidget);
+    expect(find.text('등록된 지침이 없어요'), findsOneWidget);
+    await tester.tap(find.text('닫기'));
+    await _settle(tester);
+    expect(find.text('김민준 투약 지침'), findsNothing);
+
+    // 값을 바꾸면 시트는 사라진다
+    await tester.tap(find.bySemanticsLabel('체온 감소'));
+    await tester.pump();
+    expect(find.byType(AlertActionSheet), findsNothing);
+  });
+
+  testWidgets('투약 지침은 의료진 글 그대로 (이서준)', (tester) async {
+    final h = await _open(tester);
+    final seojun = residentByName('이서준').id;
+    h.ctrl.openFor(seojun);
+    await _settle(tester);
+    h.ctrl.setValue(384);
+    await tester.pump();
+    await _hold(tester, 600);
+    await _settle(tester);
+    // 이미 열린 이상 건 + 호출이 있어 재측정 값이 호출 대화에 붙는다 → 알림 전송 문구
+    expect(find.text('간호 선생님에게 이상 알림이 전송됐어요'), findsOneWidget);
+    await tester.ensureVisible(find.text('투약 지침 확인'));
+    await tester.tap(find.text('투약 지침 확인'));
+    await _settle(tester);
+    expect(find.text('이서준 투약 지침'), findsOneWidget);
+    expect(find.text(h.repo.guidelineOf(seojun)!.body), findsOneWidget);
+  });
+
+  testWidgets('잘못 쟀어요 → 무효 표시 (지우지 않음) · 새로 생긴 이상 건·호출은 오측정으로 끝', (tester) async {
+    final h = await _open(tester);
+    final minjun = residentByName('김민준').id;
+    final count = h.repo.measurementsOf(minjun).length;
+    h.ctrl.setValue(384);
+    await tester.pump();
+    await _hold(tester, 600);
+    await _settle(tester);
+    final m = h.st.recorded!.measurement;
+    final caseId = h.repo.openCaseOf(minjun)!.id;
+    final callId = h.repo.openCalls.where((x) => x.residentId == minjun).single.id;
+
+    await tester.ensureVisible(find.text('잘못 쟀어요'));
+    await tester.tap(find.text('잘못 쟀어요'));
+    await _settle(tester);
+    expect(h.repo.measurementsOf(minjun).length, count + 1, reason: '기록은 지우지 않는다');
+    expect(h.repo.measurement(m.id).isVoided, isTrue);
+    expect(h.repo.measurement(m.id).voidedBy, 'kim_haneul');
+    expect(h.repo.caseById(caseId).isOpen, isFalse);
+    expect(h.repo.callById(callId).isOpen, isFalse);
+    expect(find.byType(AlertActionSheet), findsNothing);
+    expect(find.text('기록을 취소했어요.'), findsOneWidget);
+  });
+
+  testWidgets('주의(평소 +0.5): 할 일이 생기고, 통화 요청은 새 긴급 호출로', (tester) async {
+    final h = await _open(tester);
+    final minjun = residentByName('김민준').id;
+    h.ctrl.setValue(_base(h.repo, minjun) + 5);
+    await tester.pump();
+    await _hold(tester, 600);
+    await _settle(tester);
+    expect(h.repo.latestOf(minjun)!.judgment.stage, Stage.caution);
+    expect(h.repo.openTempTasksOf(minjun), isNotEmpty);
+    expect(find.text('30분 뒤 다시 측정할 일이 생겼어요'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('30분 뒤 다시 측정 알림'));
+    await tester.tap(find.text('30분 뒤 다시 측정 알림'));
+    await tester.pump();
+    expect(find.text('14:30에 다시 측정할 일이 이미 생겼어요'), findsOneWidget);
+
+    expect(h.repo.openCalls.where((c) => c.residentId == minjun), isEmpty);
+    await tester.ensureVisible(find.text('간호 선생님 바로 통화'));
+    await tester.tap(find.text('간호 선생님 바로 통화'));
+    await tester.pump();
+    final call = h.repo.openCalls.where((c) => c.residentId == minjun).single;
+    expect(call.level, CallLevel.urgent);
+    expect(call.summary, callRequestText);
+  });
+
+  testWidgets('권한 없는 반: 기록 버튼 비활성 + 이유', (tester) async {
+    final h = await _open(tester);
+    final seungmin = residentByName('박승민').id; // 고래자리 (김하늘 선생님은 은하수자리만)
+    h.ctrl.openFor(seungmin);
+    await _settle(tester);
+    expect(find.text('고래자리'), findsOneWidget, reason: '열어 준 반은 다이얼에 보인다');
+    expect(find.text('측정 권한 없음'), findsOneWidget);
+    expect(find.text('담당 반이 아니에요'), findsOneWidget);
+    final before = h.repo.measurementsOf(seungmin).length;
+    final g = await tester.startGesture(tester.getCenter(find.text('측정 권한 없음')));
+    await tester.pump(const Duration(milliseconds: 700));
+    await g.up();
+    await tester.pump();
+    expect(h.repo.measurementsOf(seungmin).length, before);
+    expect(find.text('고래자리 체온 측정 권한이 없어요'), findsOneWidget);
+  });
+
+  testWidgets('작은 폰 360×640: 넘치지 않고 기록 버튼까지 한 화면, 시트가 나와도 넘침 없음', (tester) async {
+    final h = await _open(tester, size: const Size(360, 640));
+    expect(tester.takeException(), isNull);
+    final btn = tester.getRect(find.text('길게 눌러서'));
+    expect(btn.bottom, lessThan(640 - 64));
+    expect(tester.getRect(find.text('39.0°')).bottom, lessThanOrEqualTo(640 - 64));
+
+    h.ctrl.setValue(384);
+    await tester.pump();
+    await _hold(tester, 600);
+    await _settle(tester);
+    expect(find.byType(AlertActionSheet), findsOneWidget);
+    // 시트가 화면 안으로 올라와 있다
+    expect(tester.getRect(find.text('잘못 쟀어요')).bottom, lessThanOrEqualTo(640 - 64));
+    expect(tester.takeException(), isNull);
+
+    // 큰 글자에서도 넘치지 않는다
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _settle(tester);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('개발 DB: 예시 반 · 예시 별님 + 예시 표시', (tester) async {
+    final h = await _open(tester, dataset: Dataset.dev);
+    expect(find.text('예시반'), findsOneWidget);
+    expect(find.text('예시 별님'), findsOneWidget);
+    expect(find.byType(ExampleTag), findsOneWidget);
+    await _hold(tester, 600);
+    expect(h.repo.measurementsOf('ex_resident').length, 1);
+  });
+
+  testWidgets('openFor · toggle · close (다른 화면이 쓰는 API)', (tester) async {
+    final h = await _open(tester);
+    final seojun = residentByName('이서준').id;
+    h.ctrl.close();
+    expect(h.st.open, isFalse);
+    h.ctrl.openFor(seojun);
+    expect(h.st.open, isTrue);
+    expect(h.st.residentId, seojun);
+    expect(h.st.level, QtLevel.resident);
+    h.ctrl.toggle();
+    expect(h.st.open, isFalse);
+    h.ctrl.toggle();
+    expect(h.st.open, isTrue);
+    expect(h.st.residentId, seojun, reason: '접었다 펴도 선택은 남는다');
+  });
+
+  testWidgets('별님 동그라미: 프로필 사진이 있으면 동그라미 안에 사진, 이름은 아래 그대로', (tester) async {
+    final h = await _open(tester);
+    final seojun = residentByName('이서준').id;
+    expect(find.byWidgetPredicate((w) => w is ResidentCircle && w.url == h.repo.profilePhotoOf(seojun)!.url), findsOneWidget);
+    expect(find.text('서준'), findsOneWidget, reason: '동그라미 아래 이름');
+    expect(find.text('민준'), findsNothing, reason: '김민준은 선택되어 이름 전체');
+  });
+
+  testWidgets('간호쌤 호출: 이유를 골라 보내면 간호사 호출함으로 · 별님카드에 기록', (tester) async {
+    final h = await _open(tester);
+    final minjun = residentByName('김민준').id;
+    final before = h.repo.calls.length;
+    await tester.ensureVisible(find.byKey(const Key('qt-nurse-call')));
+    await tester.tap(find.byKey(const Key('qt-nurse-call')));
+    await _settle(tester);
+    expect(find.text('간호 선생님 호출'), findsOneWidget);
+    // 이유 없이는 못 보낸다
+    expect(tester.widget<DsButton>(find.byKey(const Key('nurse-call-send'))).onPressed, isNull);
+    await tester.tap(find.text('기침·콧물'));
+    await tester.enterText(find.byKey(const Key('nurse-call-memo')), '밤새 기침했어요');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('nurse-call-send')));
+    await _settle(tester);
+
+    expect(h.repo.calls.length, before + 1);
+    final call = h.repo.calls.firstWhere((c) => c.residentId == minjun && c.isOpen);
+    expect(call.summary, '기침·콧물. 밤새 기침했어요');
+    expect(call.createdBy, 'kim_haneul');
+    expect(call.doctorId, isNull, reason: '먼저 간호사 호출함으로');
+    final entry = h.repo.archiveEntriesOf(minjun).firstWhere((e) => e.kindLabel == '간호사 호출');
+    expect(entry.body, contains('밤새 기침했어요'));
+    expect(find.text('간호 선생님께 호출했어요 · 별님카드에 남겼어요'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
 }

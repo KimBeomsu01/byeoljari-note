@@ -1,294 +1,376 @@
-// 인수인계 첫 화면 (개선 시안 1 "지금 아픈 별님이 있나? 내가 이어받은 할 일은?").
-// 순서: ① 한 문장 요약 → ② 이상 대응 카드 (긴급 먼저) → ③ 이어받은 할 일 (한 줄 = 한 별님 = 한 버튼) → 안 본 기록 n개 ›.
-// 최신 기록·별님별 기록·보기 칩·[기록 남기기]는 "안 본 기록" 줄 안(HandoverRecordsScreen)으로 옮겼다.
-// 체온 미기록은 일정 탭 "먼저 챙길 별님"과 전체 기록 머리말의 작은 링크에 있다.
-// 상단 제목줄(누구·근무·반 + 인수인계 + 🔔)은 app.dart의 공통 머리가 그린다.
-// 이 화면은 메모리 저장소를 바로 읽으므로 "불러오는 중·실패" 상태가 생기지 않는다. 서버 저장소로 바꿀 때 5-5 상태를 붙인다.
+// 01 인수인계 (Claude Design Main.dc.html).
+// 머리(고정) → 근무조 요약 → 필터 칩 → 긴급 카드 → 할 일 → 최신 기록, 오른쪽 아래 [기록하기].
+// 숫자·이름·시각은 모두 저장소에서 계산한다 (handover_data.dart).
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/avatar.dart';
+import '../../app.dart' show MobileAppBar, goResidentCard;
+import '../../core/ds.dart';
 import '../../core/judgment.dart';
 import '../../core/models.dart';
+import '../../core/photo.dart';
 import '../../core/providers.dart';
 import '../../core/repository.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
-import 'handover_common.dart';
-import 'handover_view.dart';
-import 'records_screen.dart';
-import 'response_card.dart';
-import 'task_actions.dart';
+import '../quick_temp/quick_temp_controller.dart';
+import 'handover_cards.dart';
+import 'handover_data.dart';
+import 'shift_sheet.dart';
+import 'write_sheet.dart';
 
-class HandoverScreen extends ConsumerWidget {
+class HandoverScreen extends ConsumerStatefulWidget {
   const HandoverScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(repoProvider);
-    final me = ref.watch(currentUserProvider);
-    final v = HandoverView(repo, me, ref.read(clockProvider)());
-    final rows = v.taskRows;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(Gap.page, 0, Gap.page, Gap.xl),
-      children: [
-        SummarySentence(urgent: v.urgentCount, abnormal: v.abnormalCount, tasks: rows.length),
-        for (final c in v.activeCases) ...[
-          const SizedBox(height: Gap.m),
-          ResponseCard(key: ValueKey('case-${c.id}'), caseItem: c),
-        ],
-        if (rows.isNotEmpty) ...[
-          const SizedBox(height: Gap.m),
-          _TaskList(view: v, rows: rows),
-        ],
-        const SizedBox(height: Gap.m),
-        _UnreadRow(unread: v.unread.length, notices: v.unreadNotices),
-      ],
-    );
-  }
+  ConsumerState<HandoverScreen> createState() => _HandoverScreenState();
 }
 
-/// ① 한 문장 요약. 0인 숫자는 말하지 않는다. 숫자는 색 + 글자 (색만으로 뜻을 전하지 않는다).
-class SummarySentence extends StatelessWidget {
-  const SummarySentence({super.key, required this.urgent, required this.abnormal, required this.tasks});
-  final int urgent;
-  final int abnormal;
-  final int tasks;
+class _HandoverScreenState extends ConsumerState<HandoverScreen> {
+  HoFilter _filter = HoFilter.all;
 
-  /// 화면에 그리는 문장 그대로 (테스트·읽어 주기용).
-  String get plain => _spans().map((s) => s.$1).join();
+  InMemoryRepository get _repo => ref.read(repoProvider);
+  String get _me => ref.read(currentUserProvider);
 
-  List<(String, Color?)> _spans() {
-    final danger = stageColors[Stage.danger]!.ink;
-    final abn = stageColors[Stage.abnormal]!.ink;
-    final out = <(String, Color?)>[];
-    final hasCase = urgent > 0 || abnormal > 0;
-    if (urgent > 0) out.addAll([('긴급 ', null), ('$urgent건', danger)]);
-    if (urgent > 0 && abnormal > 0) out.add(('과 ', null));
-    if (abnormal > 0) out.addAll([('이상 대응 ', null), ('$abnormal건', abn)]);
-    if (hasCase) out.add((tasks > 0 ? '이 있고,\n' : '이 있어요.', null));
-    if (tasks > 0) out.addAll([('이어받은 할 일이 ', null), ('$tasks개', brandDark), (' 있어요.', null)]);
-    if (!hasCase && tasks == 0) out.add(('지금 아픈 별님도,\n이어받은 할 일도 없어요.', null));
-    return out;
+  // ── 동작
+  void _read(Entry e) => _repo.markRead(e.id, _me, _repo.now());
+
+  void _openResident(String residentId, [Entry? e]) {
+    if (e != null) _read(e);
+    goResidentCard(ref, residentId);
   }
 
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 2),
-    child: Text.rich(
-      TextSpan(children: [for (final (t, c) in _spans()) TextSpan(text: t, style: c == null ? null : TextStyle(color: c))]),
-      semanticsLabel: plain.replaceAll('\n', ' '),
-      style: const TextStyle(fontFamily: fontBig, fontSize: 19, fontWeight: FontWeight.w700, height: 1.4, color: inkMain),
-    ),
-  );
-}
+  void _remeasure(String residentId, [Entry? e]) {
+    if (e != null) _read(e);
+    ref.read(quickTempProvider.notifier).openFor(residentId);
+  }
 
-/// ③ 이어받은 할 일 N · 급한 순.
-class _TaskList extends StatelessWidget {
-  const _TaskList({required this.view, required this.rows});
-  final HandoverView view;
-  final List<TaskRow> rows;
+  void _acknowledge(Case c) {
+    _repo.acknowledge(c.id, _me, _repo.now());
+    showDsToast(context, '확인했다고 알렸어요');
+  }
 
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(2, 0, 2, 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Text(
-                '이어받은 할 일 ${rows.length}',
-                style: const TextStyle(fontFamily: fontBig, fontSize: 19, fontWeight: FontWeight.w700, color: inkMain),
-              ),
-            ),
-            const Text('급한 순', style: TextStyle(fontSize: T.caption, color: inkSub)),
-          ],
-        ),
-      ),
-      Material(
-        color: surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.card),
-          side: const BorderSide(color: line),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            for (final (i, r) in rows.indexed) ...[
-              if (i > 0) const Divider(height: 1, thickness: 1, color: lineSoft),
-              _TaskRowTile(view: view, row: r),
-            ],
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
-class _TaskRowTile extends ConsumerWidget {
-  const _TaskRowTile({required this.view, required this.row});
-  final HandoverView view;
-  final TaskRow row;
-
-  /// 할 일 이름을 쉬운 말로 ('재측정' → '다시 재기').
-  static String plainLabel(String label) => label == '재측정' ? '다시 재기' : label;
-
-  static bool _sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
-
-  /// 둘째 줄: 왜·언제까지. 판정이 있으면 판정 색 + 기호.
-  static (String, Color) subline(InMemoryRepository repo, Entry e, DateTime now) {
+  void _completeTodo(Entry e) {
     final t = e.task!;
-    final due = t.dueAt != null ? '${whenLabel(t.dueAt!, now)}까지' : dueLabel(t, now);
-    if (e.measurementId != null) {
-      final m = repo.measurement(e.measurementId!);
-      final st = m.judgment.stage;
-      if (st != Stage.normal) {
-        return ('${st.symbol} ${st.label} ${formatTemp(m.value)}℃ · $due', stageColors[st]!.ink);
-      }
+    if (t.kind == TaskKind.temp && e.residentId != null) {
+      _remeasure(e.residentId!, e);
+      return;
     }
-    final where = e.classId != null ? repo.classOf(e.classId!).name : '전체';
-    if (!_sameDay(e.createdAt, now)) return ('$where · ${whenLabel(e.createdAt, now)}부터', inkSub);
-    if (t.kind == TaskKind.temp) {
-      return ('아직 안 쟀어요 · ${t.duePreset != null ? '${t.duePreset}까지' : due}', inkSub);
-    }
-    return ('$where · ${t.duePreset != null ? '${t.duePreset}까지' : due}', inkSub);
+    _repo.completeTask(e.id, _me, _repo.now());
+    showDsToast(context, '할 일을 완료했어요');
   }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = view.repo;
-    final e = row.first;
-    final rid = row.residentId;
-    final who = rid != null ? repo.resident(rid).name : (e.classId != null ? repo.classOf(e.classId!).name : '전체');
-    final more = row.entries.length > 1 ? ' 외 ${row.entries.length - 1}' : '';
-    final title = '$who · ${plainLabel(e.task!.label)}$more';
-    final (sub, subColor) = subline(repo, e, view.now);
-
-    final Widget action = row.isTemp
-        ? _SoftButton(
-            text: '재기',
-            semantics: '$who 체온 재기',
-            bg: actionSoft,
-            ink: actionInk,
-            onTap: () => openQuickTempFor(context, ref, rid!),
-          )
-        : _SoftButton(
-            text: '완료',
-            semantics: '${e.task!.label} 완료',
-            bg: sage,
-            ink: brandDark,
-            onTap: () => confirmCompleteTask(context, ref, e),
-          );
-
-    return InkWell(
-      onTap: rid == null ? null : () => openArchive(context, rid),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Row(
-          children: [
-            if (rid != null) FaceAvatar.resident(rid, size: 44) else FaceAvatar.staff(e.authorId, size: 44),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain, height: 1.35),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(sub, style: TextStyle(fontSize: T.caption, color: subColor, height: 1.35)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            action,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SoftButton extends StatelessWidget {
-  const _SoftButton({required this.text, required this.semantics, required this.bg, required this.ink, required this.onTap});
-  final String text;
-  final String semantics;
-  final Color bg;
-  final Color ink;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    button: true,
-    label: semantics,
-    excludeSemantics: true,
-    child: Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48, minWidth: 64),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          alignment: Alignment.center,
-          child: Text(text, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: ink)),
-        ),
-      ),
-    ),
-  );
-}
-
-/// "안 본 기록 8개 · 공지 2 ›" — 누르면 전체 기록 (최신 기록·별님별 기록·기록 남기기).
-class _UnreadRow extends StatelessWidget {
-  const _UnreadRow({required this.unread, required this.notices});
-  final int unread;
-  final int notices;
 
   @override
   Widget build(BuildContext context) {
-    final main = unread > 0 ? '안 본 기록 $unread개' : '안 본 기록 없어요';
-    final tail = unread == 0 ? ' · 전체 기록 보기' : (notices > 0 ? ' · 공지 $notices' : '');
-    return Semantics(
-      button: true,
-      label: '$main$tail, 전체 기록 열기',
-      excludeSemantics: true,
-      child: Material(
-        color: surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: line)),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => openHandoverRecords(context),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: tapHeight),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Row(
-              children: [
-                if (unread > 0) ...[const YellowDot(size: 12), const SizedBox(width: 12)],
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: main),
-                        TextSpan(text: tail, style: const TextStyle(fontWeight: FontWeight.w400, color: inkSub)),
-                      ],
-                    ),
-                    style: const TextStyle(fontSize: T.body, fontWeight: FontWeight.w700, color: inkMain),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text('›', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: inkSub)),
-              ],
+    final repo = ref.watch(repoProvider);
+    final me = ref.watch(currentUserProvider);
+    final now = repo.now();
+    final d = HandoverData(repo, me, now);
+    final view = d.viewFor(_filter);
+    final pad = MediaQuery.paddingOf(context);
+
+    // 개발 DB 예시: 그 자리의 실제 자료가 하나도 없을 때만.
+    final exCase = repo.isDev && _filter == HoFilter.all && d.cases.isEmpty;
+    final exTodo = repo.isDev && (_filter == HoFilter.all || _filter == HoFilter.todo) && d.todos.isEmpty;
+    final exFeed = repo.isDev &&
+        (_filter == HoFilter.all || _filter == HoFilter.notice || _filter == HoFilter.record) &&
+        d.feed.isEmpty;
+
+    Widget side(Widget w) => Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: w);
+
+    final items = <Widget>[
+      side(ShiftSummaryCard(
+        timeText: '${hhmm(now)} 기준',
+        scopeText: _scopeText(repo, d.myClasses),
+        title: d.shiftTitle,
+        urgent: d.caseCount,
+        todo: d.taskCount,
+        unread: d.unreadCount,
+        missed: d.missed.length,
+        onTap: () => showShiftSheet(context),
+      )),
+      HoFilterBar(chips: [
+        for (final f in HoFilter.values)
+          (
+            f.label,
+            _filter == f,
+            d.countFor(f),
+            switch (f) { HoFilter.unread => Ds.red500, HoFilter.todo => Ds.blue500, _ => null },
+            () => setState(() => _filter = f),
+          ),
+      ]),
+      for (final c in view.cases) side(_caseCard(repo, me, now, c)),
+      if (exCase) side(const ExampleWrap(child: _ExampleUrgent())),
+      for (final e in view.todos) side(_todoRow(repo, d, now, e)),
+      if (exTodo) side(const ExampleWrap(child: _ExampleTodo())),
+      if (view.feed.isNotEmpty || exFeed) side(const DsSectionTitle('최신 기록')),
+      for (final e in view.feed) side(_feedCard(repo, d, now, e)),
+      if (exFeed) side(ExampleWrap(child: _filter == HoFilter.notice ? const _ExampleNotice() : const _ExampleObservation())),
+      if (view.isEmpty && !exCase && !exTodo && !exFeed) side(HoEmpty(_filter.emptyText)),
+    ];
+
+    return ColoredBox(
+      color: Ds.bg,
+      child: Stack(children: [
+        ListView.separated(
+          padding: EdgeInsets.only(top: pad.top + 56 + 8, bottom: 112 + pad.bottom),
+          itemCount: items.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 14),
+          itemBuilder: (_, i) => items[i],
+        ),
+        // 머리: 위에 고정, 아래 내용이 비쳐 보이게 흐림.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                if (pad.top > 0) Container(height: pad.top, color: const Color(0xE6F2F4F6)),
+                const MobileAppBar(section: '인수인계'),
+              ]),
             ),
           ),
         ),
-      ),
+        Positioned(
+          right: 20,
+          bottom: 16 + pad.bottom,
+          child: WriteFab(onTap: () => showWriteSheet(context, ref)),
+        ),
+      ]),
     );
   }
+
+  // ── 실제 자료 → 카드
+
+  /// '은하수자리 6명' (담당 반 하나) · '6개 반 36명'
+  static String _scopeText(InMemoryRepository repo, Set<String> mine) {
+    final cls = repo.classes.where((c) => mine.contains(c.id)).toList();
+    final n = repo.residents.where((r) => mine.contains(r.classId)).length;
+    return cls.length == 1 ? '${cls.single.name} ${n}명' : '${cls.length}개 반 ${n}명';
+  }
+
+  /// 이름 앞 동그란 프로필 사진 (없으면 이름 두 글자).
+  static Widget? _face(InMemoryRepository repo, String? rid, double size) {
+    if (rid == null) return null;
+    return ResidentCircle(label: repo.resident(rid).shortName, url: repo.profilePhotoOf(rid)?.url, size: size);
+  }
+
+  Widget _caseCard(InMemoryRepository repo, String me, DateTime now, Case c) {
+    final r = repo.resident(c.residentId);
+    final ms = repo.measurementsOfCase(c.id).where((m) => !m.isVoided).toList();
+    final latest = ms.isEmpty ? null : ms.last;
+    final value = latest?.value ?? c.firstTemp;
+    final diff = latest?.judgment.diff ?? (c.firstTemp - c.baseline);
+    final stage = latest?.judgment.stage ?? c.severity;
+    final label = switch (stage) {
+      Stage.danger || Stage.abnormal => diff >= 10 ? '급상승' : '상승',
+      Stage.low => '저온',
+      Stage.caution => '주의',
+      Stage.normal => '회복',
+    };
+    final color = stage == Stage.low ? Ds.blue500 : (stage == Stage.normal ? Ds.gray900 : Ds.red500);
+    final first = ms.isEmpty ? c.createdAt : ms.first.measuredAt;
+    final (schedule, right) = c.remeasureAt != null
+        ? ('${hhmm(c.remeasureAt!)} 재측정 예정', untilText(c.remeasureAt!, now))
+        : ('${hhmm(first)} 첫 측정', '${spanText(now.difference(first).inMinutes)} 전');
+    return UrgentVitalCard(
+      key: ValueKey('case-${c.id}'),
+      classTag: repo.classOf(c.classId).name,
+      name: r.name,
+      avatar: _face(repo, c.residentId, 32),
+      tempText: fmtC(value),
+      diffText: '${formatDiff(diff)}°C $label',
+      tempColor: color,
+      scheduleText: schedule,
+      scheduleRight: right,
+      acknowledged: repo.isAcknowledged(c.id, me),
+      onAcknowledge: () => _acknowledge(c),
+      onRemeasure: () => _remeasure(c.residentId),
+      onTap: () => openCaseDetail(context, c.id),
+    );
+  }
+
+  Widget _todoRow(InMemoryRepository repo, HandoverData d, DateTime now, Entry e) {
+    final rid = e.residentId;
+    final body = (e.body ?? '').replaceAll('\n', ' ').trim();
+    return TodoRow(
+      key: ValueKey('todo-${e.id}'),
+      classTag: e.classId != null ? repo.classOf(e.classId!).name : '전체',
+      name: rid != null ? repo.resident(rid).name : repo.staff(e.authorId).name,
+      avatar: _face(repo, rid, 24),
+      timeText: relTime(e.createdAt, now),
+      line: body.isEmpty ? e.task!.label : body,
+      unread: d.isUnread(e),
+      onDone: () => _completeTodo(e),
+      onName: rid == null ? null : () => _openResident(rid, e),
+      onTap: () => _read(e),
+    );
+  }
+
+  Widget _feedCard(InMemoryRepository repo, HandoverData d, DateTime now, Entry e) {
+    final key = ValueKey('feed-${e.id}');
+    final time = relTime(e.createdAt, now);
+    final unread = d.isUnread(e);
+    final rid = e.residentId;
+    final cls = e.classId != null ? repo.classOf(e.classId!) : (rid != null ? repo.classOf(repo.resident(rid).classId) : null);
+    final author = repo.staff(e.authorId);
+
+    if (e.measurementId != null) {
+      final m = _measurementOrNull(repo, e.measurementId!);
+      final t = e.task;
+      final open = t != null && !t.done;
+      String side;
+      if (open && t.dueAt != null) {
+        final mins = t.dueAt!.difference(now).inMinutes;
+        side = mins >= 0 ? '기한 ${spanText(mins)}' : '기한 ${spanText(mins)} 지남';
+      } else if (open) {
+        side = t.duePreset ?? '기한 없음';
+      } else {
+        side = m == null ? '' : '평소 ${fmtC(m.judgment.baseline)}';
+      }
+      String? doneText;
+      if (t != null && t.done && t.doneAt != null) {
+        final res = t.resultMeasurementId == null ? null : _measurementOrNull(repo, t.resultMeasurementId!);
+        doneText = '${hhmm(t.doneAt!)} 재측정${res == null ? ' 완료' : ' ${fmtC(res.value)}'}';
+      }
+      final homeroom = cls?.homeroomId;
+      final checked = homeroom != null && (e.authorId == homeroom || repo.isRead(e.id, homeroom));
+      final diff = m?.judgment.diff ?? 0;
+      return VitalFeedCard(
+        key: key,
+        classTag: cls?.name ?? '',
+        name: rid != null ? repo.resident(rid).name : '',
+        avatar: _face(repo, rid, 28),
+        timeText: time,
+        tempText: m == null ? '-' : fmtC(m.value),
+        judgeText: m == null ? '' : (m.isVoided ? '무효' : '(${fmtDiffDeg(diff)}) ${m.judgment.stage.label}'),
+        judgeColor: m == null || m.isVoided ? Ds.gray500 : diffColor(diff),
+        voided: m?.isVoided ?? false,
+        sideText: side,
+        checked: checked,
+        doneText: doneText,
+        onRemeasure: open && rid != null ? () => _remeasure(rid, e) : null,
+        onName: rid == null ? null : () => _openResident(rid, e),
+        onTap: () => _read(e),
+        unread: unread,
+      );
+    }
+
+    if (e.scope == EntryScope.facility || (e.scope == EntryScope.classScope && cls == null)) {
+      return NoticeAllFeedCard(
+        key: key,
+        timeText: time,
+        title: e.title,
+        body: e.body ?? '',
+        pinned: e.pinned,
+        onTap: () => _read(e),
+        unread: unread,
+      );
+    }
+
+    if (e.scope == EntryScope.classScope) {
+      return NoticeClassFeedCard(
+        key: key,
+        classTag: cls!.name,
+        author: repo.classes.any((c) => c.homeroomId == e.authorId) ? '${author.name} 담임' : author.displayName,
+        timeText: time,
+        body: e.body ?? '',
+        highlight: RegExp('${RegExp.escape(cls.name)}(\\s?\\d+순위)?'),
+        onTap: () => _read(e),
+        unread: unread,
+      );
+    }
+
+    final likes = repo.likesOf(e.id);
+    return ObservationFeedCard(
+      key: key,
+      classTag: cls?.name ?? '',
+      name: rid != null ? repo.resident(rid).name : '',
+      avatar: _face(repo, rid, 24),
+      author: author.name,
+      timeText: time,
+      body: e.body ?? '',
+      likes: likes.length,
+      liked: likes.contains(d.me),
+      onLike: () => repo.like(e.id, d.me, repo.now()),
+      onName: rid == null ? null : () => _openResident(rid, e),
+      onTap: () => _read(e),
+      unread: unread,
+    );
+  }
+
+  static Measurement? _measurementOrNull(InMemoryRepository repo, String id) {
+    try {
+      return repo.measurement(id);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+// ── 개발 DB 예시 카드 (실제 자료가 생기면 사라진다). 이름은 예시 명단과 같은 가짜 이름.
+
+class _ExampleUrgent extends StatelessWidget {
+  const _ExampleUrgent();
+
+  @override
+  Widget build(BuildContext context) => UrgentVitalCard(
+        classTag: '예시반',
+        name: '예시 별님',
+        avatar: const ResidentCircle(label: '예시', size: 32),
+        tempText: '38.2°C',
+        diffText: '+1.4°C 급상승',
+        tempColor: Ds.red500,
+        scheduleText: '09:51 재측정 예정',
+        scheduleRight: '10분 후',
+        acknowledged: false,
+        onAcknowledge: () {},
+        onRemeasure: () {},
+      );
+}
+
+class _ExampleTodo extends StatelessWidget {
+  const _ExampleTodo();
+
+  @override
+  Widget build(BuildContext context) => TodoRow(
+        classTag: '예시반',
+        name: '예시 별님',
+        avatar: const ResidentCircle(label: '예시', size: 24),
+        timeText: '어제 15:20',
+        line: '재측정 필요 (37.5°C 주의)',
+        onDone: () {},
+      );
+}
+
+class _ExampleObservation extends StatelessWidget {
+  const _ExampleObservation();
+
+  @override
+  Widget build(BuildContext context) => ObservationFeedCard(
+        classTag: '예시반',
+        name: '예시 별님',
+        avatar: const ResidentCircle(label: '예시', size: 24),
+        author: '예시 선생님',
+        timeText: '07:50',
+        body: '아침 식사 반찬 남김없이 잘 드시고 기분 좋게 노래 흥얼거리심. 컨디션 매우 양호합니다.',
+        likes: 2,
+        liked: false,
+        onLike: () {},
+      );
+}
+
+class _ExampleNotice extends StatelessWidget {
+  const _ExampleNotice();
+
+  @override
+  Widget build(BuildContext context) => const NoticeAllFeedCard(
+        timeText: '08:00',
+        title: '오늘 10:00 목욕실 온수 보일러 점검 안내',
+        body: '10:00~11:30 온수 사용 불가. 오전 목욕은 일정을 앞당겨 진행해주세요.',
+      );
 }

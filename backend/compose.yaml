@@ -1,0 +1,26 @@
+name: byeoljari-new2
+services:
+  app:
+    build: .
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure backend/.env}
+      APP_TEST_PASSWORD: ${APP_TEST_PASSWORD:?Configure backend/.env}
+      APP_ACCOUNTS: ${APP_ACCOUNTS:?Configure backend/.env}
+      PASSKEY_ORIGIN: ${PASSKEY_ORIGIN:-http://localhost:8093}
+    ports:
+      - "8093:8080"
+    volumes:
+      - ../build/web:/web:ro
+    networks: [database, passkeys]
+  passkey-verifier:
+    build: ./passkey-verifier
+    environment:
+      PASSKEY_ORIGIN: ${PASSKEY_ORIGIN:-http://localhost:8093}
+    networks: [passkeys]
+networks:
+  passkeys:
+    internal: true
+  database:
+    external: true
+    name: byeoljari-note-db_default

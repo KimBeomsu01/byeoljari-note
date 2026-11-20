@@ -1,194 +1,120 @@
-// 공통 틀 (통합 명세 4-1): 상단 제목 + 🔔, 하단 메뉴 3개, 가운데 퀵 체온 레이어.
+// 공통 틀. 모바일 = 인수인계 · 가운데 퀵 체온 · 별님카드 (Claude Design TabBar 3-tab-center-fab).
+// PC(/pc 주소) = 왼쪽 레일 + 머리 (features/pc/pc_shell.dart).
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/ds.dart';
+import 'core/models.dart';
 import 'core/providers.dart';
-import 'core/repository.dart';
 import 'core/theme.dart';
 import 'features/alert_case/notice_center.dart';
-import 'features/desk/desk_shell.dart';
 import 'features/handover/handover_screen.dart';
+import 'features/pc/pc_shell.dart';
 import 'features/quick_temp/quick_temp_controller.dart';
 import 'features/quick_temp/quick_temp_screen.dart';
-import 'features/schedule/schedule_screen.dart';
+import 'features/resident_card/resident_card_screen.dart';
 
-class ByeoljariApp extends StatelessWidget {
-  const ByeoljariApp({super.key, this.fontFamilyForScreenshots});
+/// 로그아웃 (서버 연결 화면에서 덮어쓴다). 없으면 메뉴에 안 보인다.
+final logoutProvider = Provider<Future<void> Function()?>((ref) => null);
+
+class ByeoljariApp extends ConsumerWidget {
+  const ByeoljariApp({super.key, this.pc = false, this.fontFamilyForScreenshots});
+
+  /// PC 화면(/pc 오피스 웹 · /doctor 의료진 협진 포털)으로 들어왔는가.
+  final bool pc;
 
   /// 스크린샷 테스트에서 한글 글꼴을 지정할 때만 쓴다.
   final String? fontFamilyForScreenshots;
 
-  /// 넓은 화면(PC)에서 폰 배치를 고른 경우 true.
-  static final phoneViewOnWide = ValueNotifier<bool>(false);
-
-  /// 이 폭 이상이면 사무국 PC 화면 (통합 명세 6-7).
-  static const double deskMinWidth = 900;
-
-  static bool _isDesk(BuildContext context) =>
-      MediaQuery.sizeOf(context).width >= deskMinWidth && !phoneViewOnWide.value;
-
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
-    valueListenable: phoneViewOnWide,
-    builder: (context, _, _) => MaterialApp(
-      title: '별자리노트',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(fontFamily: fontFamilyForScreenshots),
-      builder: (context, child) {
-        if (_isDesk(context)) return child!;
-        final wide = MediaQuery.sizeOf(context).width >= deskMinWidth;
-        // 폰 화면 폭으로 보여준다 (PC 브라우저에서 폰 배치를 고른 경우도).
-        return ColoredBox(
-          color: const Color(0xFFFBE3DF),
-          child: Stack(
-            children: [
-              Center(
-                child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 430), child: child),
-              ),
-              if (wide)
-                Positioned(
-                  left: 24,
-                  top: 24,
-                  child: FilledButton.icon(
-                    onPressed: () => phoneViewOnWide.value = false,
-                    icon: const Icon(Icons.desktop_windows_outlined),
-                    label: const Text('PC 화면으로 보기'),
-                  ),
-                ),
-            ],
+  Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
+    title: switch (ref.watch(screenKindProvider)) {
+      'doctor' => '별자리노트 · 의료진 협진 포털',
+      'pc' => '별자리노트 · 오피스 웹',
+      _ => '별자리노트',
+    },
+    debugShowCheckedModeBanner: false,
+    theme: buildTheme(fontFamily: fontFamilyForScreenshots),
+    builder: (context, child) {
+      if (pc) return child!;
+      // 모바일 화면 폭(최대 440)으로 가운데에 보여준다.
+      return ColoredBox(
+        color: Ds.bg,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: Ds.screenMax),
+            child: child,
           ),
-        );
-      },
-      home: Builder(
-        builder: (context) => _isDesk(context)
-            ? DeskShell(onPhoneView: () => phoneViewOnWide.value = true)
-            : const NoticeBannerHost(child: AppShell()),
-      ),
-    ),
+        ),
+      );
+    },
+    home: pc ? const PcShell() : const NoticeBannerHost(child: AppShell()),
   );
 }
 
-class AppShell extends ConsumerStatefulWidget {
+/// 지금 고른 모바일 탭 (0 인수인계 · 1 별님카드). 다른 화면에서 별님카드로 보낼 때 쓴다.
+final mobileTabProvider = NotifierProvider<MobileTab, int>(MobileTab.new);
+
+class MobileTab extends Notifier<int> {
+  @override
+  int build() => 0;
+  void go(int i) => state = i;
+}
+
+/// 별님카드 탭에서 보여줄 별님 (다른 화면에서 이름을 누르면 바뀐다).
+final residentCardTargetProvider = NotifierProvider<ResidentCardTarget, String?>(ResidentCardTarget.new);
+
+class ResidentCardTarget extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void show(String residentId) => state = residentId;
+}
+
+/// 다른 화면에서 별님카드 탭으로 이동.
+void goResidentCard(WidgetRef ref, String residentId) {
+  ref.read(quickTempProvider.notifier).close();
+  ref.read(residentCardTargetProvider.notifier).show(residentId);
+  ref.read(mobileTabProvider.notifier).go(1);
+}
+
+class AppShell extends ConsumerWidget {
   const AppShell({super.key});
 
   @override
-  ConsumerState<AppShell> createState() => _AppShellState();
-}
-
-class _AppShellState extends ConsumerState<AppShell> {
-  /// "김하늘 선생님 · 오전 근무 · 은하수자리"
-  String _contextLine(InMemoryRepository repo, String me) {
-    final now = repo.now();
-    final shift = repo.shiftAt(now, staffId: me) ?? repo.shiftAt(now);
-    final home = repo.homeClassOf(me);
-    return [
-      repo.staff(me).displayName,
-      if (shift != null) '${shift.label} 근무',
-      if (home != null) repo.classOf(home).name,
-    ].join(' · ');
-  }
-
-  int _tab = 0;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final qtOpen = ref.watch(quickTempProvider.select((s) => s.open));
-    final repo = ref.watch(repoProvider);
-    final me = ref.watch(currentUserProvider);
-    final unseen = repo.unseenNoticeCount(me);
+    final tab = ref.watch(mobileTabProvider);
 
     return Scaffold(
-      // 시안: 일정 탭은 화면이 직접 머리(날짜·반 고르기)를 그린다. 인수인계만 공통 머리.
-      appBar: qtOpen || _tab != 0
-          ? null
-          : AppBar(
-              titleSpacing: Gap.page,
-              toolbarHeight: 84,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 누가·어느 근무·어느 반 (눌러서 시연 역할 바꾸기)
-                  _RoleSwitch(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _contextLine(repo, me),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w400, color: inkSub),
-                          ),
-                        ),
-                        const Icon(Icons.arrow_drop_down, size: 22, color: inkSub),
-                      ],
-                    ),
-                  ),
-                  const Text('인수인계'),
-                ],
-              ),
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: Gap.page),
-                  child: Tooltip(
-                    message: '알림',
-                    child: Material(
-                      color: surface,
-                      shape: const CircleBorder(side: BorderSide(color: line)),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () => showNoticeCenter(context, ref),
-                        child: SizedBox(
-                          width: 52,
-                          height: 52,
-                          child: Badge(
-                            isLabelVisible: unseen > 0,
-                            backgroundColor: coral,
-                            alignment: const AlignmentDirectional(0.7, -0.75),
-                            textStyle: const TextStyle(
-                              fontFamily: fontSmall,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            label: Text('$unseen'),
-                            child: const Center(
-                              child: Icon(Icons.notifications_none_rounded, size: 26, color: inkMain),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+      backgroundColor: Ds.bg,
       body: Stack(
         children: [
-          IndexedStack(index: _tab, children: const [HandoverScreen(), ScheduleScreen()]),
-          // 퀵 체온: 가운데 버튼에서 펼쳐지는 전체 화면 레이어
-          IgnorePointer(
-            ignoring: !qtOpen,
-            child: AnimatedScale(
-              scale: qtOpen ? 1 : 0.2,
-              alignment: Alignment.bottomCenter,
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              child: AnimatedOpacity(
-                opacity: qtOpen ? 1 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: const QuickTempScreen(),
+          IndexedStack(index: tab, children: const [HandoverScreen(), ResidentCardScreen()]),
+          // 퀵 체온: 가운데 버튼에서 펼쳐지는 전체 화면 레이어 (팝업)
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !qtOpen,
+              child: AnimatedScale(
+                scale: qtOpen ? 1 : 0.2,
+                alignment: Alignment.bottomCenter,
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+                child: AnimatedOpacity(
+                  opacity: qtOpen ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const QuickTempScreen(),
+                ),
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: _BottomBar(
-        tab: _tab,
+      bottomNavigationBar: _TabBar(
+        tab: tab,
         qtOpen: qtOpen,
         onTab: (i) {
           ref.read(quickTempProvider.notifier).close();
-          setState(() => _tab = i);
+          ref.read(mobileTabProvider.notifier).go(i);
         },
         onQuick: () => ref.read(quickTempProvider.notifier).toggle(),
       ),
@@ -196,62 +122,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
-/// 시연용 역할 바꾸기 (통합 명세 10-2). 실제 앱으로는 옮기지 않는다.
-class _RoleSwitch extends ConsumerWidget {
-  const _RoleSwitch({this.child});
-  final Widget? child;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(repoProvider);
-    final me = ref.watch(currentUserProvider);
-    const choices = ['kim_haneul', 'park_soyeon', 'park_seoyeon', 'han_kyungsoo', 'oh_jimin'];
-    return PopupMenuButton<String>(
-      tooltip: '역할 바꾸기 (시연)',
-      initialValue: me,
-      onSelected: (v) async {
-        if (v == '_skip30') {
-          repo.advanceClock(const Duration(minutes: 30));
-        } else if (v == '_reset') {
-          final ok = await showDialog<bool>(
-            context: context,
-            builder: (d) => AlertDialog(
-              title: const Text('시연 처음 상태로 돌릴까요?'),
-              content: const Text('이 기기에 저장된 기록이 모두 지워지고 10월 28일 09:41 상태로 돌아가요.'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('취소')),
-                FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('처음 상태로')),
-              ],
-            ),
-          );
-          if (ok == true) {
-            await repo.resetDemo();
-            ref.invalidate(quickTempProvider);
-            ref.read(currentUserProvider.notifier).state = 'kim_haneul';
-          }
-        } else {
-          ref.read(currentUserProvider.notifier).state = v;
-        }
-      },
-      itemBuilder: (_) => [
-        for (final id in choices) PopupMenuItem(value: id, child: Text(repo.staff(id).displayName)),
-        const PopupMenuDivider(),
-        const PopupMenuItem(value: '_skip30', child: Text('⏩ 시계 30분 앞으로')),
-        const PopupMenuItem(value: '_reset', child: Text('↺ 시연 처음 상태로')),
-      ],
-      // 지금 쓰는 사람 (시연에서는 눌러서 바꾼다)
-      child:
-          child ??
-          Text(
-            repo.staff(me).name,
-            style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w700, color: inkMain),
-          ),
-    );
-  }
-}
-
-class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.tab, required this.qtOpen, required this.onTab, required this.onQuick});
+/// TabBar (3-tab-center-fab / 3-tab-center-close). 높이 64, 가운데 violet 동그라미가 20 떠 있다.
+class _TabBar extends StatelessWidget {
+  const _TabBar({required this.tab, required this.qtOpen, required this.onTab, required this.onQuick});
   final int tab;
   final bool qtOpen;
   final ValueChanged<int> onTab;
@@ -259,31 +132,31 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget item(int i, IconData icon, String label) {
-      final on = !qtOpen && tab == i;
+    Widget item(int i, IconData on, IconData off, String label) {
+      final selected = !qtOpen && tab == i;
       return Expanded(
         child: Semantics(
           button: true,
-          selected: on,
+          selected: selected,
           label: label,
           excludeSemantics: true,
-          child: InkWell(
+          child: InkResponse(
             onTap: () => onTab(i),
+            radius: 36,
             child: SizedBox(
-              height: 72,
+              height: 64,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 28, color: on ? brandDark : inkSub),
-                  const SizedBox(height: 2),
+                  Icon(selected ? on : off, size: 24, color: selected ? Ds.gray900 : Ds.gray500),
+                  const SizedBox(height: 4),
                   Text(
                     label,
-                    maxLines: 1,
-                    softWrap: false,
                     style: TextStyle(
-                      fontSize: T.caption,
-                      fontWeight: on ? FontWeight.w800 : FontWeight.w500,
-                      color: on ? brandDark : inkSub,
+                      fontSize: T.micro,
+                      height: 1.5,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? Ds.gray900 : Ds.gray500,
                     ),
                   ),
                 ],
@@ -294,72 +167,261 @@ class _BottomBar extends StatelessWidget {
       );
     }
 
-    // 시제품처럼 가운데 짙은 동그라미가 메뉴 위로 살짝 떠 있다.
-    // 경계선을 뒤에 그려 가운데 동그라미 위로 지나가지 않게 한다.
-    return Material(
-      color: surface,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: line)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 84,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.topCenter,
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xF2FFFFFF),
+        boxShadow: [BoxShadow(color: Color(0x0D000000), offset: Offset(0, -1))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    item(0, Icons.article_outlined, '인수인계'),
-                    const SizedBox(width: 110),
-                    item(1, Icons.calendar_month_outlined, '일정'),
-                  ],
-                ),
-                Positioned(
-                  top: -26,
-                  child: Semantics(
-                    button: true,
-                    label: qtOpen ? '퀵 체온 접기' : '퀵 체온 열기',
-                    excludeSemantics: true,
-                    child: GestureDetector(
-                      onTap: onQuick,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 68,
-                            height: 68,
+                item(0, Icons.assignment, Icons.assignment_outlined, '인수인계'),
+                Expanded(
+                  child: Center(
+                    child: Transform.translate(
+                      offset: const Offset(0, -20),
+                      child: Semantics(
+                        button: true,
+                        label: qtOpen ? '퀵 체온 닫기' : '퀵 체온',
+                        excludeSemantics: true,
+                        child: GestureDetector(
+                          onTap: onQuick,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 56,
+                            height: 56,
                             decoration: BoxDecoration(
-                              color: qtOpen ? inkMain : quickOrange,
+                              color: qtOpen ? Ds.gray900 : Ds.violet500,
                               shape: BoxShape.circle,
-                              border: Border.all(color: surface, width: 5),
-                              boxShadow: qtOpen
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: quickOrange.withValues(alpha: 0.45),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
+                              boxShadow: [
+                                const BoxShadow(color: Colors.white, spreadRadius: 4),
+                                BoxShadow(
+                                  color: (qtOpen ? Ds.gray900 : Ds.violet500).withValues(alpha: 0.36),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
                             ),
-                            child: Icon(qtOpen ? Icons.close : Icons.thermostat, color: Colors.white, size: 32),
+                            child: Icon(
+                              qtOpen ? Icons.close_rounded : Icons.thermostat_rounded,
+                              color: Colors.white,
+                              size: 26,
+                            ),
                           ),
-                          Text(
-                            qtOpen ? '닫기' : '퀵 체온',
-                            style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w800, color: inkMain),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
+                item(1, Icons.badge, Icons.badge_outlined, '별님카드'),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 머리 오른쪽 "프로필" 버튼이 여는 메뉴: 지금 사용자 · 사용자 바꾸기 · 자료 처음으로 · 로그아웃.
+Future<void> showProfileSheet(BuildContext context, WidgetRef ref) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheet) => Consumer(
+      builder: (context, ref, _) {
+        final repo = ref.watch(repoProvider);
+        final me = ref.watch(currentUserProvider);
+        final logout = ref.watch(logoutProvider);
+        // 의료진 주소(/doctor)에서는 의사만, 그 밖(모바일 · 오피스 웹)에서는 의사를 뺀 직원으로 바꿀 수 있다.
+        final doctorScreen = ref.watch(screenKindProvider) == 'doctor';
+        final staff = repo.allStaff.where((s) => (s.role == Role.doctor) == doctorScreen).toList();
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              children: [
+                Row(
+                  children: [
+                    InitialAvatar(
+                      repo.staff(me).name.characters.first,
+                      size: 44,
+                      background: Ds.gray900,
+                      foreground: Colors.white,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            repo.staff(me).displayName,
+                            style: const TextStyle(fontSize: T.heading, fontWeight: FontWeight.w700),
+                          ),
+                          Text(
+                            repo.isDev ? '개발 DB · 예시 자료' : '시연 DB · 가상 자료',
+                            style: const TextStyle(fontSize: T.caption, color: Ds.gray500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  '사용자 바꾸기',
+                  style: TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: Ds.gray500),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final s in staff)
+                      DsChip(
+                        label: s.displayName,
+                        selected: s.id == me,
+                        onTap: () {
+                          ref.read(currentUserProvider.notifier).state = s.id;
+                          Navigator.pop(sheet);
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                DsButton(
+                  repo.isDev ? '개발 DB 비우기 (예시만 남기기)' : '시연 자료 처음 상태로',
+                  kind: DsButtonKind.gray,
+                  expand: true,
+                  icon: Icons.restart_alt_rounded,
+                  onPressed: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (d) => AlertDialog(
+                        title: Text(repo.isDev ? '개발 DB를 비울까요?' : '시연 자료를 처음 상태로 돌릴까요?'),
+                        content: Text(
+                          repo.isDev ? '입력한 기록이 모두 사라지고 자리마다 예시 한 건만 남아요.' : '입력한 기록이 모두 사라지고 오늘 날짜 기준 가상 자료로 다시 채워져요.',
+                        ),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('취소')),
+                          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('처음 상태로')),
+                        ],
+                      ),
+                    );
+                    if (ok != true) return;
+                    await repo.resetDataset();
+                    ref.invalidate(quickTempProvider);
+                    ref.read(currentUserProvider.notifier).state = repo.defaultUser(ref.read(screenKindProvider));
+                    if (sheet.mounted) Navigator.pop(sheet);
+                  },
+                ),
+                if (logout != null) ...[
+                  const SizedBox(height: 8),
+                  DsButton(
+                    '로그아웃',
+                    kind: DsButtonKind.outline,
+                    expand: true,
+                    icon: Icons.logout_rounded,
+                    onPressed: () async {
+                      Navigator.pop(sheet);
+                      await repo.flushSave();
+                      await logout();
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+/// 모바일 머리 (AppBar · tab): "별자리노트 | 화면이름" + 알림 + 프로필. 화면마다 이걸 쓴다.
+class MobileAppBar extends ConsumerWidget implements PreferredSizeWidget {
+  const MobileAppBar({super.key, required this.section});
+  final String section;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(56);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.watch(repoProvider);
+    final me = ref.watch(currentUserProvider);
+    final unseen = repo.unseenNoticeCount(me);
+    return Container(
+      height: 56,
+      color: const Color(0xE6F2F4F6),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          const Text(
+            '별자리노트',
+            style: TextStyle(fontSize: T.title, height: 1.5, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+          ),
+          const SizedBox(width: 6),
+          const Text(
+            '|',
+            style: TextStyle(fontSize: T.caption, color: Ds.gray300),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            section,
+            style: const TextStyle(fontSize: T.caption, fontWeight: FontWeight.w600, color: Ds.gray600),
+          ),
+          if (repo.isDev) ...[const SizedBox(width: 8), const ExampleTag()],
+          const Spacer(),
+          Tooltip(
+            message: '알림',
+            child: InkResponse(
+              radius: 22,
+              onTap: () => showNoticeCenter(context, ref),
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Icon(Icons.notifications_rounded, size: 23, color: Ds.gray700),
+                    if (unseen > 0)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(color: Ds.red500, shape: BoxShape.circle),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Tooltip(
+            message: '프로필',
+            child: InkResponse(
+              radius: 20,
+              onTap: () => showProfileSheet(context, ref),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(color: Ds.gray200, shape: BoxShape.circle),
+                child: const Icon(Icons.person_rounded, size: 20, color: Ds.gray700),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

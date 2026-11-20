@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/judgment.dart';
 import '../../core/models.dart';
-import '../../core/providers.dart';
 import '../../core/repository.dart';
-import '../../core/seed.dart' show nightDutyStaffId;
 import '../../core/theme.dart';
 
 const circledStage = ['①', '②', '③', '④'];
@@ -83,7 +81,7 @@ class CasePerms {
   bool get isMedical => isNurse || isDirector;
 
   /// 당직 = 야간 근무조에 배정된 선생님 (통합 명세 6-2-4). 시연 역할 '당직'도 포함.
-  bool get isNightDuty => me == nightDutyStaffId || repo.shiftAt(now, staffId: me)?.type == ShiftType.night;
+  bool get isNightDuty => repo.shiftAt(now, staffId: me)?.type == ShiftType.night;
   bool get isAssignee => c.assigneeId == me;
 
   /// 버튼을 하나도 안 보이는 경우: 사무국, 종료된 건.
@@ -91,7 +89,7 @@ class CasePerms {
 
   bool get hasAcked => repo.eventsOf(c.id).any((e) => e.type == 'acked' && e.actorId == me && e.voidedBy == null);
 
-  String? get remeasureDenied => measurableClasses(me).contains(c.classId) ? null : '이 반 체온 입력 권한이 없어요';
+  String? get remeasureDenied => repo.measurableClasses(me).contains(c.classId) ? null : '이 반 체온 입력 권한이 없어요';
   String? get medicationDenied => isMedical ? null : '간호사·원장님만 투약을 기록할 수 있어요';
 
   bool get canRaise => c.stage < 4 && (isAssignee || isMedical || isNightDuty);

@@ -3,8 +3,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'seed.dart';
-
 /// 바탕 · 옷 · 머리 색 (시제품 PAL 7가지).
 const _pal = [
   ['#e8eddf', '#9aaf88', '#55463f'],
@@ -46,15 +44,11 @@ class _Look {
   final int style;
 }
 
-/// 시제품 roster(): 반 순서(off)와 별님 순서(i)로 색·머리를 정한다. 여자 반은 긴 머리.
+/// 별님 id로 색·머리를 정한다 (명단은 DB에 있으므로 id만 보고 고른다).
 _Look _residentLook(String residentId) {
-  final r = residents.firstWhere((x) => x.id == residentId);
-  final cls = classes.firstWhere((c) => c.id == r.classId);
-  final off = cls.order;
-  final female = cls.sex == '여';
-  final st = female ? [1, 3][(r.order + off) % 2] : [0, 2][(r.order + off) % 2];
-  final p = _pal[(r.order + off) % 7];
-  return _Look(p[0], p[1], p[2], st);
+  final h = residentId.codeUnits.fold<int>(7, (a, b) => (a * 31 + b) & 0x7fffffff);
+  final p = _pal[h % 7];
+  return _Look(p[0], p[1], p[2], h % 4);
 }
 
 _Look _staffLookOf(String staffId) {
@@ -74,6 +68,56 @@ String _svg(_Look p, {required bool detail, required bool eyes}) {
   b.write('<ellipse cx="32" cy="28" rx="14" ry="17" fill="#f0ccb3"/><path d="${_front[p.style]}" fill="${p.hair}"/>');
   if (eyes) b.write('<circle cx="26" cy="30" r="1.4" fill="#68554e"/><circle cx="38" cy="30" r="1.4" fill="#68554e"/>');
   if (detail) b.write('<path d="M29 36q3 3 6 0" fill="none" stroke="#bd8c7b" stroke-width="1.2" stroke-linecap="round"/>');
+  b.write('</svg>');
+  return b.toString();
+}
+
+/// 시연용 프로필 사진 그림 (가상 일러스트, 실제 사진 아님). 0 생일 · 1 봄 소풍 · 2 겨울 · 3 바다.
+const residentSceneTitles = ['생일 파티', '봄 소풍', '첫눈 오는 날', '바다 나들이'];
+
+String residentSceneSvg(String residentId, int scene) {
+  final p = _residentLook(residentId);
+  final s = scene % 4;
+  const bgs = ['#fce9ee', '#e7f3e1', '#e4ecf8', '#ddf0f4'];
+  final b = StringBuffer('<svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg"><rect width="320" height="320" fill="${bgs[s]}"/>');
+  // 뒤 배경
+  switch (s) {
+    case 0:
+      for (final (x, y, c) in [(40, 60, '#f6b0c3'), (276, 48, '#ffd66b'), (60, 170, '#9fd3c7'), (262, 160, '#b8a6e0'), (30, 260, '#ffd66b'), (290, 250, '#f6b0c3')]) {
+        b.write('<circle cx="$x" cy="$y" r="9" fill="$c"/>');
+      }
+    case 1:
+      b.write('<circle cx="262" cy="58" r="28" fill="#ffe3a3"/>');
+      for (final (x, y) in [(42, 236), (74, 262), (276, 222), (250, 268)]) {
+        b.write('<circle cx="$x" cy="$y" r="14" fill="#f7c6d0"/><circle cx="$x" cy="$y" r="5" fill="#ffd66b"/>');
+      }
+    case 2:
+      for (final (x, y) in [(36, 40), (90, 26), (250, 34), (292, 90), (24, 130), (280, 170), (52, 200), (300, 260), (20, 290)]) {
+        b.write('<circle cx="$x" cy="$y" r="5" fill="#ffffff"/>');
+      }
+    case 3:
+      b.write('<circle cx="58" cy="62" r="26" fill="#ffe3a3"/>'
+          '<path d="M0 230q40-20 80 0t80 0 80 0 80 0V320H0z" fill="#9ccfe0"/>'
+          '<path d="M0 262q40-18 80 0t80 0 80 0 80 0V320H0z" fill="#7dbbd3"/>');
+  }
+  // 얼굴 (64 그림을 4배로)
+  b.write('<g transform="translate(32 64) scale(4)">'
+      '<path d="${_back[p.style]}" fill="${p.hair}"/>'
+      '<path d="M9 64c0-20 12-24 23-24s23 4 23 24" fill="${p.shirt}"/>'
+      '<path d="M26 39v7c4 4 8 4 12 0v-7" fill="#e6bba3"/>'
+      '<ellipse cx="32" cy="28" rx="14" ry="17" fill="#f0ccb3"/><path d="${_front[p.style]}" fill="${p.hair}"/>'
+      '<circle cx="26" cy="30" r="1.4" fill="#68554e"/><circle cx="38" cy="30" r="1.4" fill="#68554e"/>'
+      '<path d="M28 35q4 4 8 0" fill="none" stroke="#bd8c7b" stroke-width="1.2" stroke-linecap="round"/>'
+      '<circle cx="22" cy="34" r="2.2" fill="#f2b5a8" opacity="0.6"/><circle cx="42" cy="34" r="2.2" fill="#f2b5a8" opacity="0.6"/>'
+      '</g>');
+  // 앞 소품
+  switch (s) {
+    case 0:
+      b.write('<polygon points="160,14 128,100 192,100" fill="#f6b0c3"/>'
+          '<path d="M141 66h38M134 84h52" stroke="#ffffff" stroke-width="5"/><circle cx="160" cy="14" r="10" fill="#ffd66b"/>');
+    case 2:
+      b.write('<rect x="114" y="236" width="92" height="24" rx="12" fill="#e58c8c"/><rect x="176" y="250" width="22" height="56" rx="8" fill="#d97a7a"/>');
+  }
   b.write('</svg>');
   return b.toString();
 }

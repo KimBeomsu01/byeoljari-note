@@ -2,26 +2,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import 'repository.dart';
-import 'seed.dart';
 
-/// 저장소. main.dart에서 기기 안 저장소를 붙인 것으로 덮어쓴다 (overrideWith).
-/// 서버가 생기면 구현만 바꾼다.
+/// 저장소. main.dart / server_app.dart에서 서버 저장소를 붙인 것으로 덮어쓴다 (overrideWith).
 final repoProvider = ChangeNotifierProvider<InMemoryRepository>((ref) => InMemoryRepository());
 
-/// 지금 앱을 쓰는 사람 (시연에서는 역할 바꾸기로 바뀜).
-final currentUserProvider = StateProvider<String>((ref) => demoUserId);
+/// 지금 화면이 모바일(mobile)인지 PC(pc)인지. PC 셸에서 덮어쓴다.
+final screenKindProvider = Provider<String>((ref) => 'mobile');
 
-/// 시연 시계: 저장소의 시계를 쓴다 (10/28 09:41 시작, 껐다 켜면 이어서).
+/// 주소 → 화면 종류: `/doctor` 의료진 협진 포털, `/pc` 오피스 웹(PC), 그 밖 모바일.
+String screenKindOf(String path) {
+  bool under(String p) => path == p || path.startsWith('$p/');
+  if (under('/doctor')) return 'doctor';
+  if (under('/pc')) return 'pc';
+  return 'mobile';
+}
+
+/// 지금 앱을 쓰는 사람. 처음엔 그 화면의 기본 사용자 (모바일 = 생활관 선생님, PC = 수석간호사).
+final currentUserProvider = StateProvider<String>((ref) => ref.read(repoProvider).defaultUser(ref.read(screenKindProvider)));
+
+/// 시계 (실제 시각).
 final clockProvider = Provider<DateTime Function()>((ref) => ref.read(repoProvider).now);
-
-/// 체온을 잴 수 있는 반 (ClassPermission). 금요일은 시드로 고정.
-const measurePermission = <String, Set<String>>{
-  'kim_haneul': {'milkyway'},
-  'choi_minho': {'whale'},
-  'oh_jimin': {'aquarius', 'pisces', 'bear', 'milkyway', 'aries', 'whale'}, // 야간 당직은 전체
-  'park_jieun': {'aquarius', 'milkyway'},
-  'lee_sujin': {'milkyway'},
-  'park_soyeon': {'aquarius', 'pisces', 'bear', 'milkyway', 'aries', 'whale'},
-};
-
-Set<String> measurableClasses(String staffId) => measurePermission[staffId] ?? const {};

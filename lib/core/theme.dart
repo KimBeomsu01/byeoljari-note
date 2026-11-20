@@ -1,9 +1,63 @@
-// 디자인 토큰 (docs/design.md). 팀 시제품(인수인계 명세 13장)의 색·모양 + 중장년용으로 키운 글자.
-// 판정 색은 통합 명세 5-4 [확정] 그대로.
+// 디자인 토큰 — Claude Design "별자리노트" 캔버스의 tokens.css / tokens.json 값 그대로.
+// 예전 이름(brandDark, inkMain …)은 다른 화면이 그대로 쓰도록 남겨 두고 값만 새 토큰으로 바꿨다.
 import 'package:flutter/material.dart';
 
 import 'models.dart';
 
+// ── Color · Neutral
+class Ds {
+  static const bg = Color(0xFFF2F4F6);
+  static const surface = Color(0xFFFFFFFF);
+  static const gray50 = Color(0xFFF9FAFB);
+  static const gray100 = Color(0xFFF2F4F6);
+  static const gray200 = Color(0xFFE5E8EB);
+  static const gray300 = Color(0xFFD1D6DB);
+  static const gray400 = Color(0xFFB0B8C1);
+  static const gray500 = Color(0xFF8B95A1);
+  static const gray600 = Color(0xFF6B7684);
+  static const gray700 = Color(0xFF4E5968);
+  static const gray800 = Color(0xFF333D4B);
+  static const gray900 = Color(0xFF191F28);
+
+  // ── Color · Brand / Status
+  static const violet500 = Color(0xFF7C5CF0); // 주요 액션
+  static const violet600 = Color(0xFF6A4BDF);
+  static const violet50 = Color(0xFFF1EDFE);
+  static const blue500 = Color(0xFF3182F6); // 정보 · 링크 · 보조 액션
+  static const blue600 = Color(0xFF2563EB);
+  static const blue50 = Color(0xFFE8F3FF);
+  static const red500 = Color(0xFFF04452); // 긴급 · 체온 상승
+  static const red50 = Color(0xFFFEECEE);
+  static const red25 = Color(0xFFFFF5F5);
+  static const green500 = Color(0xFF03B26C);
+  static const green50 = Color(0xFFE8F9F1);
+  static const orange500 = Color(0xFFFF8A00);
+  static const orange50 = Color(0xFFFFF4E6);
+  static const cyan500 = Color(0xFF00B8D9);
+  static const cyan50 = Color(0xFFE6FCFF);
+
+  // ── Alpha
+  static const borderCard = Color(0x80E5E8EB);
+  static const borderChip = Color(0xB3E5E8EB);
+  static const borderDanger = Color(0x33F04452);
+  static const borderInfo = Color(0x333182F6);
+
+  // ── Elevation
+  static const shadowSm = [BoxShadow(color: Color(0x0D000000), blurRadius: 2, offset: Offset(0, 1))];
+  static const shadowBar = [BoxShadow(color: Color(0x08000000), blurRadius: 3, offset: Offset(0, 1))];
+  static const shadowTile = [BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1))];
+  static const shadowCard = [BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 2))];
+  static const shadowFloat = [BoxShadow(color: Color(0x14000000), blurRadius: 8, offset: Offset(0, 2))];
+  static const shadowDial = [BoxShadow(color: Color(0x12000000), blurRadius: 24, offset: Offset(0, 8))];
+  static const shadowDanger = [BoxShadow(color: Color(0x0FF04452), blurRadius: 16, offset: Offset(0, 4))];
+  static const shadowPrimary = [BoxShadow(color: Color(0x597C5CF0), blurRadius: 20, offset: Offset(0, 8))];
+
+  /// 모바일 화면 폭 (최대 440).
+  static const double screenMax = 440;
+  static const double screenPad = 20;
+}
+
+/// 판정 색: 정상 = 초록, 주의 = 주황, 이상·위험 = 빨강, 저온 = 파랑.
 class StageColors {
   const StageColors(this.ink, this.soft, this.line);
   final Color ink;
@@ -12,154 +66,135 @@ class StageColors {
 }
 
 const stageColors = <Stage, StageColors>{
-  Stage.normal: StageColors(Color(0xFF4C7D62), Color(0xFFE9F3ED), Color(0xFF75AA8D)),
-  Stage.caution: StageColors(Color(0xFF8A5D12), Color(0xFFFBF1DD), Color(0xFFD9A44E)),
-  Stage.abnormal: StageColors(Color(0xFF9A4F12), Color(0xFFFCEBDC), Color(0xFFD9853B)),
-  Stage.danger: StageColors(Color(0xFFA8403F), Color(0xFFFBEAEA), Color(0xFFDC8584)),
-  Stage.low: StageColors(Color(0xFF3F6EA0), Color(0xFFE8F0FA), Color(0xFF6A9ED5)),
+  Stage.normal: StageColors(Ds.green500, Ds.green50, Color(0x6603B26C)),
+  Stage.caution: StageColors(Color(0xFFE07A00), Ds.orange50, Color(0x66FF8A00)),
+  Stage.abnormal: StageColors(Ds.red500, Ds.red50, Ds.borderDanger),
+  Stage.danger: StageColors(Color(0xFFD62D3B), Ds.red50, Color(0x66F04452)),
+  Stage.low: StageColors(Ds.blue500, Ds.blue50, Ds.borderInfo),
 };
 
-// ── 색 (이름은 예전 코드와 맞춰 두고 값만 바꿨다)
-// 색은 혜진원 홈페이지에서 가져왔다 (수채화 분홍 바탕, 코랄 메뉴, 코끼리·로고 초록, 로고 남색, QUICK MENU 주황).
+/// 평소 체온과의 차이 색: +0.5° 이상 빨강, −0.5° 이하 파랑, 그 사이 기본색 (README 표시 규칙).
+Color diffColor(int diff) => diff >= 5 ? Ds.red500 : (diff <= -5 ? Ds.blue500 : Ds.gray900);
 
-/// 혜진원 초록: 주 버튼, 선택된 탭·칩, 요약 카드.
-const Color brandDark = Color(0xFF3D7535);
+// ── 예전 이름 (다른 화면 호환). 값은 새 토큰.
+const Color brandDark = Ds.violet500;
+const Color paper = Ds.bg;
+const Color coral = Ds.red500;
+const Color navy = Ds.blue500;
+const Color quickOrange = Ds.violet500;
+const Color surface = Ds.surface;
+const Color inkMain = Ds.gray900;
+const Color inkSub = Ds.gray600;
+const Color line = Ds.gray200;
+const Color lineStrong = Ds.gray300;
+const Color lineSoft = Ds.gray100;
+const Color actionSoft = Ds.blue50;
+const Color actionInk = Ds.blue500;
+const Color alertSoft = Ds.red50;
+const Color starYellow = Ds.orange500;
+const Color sage = Ds.gray50;
+const Color recordedGreen = Ds.green50;
 
-/// 연한 분홍 바탕 (홈페이지 수채화 배경).
-const Color paper = Color(0xFFFFF7F5);
-
-/// 코랄 분홍 (홈페이지 메뉴 띠): 제목 ✦, 강조 점.
-const Color coral = Color(0xFFE8696C);
-
-/// 로고 남색: 링크·보조 강조.
-const Color navy = Color(0xFF2B479A);
-
-/// QUICK MENU 주황: 가운데 '퀵 체온' 버튼.
-const Color quickOrange = Color(0xFFF5A23F);
-
-/// 카드·시트 바탕.
-const Color surface = Color(0xFFFFFFFF);
-
-/// 본문 글자: 짙은 갈색 (홈페이지 글자색). 흰 바탕 대비 약 13:1.
-const Color inkMain = Color(0xFF3E2C22);
-
-/// 보조 글자. 흰 바탕 대비 약 7:1. 이보다 옅은 색은 쓰지 않는다.
-const Color inkSub = Color(0xFF6B5549);
-
-/// 카드 테두리·구분선: 옅은 분홍.
-const Color line = Color(0xFFF0DCD5);
-
-/// 테두리 버튼 선.
-const Color lineStrong = Color(0xFFE6CFC7);
-
-/// 목록 안 구분선.
-const Color lineSoft = Color(0xFFF5E6E1);
-
-/// '재기' 같은 체온 행동 버튼 바탕·글자.
-const Color actionSoft = Color(0xFFFDECD6);
-const Color actionInk = Color(0xFF8A4A0A);
-
-/// 확인 안 됨 띠 (위험 빨강 옅은 바탕).
-const Color alertSoft = Color(0xFFFBEAEA);
-
-/// 미확인·새 기록 표시: 달력 '오늘' 노랑.
-const Color starYellow = Color(0xFFF2B93B);
-
-/// 연한 초록 면 (퀵 체온 바탕, 선택된 칩 등).
-const Color sage = Color(0xFFEAF4E2);
-
-/// 퀵 체온의 "기록 완료" 초록. 판정 색(평소)과 다른 색이다.
-const Color recordedGreen = Color(0xFFCFE8CF);
-
-// ── 글자 크기: 시제품(12~14)보다 한 단계씩 크게, 최소 14
+// ── 글자 크기 (tokens.json font.scale)
 class T {
-  // 클로드 디자인 개선 시안 (2026-11-12) 기준
-  static const double caption = 15; // 보조 설명 (작은글씨 400 · #6b5549)
-  static const double body = 17; // 본문 문장 (작은글씨 400)
-  static const double title = 21; // 이름·카드 제목 (큰글씨 700)
-  static const double headline = 28; // 화면 제목 (큰글씨 800)
-  static const double number = 34; // 카드 안 큰 체온
-  static const double display = 96; // 퀵 체온 숫자
+  static const double micro = 11;
+  static const double caption = 12;
+  static const double label = 13;
+  static const double body = 14;
+  static const double bodyMd = 15;
+  static const double bodyLg = 16;
+  static const double heading = 18;
+  static const double title = 20;
+  static const double headline = 24;
+  static const double number = 26;
+  static const double display = 64;
 }
 
-// ── 간격·모양
+// ── 간격 · 모양
 class Gap {
   static const double xs = 4;
   static const double s = 8;
   static const double m = 12;
   static const double l = 16;
   static const double xl = 24;
-  static const double page = 20; // 화면 좌우 여백
+  static const double page = 20;
 }
 
 class Radii {
-  static const double card = 20; // 카드 (시안)
-  static const double sheet = 28; // 시트 위쪽
-  static const double button = 14; // 버튼
-  static const double pill = 999; // 상태 표시
+  static const double card = 24;
+  static const double inner = 20;
+  static const double sheet = 24;
+  static const double button = 12;
+  static const double tag = 6;
+  static const double pill = 9999;
 }
 
-/// 모든 누르는 것의 최소 높이 (시제품 40 → 앱 기준 44 이상, 넉넉하게 48).
-const double tapHeight = 52;
+/// 누르는 것의 최소 높이 (터치 영역 44px).
+const double tapHeight = 44;
 
-/// 본문 글꼴: 카카오 작은글씨, 제목·큰 숫자: 카카오 큰글씨 (팀 시제품과 같음, SIL OFL 1.1).
-const String fontSmall = 'KakaoSmall';
-const String fontBig = 'KakaoBig';
+/// 서체: Pretendard (Claude Design 지정).
+const String fontSmall = 'Pretendard';
+const String fontBig = 'Pretendard';
 
-/// 기호용 대체 글꼴 (기기에 있는 것을 순서대로 쓴다).
-const List<String> symbolFallback = ['Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Color Emoji', 'Noto Color Emoji'];
+/// 기호용 대체 글꼴.
+const List<String> symbolFallback = ['Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI Symbol', 'Apple Color Emoji', 'Noto Color Emoji'];
+
+/// 숫자 고정폭 (tabular-nums).
+const tabular = [FontFeature.tabularFigures()];
 
 /// [fontFamily]를 넘기면 그 글꼴로 바꾼다 (테스트용).
 ThemeData buildTheme({String? fontFamily}) {
   final family = fontFamily ?? fontSmall;
-  final big = fontFamily ?? fontBig;
   final scheme = ColorScheme.fromSeed(
-    seedColor: brandDark,
-    primary: brandDark,
+    seedColor: Ds.violet500,
+    primary: Ds.violet500,
     onPrimary: Colors.white,
-    surface: surface,
-    onSurface: inkMain,
-    onSurfaceVariant: inkSub,
-    outline: line,
+    secondary: Ds.blue500,
+    surface: Ds.surface,
+    onSurface: Ds.gray900,
+    onSurfaceVariant: Ds.gray600,
+    outline: Ds.gray200,
+    error: Ds.red500,
   );
-  // 카카오 글씨에 없는 기호(✓ ⚠ ▾ ✦, 이모지)는 기기 글꼴로 대신 그린다.
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: paper,
+    scaffoldBackgroundColor: Ds.bg,
     fontFamily: family,
     fontFamilyFallback: symbolFallback,
   );
+  TextStyle s(double size, FontWeight w, {double? h}) => TextStyle(
+      fontFamily: family, fontFamilyFallback: symbolFallback, fontSize: size, fontWeight: w, height: h, letterSpacing: -0.2);
   final text = base.textTheme
       .copyWith(
-        displaySmall: TextStyle(fontFamily: big, fontSize: T.display, fontWeight: FontWeight.w600, height: 1.1),
-        headlineSmall: TextStyle(fontFamily: big, fontSize: T.headline, fontWeight: FontWeight.w700, height: 1.3),
-        titleLarge: TextStyle(fontFamily: big, fontSize: T.title, fontWeight: FontWeight.w700, height: 1.35),
-        titleMedium: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700, height: 1.4),
-        titleSmall: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600, height: 1.4),
-        bodyLarge: TextStyle(fontFamily: family, fontSize: T.body, height: 1.5),
-        bodyMedium: TextStyle(fontFamily: family, fontSize: T.body, height: 1.5),
-        bodySmall: TextStyle(fontFamily: family, fontSize: T.caption, height: 1.45),
-        labelLarge: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600),
-        labelMedium: TextStyle(fontFamily: family, fontSize: T.caption, fontWeight: FontWeight.w600),
-        labelSmall: TextStyle(fontFamily: family, fontSize: T.caption, fontWeight: FontWeight.w600),
+        displaySmall: s(T.display, FontWeight.w800, h: 1),
+        headlineSmall: s(T.headline, FontWeight.w700, h: 1.33),
+        titleLarge: s(T.title, FontWeight.w700, h: 1.4),
+        titleMedium: s(T.bodyLg, FontWeight.w700, h: 1.5),
+        titleSmall: s(T.body, FontWeight.w700, h: 1.43),
+        bodyLarge: s(T.bodyMd, FontWeight.w500, h: 1.5),
+        bodyMedium: s(T.body, FontWeight.w500, h: 1.43),
+        bodySmall: s(T.caption, FontWeight.w500, h: 1.33),
+        labelLarge: s(T.body, FontWeight.w600),
+        labelMedium: s(T.caption, FontWeight.w600),
+        labelSmall: s(T.micro, FontWeight.w600),
       )
-      .apply(bodyColor: inkMain, displayColor: inkMain);
+      .apply(bodyColor: Ds.gray900, displayColor: Ds.gray900);
 
   final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.button));
-  final buttonText = TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700);
-  const buttonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 12);
+  final buttonText = s(T.body, FontWeight.w600);
+  const buttonPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
   return base.copyWith(
     textTheme: text,
     appBarTheme: AppBarTheme(
-      backgroundColor: paper,
-      foregroundColor: inkMain,
+      backgroundColor: Ds.bg,
+      foregroundColor: Ds.gray900,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      toolbarHeight: 60,
-      titleTextStyle: TextStyle(fontFamily: big, fontSize: T.headline, fontWeight: FontWeight.w800, color: inkMain),
+      toolbarHeight: 56,
+      titleTextStyle: s(T.title, FontWeight.w700).copyWith(color: Ds.gray900),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
@@ -167,6 +202,20 @@ ThemeData buildTheme({String? fontFamily}) {
         padding: buttonPadding,
         textStyle: buttonText,
         shape: buttonShape,
+        backgroundColor: Ds.violet500,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(tapHeight, tapHeight),
+        padding: buttonPadding,
+        textStyle: buttonText,
+        shape: buttonShape,
+        elevation: 0,
+        backgroundColor: Ds.gray100,
+        foregroundColor: Ds.gray800,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -174,87 +223,96 @@ ThemeData buildTheme({String? fontFamily}) {
         minimumSize: const Size(tapHeight, tapHeight),
         padding: buttonPadding,
         textStyle: buttonText,
-        foregroundColor: brandDark,
-        side: const BorderSide(color: line, width: 1.5),
+        foregroundColor: Ds.gray800,
+        side: const BorderSide(color: Ds.gray200),
         shape: buttonShape,
-        backgroundColor: surface,
+        backgroundColor: Ds.surface,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        minimumSize: const Size(48, 48),
+        minimumSize: const Size(tapHeight, tapHeight),
         textStyle: buttonText,
-        foregroundColor: brandDark,
+        foregroundColor: Ds.blue500,
+        shape: buttonShape,
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
-      labelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600, color: inkMain),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      side: const BorderSide(color: line, width: 1.5),
+      labelStyle: s(T.caption, FontWeight.w500).copyWith(color: Ds.gray700),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      side: const BorderSide(color: Ds.borderChip),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.pill)),
-      backgroundColor: surface,
-      selectedColor: brandDark,
-      secondarySelectedColor: brandDark,
-      secondaryLabelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700, color: Colors.white),
+      backgroundColor: Ds.surface,
+      selectedColor: Ds.gray900,
+      secondarySelectedColor: Ds.gray900,
+      secondaryLabelStyle: s(T.caption, FontWeight.w600).copyWith(color: Colors.white),
       checkmarkColor: Colors.white,
     ),
     cardTheme: CardThemeData(
-      color: surface,
+      color: Ds.surface,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Radii.card),
-        side: const BorderSide(color: line),
+        side: const BorderSide(color: Ds.borderCard),
       ),
     ),
     listTileTheme: ListTileThemeData(
       minVerticalPadding: 12,
-      titleTextStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w600, color: inkMain),
-      subtitleTextStyle: TextStyle(fontFamily: family, fontSize: T.caption, color: inkSub, height: 1.45),
-      leadingAndTrailingTextStyle: TextStyle(fontFamily: family, fontSize: T.caption, color: inkSub),
+      titleTextStyle: s(T.body, FontWeight.w600).copyWith(color: Ds.gray900),
+      subtitleTextStyle: s(T.caption, FontWeight.w500).copyWith(color: Ds.gray600, height: 1.45),
+      leadingAndTrailingTextStyle: s(T.caption, FontWeight.w500).copyWith(color: Ds.gray600),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      hintStyle: TextStyle(fontFamily: family, fontSize: T.body, color: inkSub),
-      labelStyle: TextStyle(fontFamily: family, fontSize: T.body, color: inkSub),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: line, width: 1.5)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: line, width: 1.5)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: brandDark, width: 2)),
+      fillColor: Ds.gray50,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      hintStyle: s(T.body, FontWeight.w500).copyWith(color: Ds.gray500),
+      labelStyle: s(T.body, FontWeight.w500).copyWith(color: Ds.gray600),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: Ds.gray200)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: Ds.gray200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(Radii.button), borderSide: const BorderSide(color: Ds.blue500, width: 1.5)),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: surface,
+      backgroundColor: Ds.surface,
       showDragHandle: true,
+      dragHandleColor: Ds.gray300,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.sheet))),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: surface,
-      titleTextStyle: TextStyle(fontFamily: family, fontSize: T.title, fontWeight: FontWeight.w700, color: inkMain),
-      contentTextStyle: TextStyle(fontFamily: family, fontSize: T.body, color: inkMain, height: 1.5),
+      backgroundColor: Ds.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.card)),
+      titleTextStyle: s(T.heading, FontWeight.w700).copyWith(color: Ds.gray900),
+      contentTextStyle: s(T.body, FontWeight.w500).copyWith(color: Ds.gray700, height: 1.5),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: inkMain,
-      contentTextStyle: TextStyle(fontFamily: family, fontSize: T.body, color: Colors.white, height: 1.4),
-      insetPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+      backgroundColor: Ds.gray900,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.button)),
+      contentTextStyle: s(T.body, FontWeight.w600).copyWith(color: Colors.white, height: 1.4),
+      insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
     ),
-    dividerTheme: const DividerThemeData(color: line, thickness: 1, space: 1),
+    dividerTheme: const DividerThemeData(color: Ds.gray100, thickness: 1, space: 1),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        minimumSize: const Size(tapHeight, 52),
+        minimumSize: const Size(tapHeight, tapHeight),
         textStyle: buttonText,
-        selectedBackgroundColor: brandDark,
+        selectedBackgroundColor: Ds.gray900,
         selectedForegroundColor: Colors.white,
-        side: const BorderSide(color: line, width: 1.5),
+        side: const BorderSide(color: Ds.gray200),
       ),
     ),
     tabBarTheme: TabBarThemeData(
-      labelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w700),
-      unselectedLabelStyle: TextStyle(fontFamily: family, fontSize: T.body, fontWeight: FontWeight.w500),
-      labelColor: brandDark,
-      unselectedLabelColor: inkSub,
-      indicatorColor: brandDark,
+      labelStyle: s(T.body, FontWeight.w700),
+      unselectedLabelStyle: s(T.body, FontWeight.w500),
+      labelColor: Ds.gray900,
+      unselectedLabelColor: Ds.gray500,
+      indicatorColor: Ds.gray900,
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: Ds.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      textStyle: s(T.body, FontWeight.w500).copyWith(color: Ds.gray900),
     ),
   );
 }

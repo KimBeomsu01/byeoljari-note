@@ -1,0 +1,6 @@
+name: byeoljari_new2_server
+publish_to: none
+environment:
+  sdk: ^3.14.0
+dependencies:
+  postgres: 3.5.20
