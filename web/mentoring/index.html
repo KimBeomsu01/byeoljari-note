@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>별자리노트 · 통합 시연 (가상 데이터)</title>
+<style>
+:root{--g50:#F9FAFB;--g100:#F2F4F6;--g200:#E5E8EB;--g300:#D1D6DB;--g400:#B0B8C1;--g500:#8B95A1;--g600:#6B7684;--g700:#4E5968;--g800:#333D4B;--g900:#191F28;
+--b500:#3182F6;--b600:#2563EB;--b50:#E8F3FF;--r500:#F04452;--r700:#C5303D;--r50:#FEECEE;--gr500:#03B26C;--gr700:#027A4B;--gr50:#E6F7EF;--y50:#FFF6E0;--y700:#8A5D12;--o50:#FFF1E4;--o700:#9A4F12;--p500:#7C5CF0;--p50:#F1EDFF;
+--sans:'Pretendard','Inter',-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:var(--sans);font-size:14px;line-height:1.5;color:var(--g900);background:var(--g100);-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:3px solid rgba(49,130,246,.55);outline-offset:2px}
+.mono{font-family:var(--mono)}
+#root{height:100%;display:flex;flex-direction:column}
+/* ── 상단 ── */
+.hd{flex:none;background:#fff;border-bottom:1px solid var(--g200);display:flex;align-items:center;gap:12px;padding:8px 16px;flex-wrap:wrap}
+.brand{font-weight:800;font-size:16px;white-space:nowrap}
+.brand small{font-weight:600;color:var(--g600);font-size:12.5px;margin-left:6px}
+.demo-pill{background:var(--y50);color:var(--y700);font-weight:700;font-size:12px;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.tabs{display:flex;gap:4px;background:var(--g100);border-radius:12px;padding:4px;margin-left:auto;flex-wrap:wrap}
+.tabs button{min-height:40px;padding:2px 12px;border-radius:9px;font-weight:700;color:var(--g700);font-size:13.5px;line-height:1.25;text-align:left}
+.tabs button small{display:block;font-weight:600;font-size:11.5px;color:var(--g600)}
+.tabs button[aria-pressed=true]{background:#fff;color:var(--b600);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tabs button[aria-pressed=true] small{color:var(--b600)}
+.hbtn{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--g300);background:#fff;font-weight:700;font-size:13px;color:var(--g700);white-space:nowrap}
+.hbtn[aria-pressed=true]{background:var(--g900);color:#fff;border-color:var(--g900)}
+.guide{flex:none;background:#fff;border-bottom:1px solid var(--g200);display:flex;gap:6px;padding:8px 16px;overflow-x:auto;align-items:stretch}
+.gstep{flex:1 0 150px;text-align:left;border:1px solid var(--g200);border-radius:12px;padding:6px 10px;background:var(--g50);display:flex;gap:8px;align-items:flex-start;min-height:52px}
+.gstep .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--g300);color:#fff;font:800 12px/22px var(--mono);text-align:center}
+.gstep b{display:block;font-size:13px;line-height:1.3}
+.gstep small{font-size:11.5px;color:var(--g600);font-weight:600}
+.gstep.done{background:var(--gr50);border-color:rgba(3,178,108,.4)}
+.gstep.done .n{background:var(--gr500)}
+.gstep.next{background:var(--b50);border-color:var(--b500)}
+.gstep.next .n{background:var(--b500)}
+.gctl{flex:none;display:flex;flex-direction:column;gap:4px;justify-content:center;padding-left:6px;font-size:12.5px;font-weight:700;color:var(--g700)}
+.gctl label{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.main{flex:1;min-height:0;display:flex}
+.phonecol{flex:none;width:404px;padding:12px 4px 12px 16px;display:flex;flex-direction:column;min-height:0}
+.phonecol .cap{font-size:12px;font-weight:700;color:var(--g600);padding:0 6px 6px}
+.pccol{flex:1;min-width:0;padding:12px 16px 12px 12px;display:flex;flex-direction:column;min-height:0}
+.pcframe{flex:1;min-height:0;background:var(--g100);border:1px solid var(--g300);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.pcbar{flex:none;height:48px;background:rgba(255,255,255,.95);border-bottom:1px solid var(--g200);display:flex;align-items:center;gap:8px;padding:0 14px;font-size:12.5px}
+.pcbar b{font-size:14px}
+.pcbar .sep{color:var(--g300)}
+.pcbar .fac{background:var(--g100);border:1px solid var(--g200);border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px;white-space:nowrap}
+.pcbar .user{margin-left:auto;text-align:right;line-height:1.25;white-space:nowrap}
+.pcbar .user small{display:block;color:var(--g600);font-size:11.5px}
+.pcbar .owner{background:var(--b50);color:var(--b600);font-weight:800;border-radius:999px;padding:2px 10px;font-size:12px;white-space:nowrap}
+.pcbody{flex:1;min-height:0;overflow:auto}
+/* ── 공통 조각 ── */
+.pill{display:inline-flex;align-items:center;font-size:12px;font-weight:700;border-radius:999px;padding:1px 9px;white-space:nowrap}
+.pill.red{background:var(--r50);color:var(--r700)}.pill.blue{background:var(--b50);color:var(--b600)}.pill.gray{background:var(--g100);color:var(--g700)}.pill.green{background:var(--gr50);color:var(--gr700)}.pill.yel{background:var(--y50);color:var(--y700)}.pill.org{background:var(--o50);color:var(--o700)}.pill.pur{background:var(--p50);color:#5B3FD6}.pill.solid{background:var(--r500);color:#fff}
+.tag{display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.tag.new{background:var(--b50);color:var(--b600)}.tag.ask{background:var(--y50);color:var(--y700)}
+.row{display:flex;align-items:center;gap:8px}
+.muted{color:var(--g600);font-size:12.5px}
+.btn{min-height:36px;border-radius:999px;font-weight:700;font-size:13px;padding:0 14px;white-space:nowrap}
+.btn.pri{background:var(--b500);color:#fff}.btn.pri:hover{background:var(--b600)}
+.btn.sec{background:#fff;border:1px solid var(--g300);color:var(--g700)}.btn.sec:hover{background:var(--g100)}
+.btn.red{background:var(--r500);color:#fff}
+.btn:disabled{opacity:.45}
+.panel{background:#fff;border:1px solid var(--g200);border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.03);display:flex;flex-direction:column;min-height:0}
+.panel>h3{flex:none;font-size:15px;padding:12px 14px;border-bottom:1px solid var(--g200);display:flex;align-items:center;gap:8px}
+.panel .scroll{flex:1;min-height:0;overflow-y:auto}
+.kcard{background:#fff;border:1px solid var(--g200);border-radius:16px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.empty{text-align:center;color:var(--g600);padding:26px 10px;font-weight:600}
+.inp{width:100%;min-height:36px;border:1px solid var(--g300);border-radius:10px;padding:6px 10px;background:#fff}
+textarea.inp{resize:vertical;min-height:64px}
+.lbl{display:block;font-size:12px;font-weight:700;color:var(--g600);margin:8px 0 3px}
+/* ── 현황판 ── */
+.board{padding:14px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;min-width:980px}
+.board h1{font-size:19px;grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.live{color:var(--gr700);font-size:12.5px;font-weight:700}
+.cards4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;grid-column:1/-1}
+.cards4 .kcard small{font-size:12px;font-weight:700;color:var(--g600);display:block}
+.cards4 .kcard b{font:800 24px/1.3 var(--mono)}
+.cards4 .kcard.hot{background:#FEF2F2;border-color:#FECACA}
+.cards4 .kcard p{font-size:12.5px;color:var(--g700);margin-top:2px}
+.bar{height:6px;border-radius:3px;background:var(--g200);margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--b500)}
+.ctabs{display:flex;gap:4px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--g200)}
+.ctabs button{min-height:32px;padding:0 12px;border-radius:999px;font-weight:700;font-size:12.5px;color:var(--g700);background:var(--g100)}
+.ctabs button[aria-pressed=true]{background:var(--g900);color:#fff}
+table.bt{width:100%;border-collapse:collapse;font-size:13px}
+table.bt th{font-size:12px;color:var(--g600);text-align:left;padding:8px 10px;background:var(--g50);border-bottom:1px solid var(--g200);white-space:nowrap}
+table.bt td{padding:8px 10px;border-bottom:1px solid var(--g100);vertical-align:middle}
+table.bt tr.clk{cursor:pointer}table.bt tr.clk:hover td{background:var(--b50)}
+table.bt tr.hot td{background:#FEF2F2}table.bt tr.hot td:first-child{box-shadow:inset 3px 0 0 var(--r500)}
+table.bt tr.flash td{animation:fl 2.4s ease-out}
+@keyframes fl{0%{background:#FFE8A3}100%{}}
+.tv{font:800 17px var(--mono)}.tv.hot{color:var(--r500)}.tv.ok{color:var(--gr700)}
+.av2{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--g100);font-weight:800;font-size:11.5px;color:var(--g700);margin-right:6px}
+.pager{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12.5px;color:var(--g600)}
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}
+.tile{background:#fff;border:1px solid var(--g200);border-radius:14px;padding:8px 10px;text-align:left}
+.tile.hot{border-color:var(--r500)}
+.tile b{display:block;font-size:13px}.tile small{font-size:11.5px;color:var(--g600);font-weight:600}
+.feed{display:grid;gap:8px;padding:10px}
+.fcard{border:1px solid var(--g200);border-radius:14px;padding:10px;background:#fff;font-size:13px}
+.fcard.red{border-color:#FECACA;background:#FEF2F2}.fcard.new{animation:fl 2.4s ease-out}
+.fcard time{font:700 12px var(--mono);color:var(--g600)}
+/* ── 호출함 · 의료진 ── */
+.three{display:grid;grid-template-rows:minmax(0,1fr);gap:12px;padding:12px;height:100%;min-width:1000px}
+.three.calls{grid-template-columns:270px minmax(320px,1fr) 360px}
+.three.doc{grid-template-columns:270px minmax(300px,1fr) 380px}
+.clist{padding:10px;display:grid;gap:8px;align-content:start;background:rgba(249,250,251,.6)}
+.ccard{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:18px;border:1px solid var(--g200);background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.ccard:hover{background:rgba(49,130,246,.08);border-color:var(--b500)}
+.ccard[aria-pressed=true]{background:rgba(49,130,246,.14);border-color:var(--b500);box-shadow:0 0 0 1px var(--b500)}
+.ccard .cl{font-size:11.5px;font-weight:700;background:var(--g100);color:var(--g700);border-radius:8px;padding:0 6px}
+.ccard .who{border-top:1px solid var(--g100);margin-top:8px;padding-top:6px;font-size:12px;color:var(--g600)}
+.ccard .who.unread{color:var(--b500);font-weight:700}
+.ccard p{font-size:12.5px;color:var(--g700);margin-top:5px;line-height:1.4}
+.chat{padding:14px;display:flex;flex-direction:column;gap:10px}
+.bub{max-width:82%;padding:10px 12px;border-radius:16px;font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+.bub.me{align-self:flex-end;background:var(--b500);color:#fff}
+.bub.other{align-self:flex-start;background:#fff;border:1px solid var(--g200)}
+.bub.doc{align-self:flex-start;background:#fff;border:1px solid #BFDBFE;box-shadow:0 0 0 1px #DBEAFE}
+.bmeta{font-size:11.5px;color:var(--g600);font-weight:600;margin-bottom:-6px}
+.bmeta.r{align-self:flex-end}
+.sys{align-self:center;font-size:12px;color:var(--g600);background:var(--g100);border-radius:999px;padding:3px 12px;text-align:center}
+.vcard{align-self:center;width:min(100%,360px);border:1px solid var(--g200);border-radius:14px;padding:10px 12px;background:#fff;font-size:12.5px}
+.vcard h5{font-size:12px;color:var(--b500);margin-bottom:4px}
+.vcard b{font:800 20px var(--mono)}
+.composer{flex:none;border-top:1px solid var(--g200);padding:10px;display:flex;gap:8px;background:#fff;border-radius:0 0 16px 16px}
+.composer input{flex:1;min-height:40px;border-radius:999px;border:1px solid var(--g200);background:var(--g100);padding:0 14px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--g200);background:var(--g50);align-items:center}
+.hr{padding:12px;display:grid;gap:10px;background:rgba(249,250,251,.5)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tbox{text-align:center;border-radius:16px;padding:8px;background:var(--g100);border:1px solid var(--g200)}
+.tbox.hot{background:#FEF2F2;border-color:#FECACA}.tbox.hot b,.tbox.hot small{color:var(--r500)}
+.tbox small{display:block;font-size:11.5px;font-weight:700;color:var(--g600)}.tbox b{font:800 19px var(--mono)}
+.note{background:var(--g100);border-radius:12px;padding:8px 10px;font-size:12.5px}
+.warnbox{background:#FEF2F2;border:1px solid rgba(254,202,202,.8);border-radius:12px;padding:8px 10px;color:var(--r700);font-weight:700;font-size:12.5px}
+.acc{border:1px solid var(--g200);border-radius:14px;background:#fff;margin:10px;overflow:hidden}
+.acc>button{display:flex;width:100%;text-align:left;gap:10px;align-items:center;padding:10px 12px}
+.acc>button:hover{background:var(--g50)}
+.rxrow{display:grid;grid-template-columns:1.2fr 1.6fr .8fr 30px;gap:6px;margin-top:6px}
+/* ── 일정 ── */
+.sched{display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:200px minmax(0,1fr) auto;height:100%;min-width:980px}
+.srail{border-right:1px solid var(--g200);background:#fff;padding:12px;overflow-y:auto}
+.srail h4{font-size:12px;color:var(--g600);margin:12px 0 4px}
+.tog{display:flex;align-items:center;gap:8px;width:100%;text-align:left;min-height:30px;font-size:13px;font-weight:600;border-radius:8px;padding:0 4px}
+.tog:hover{background:var(--g100)}
+.tog i{width:10px;height:10px;border-radius:50%;flex:none}
+.tog[aria-pressed=false]{color:var(--g500);text-decoration:line-through}
+.tog[aria-pressed=false] i{background:var(--g300)!important}
+.scal{display:flex;flex-direction:column;min-width:0;min-height:0}
+.stool{flex:none;display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--g200)}
+.stool h2{font-size:18px;margin-right:auto}
+.dow{flex:none;display:grid;grid-template-columns:repeat(7,1fr);background:#fff;border-bottom:1px solid var(--g200);font-size:12px;font-weight:700;color:var(--g600)}
+.dow span{padding:4px 8px}
+.mgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(92px,1fr);overflow-y:auto;background:var(--g200);gap:1px}
+.cell{background:#fff;padding:4px;display:flex;flex-direction:column;gap:2px;min-width:0;cursor:pointer;text-align:left}
+.cell.out{background:var(--g50)}.cell.out .dn{color:var(--g400)}
+.cell:hover{background:#FBFDFF}
+.dn{font:700 12.5px var(--mono);width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%}
+.cell.today .dn{background:var(--b500);color:#fff}
+.evt{display:block;width:100%;text-align:left;font-size:12px;font-weight:600;border-radius:6px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+.evt[aria-pressed=true]{box-shadow:0 0 0 2px var(--g900)}
+.evt.auto{background:var(--p50);color:#5B3FD6}.evt.auto.red{background:var(--r50);color:var(--r700)}
+.evt.done{opacity:.55}.evt.cx{text-decoration:line-through;opacity:.5}
+.evt.newf{animation:fl 2.4s ease-out}
+.more{font-size:11.5px;color:var(--g600);font-weight:700;padding:0 6px}
+.qadd{width:100%;border:1px solid var(--b500);border-radius:6px;font-size:12px;padding:2px 6px}
+.spanel{width:300px;border-left:1px solid var(--g200);background:#fff;padding:14px;overflow-y:auto}
+/* ── 휴대폰 ── */
+.phone{flex:1;min-height:0;background:var(--g100);border-radius:30px;border:8px solid #111;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 14px 36px rgba(0,0,0,.22);font-size:15px}
+.phone .ptop{flex:none;height:54px;display:flex;align-items:center;gap:8px;padding:0 10px 0 14px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--g200)}
+.phone .ptop h2{font-size:17px;font-weight:800;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phone .ptop .sub{font-size:12.5px;color:var(--g600);font-weight:600;margin-left:6px}
+.ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;position:relative;flex:none}
+.ib:hover{background:var(--g100)}
+.ib svg{width:24px;height:24px;fill:none;stroke:var(--g800);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.badge{position:absolute;top:0;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--r500);color:#fff;font:700 11px/18px var(--mono);text-align:center;padding:0 4px;border:2px solid #fff;box-sizing:content-box}
+.pbody{flex:1;overflow-y:auto;padding:10px 10px 22px;display:flex;flex-direction:column;gap:10px}
+.mcard{background:#fff;border:1px solid var(--g200);border-radius:18px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.mcard.urgent{border-color:var(--r500);border-top-width:3px}
+.mcard.flash{animation:fl 2.4s ease-out}
+.seg{display:flex;background:var(--g200);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;min-height:42px;border-radius:10px;font-weight:700;color:var(--g600)}
+.seg button[aria-pressed=true]{background:#fff;color:var(--g900);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:40px;padding:0 13px;border-radius:999px;background:#fff;border:1px solid var(--g200);font-weight:700;font-size:13.5px;color:var(--g700);white-space:nowrap}
+.chip[aria-pressed=true]{background:var(--g900);color:#fff;border-color:var(--g900)}
+.chip .n{font-family:var(--mono);margin-left:4px;color:var(--b500)}.chip[aria-pressed=true] .n{color:#fff}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.sum div{text-align:center;background:var(--g50);border-radius:14px;padding:6px 4px}
+.sum small{display:block;font-size:12px;color:var(--g600);font-weight:600}.sum b{font:800 22px/1.2 var(--mono)}
+.cls{display:inline-block;font-size:12px;font-weight:700;background:var(--g100);color:var(--g700);border-radius:8px;padding:1px 7px;white-space:nowrap}
+.name{font-size:16.5px;font-weight:800;text-decoration:underline;text-decoration-color:var(--g300);text-underline-offset:4px;min-height:36px;white-space:nowrap}
+.time{margin-left:auto;font:600 12px var(--mono);color:var(--g600);white-space:nowrap}
+.temp{font:800 21px var(--mono)}.temp.hot{color:var(--r500)}
+.txt{font-size:14.5px;color:var(--g800);margin-top:6px;overflow-wrap:anywhere}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.stbox{background:var(--g50);border:1px solid var(--g200);border-radius:14px;padding:7px 10px}
+.stbox small{display:block;font-size:11.5px;font-weight:700;color:var(--g600)}.stbox b{font-size:13.5px}
+.stbox.done b{color:var(--gr700)}.stbox.todo b{color:var(--r500)}
+.macts{display:flex;gap:8px;margin-top:10px}
+.mbtn{flex:1;min-height:50px;border-radius:14px;font-weight:800;font-size:14.5px;padding:0 8px}
+.mbtn.pri{background:var(--b500);color:#fff}.mbtn.sec{background:var(--g100);color:var(--g800)}.mbtn.ghost{background:#fff;border:1px solid var(--g300);color:var(--g700)}
+.mbtn:disabled{opacity:.45}
+.pnav{flex:none;height:72px;background:#fff;border-top:1px solid var(--g200);display:flex;align-items:center;justify-content:space-around;padding:0 8px}
+.pnav .tab{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12.5px;font-weight:700;color:var(--g500)}
+.pnav .tab svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pnav .tab[aria-current=page]{color:var(--b500)}
+.pnav .qt{flex:none;width:72px;height:72px;margin-top:-28px;border-radius:50%;background:var(--b500);color:#fff;font-weight:800;font-size:12.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(49,130,246,.4);border:4px solid #fff}
+.pnav .qt svg{width:25px;height:25px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+.layer{position:absolute;inset:0;background:var(--g100);display:flex;flex-direction:column;z-index:5}
+.target{background:var(--b50);border:1px solid rgba(49,130,246,.3);border-radius:16px;padding:8px 14px;display:flex;align-items:center;gap:10px}
+.target b{font-size:17px}
+.av{width:54px;height:54px;border-radius:50%;background:#fff;border:2px solid var(--g200);font-weight:800;font-size:14.5px;color:var(--g600);flex:none}
+.av[aria-pressed=true]{background:var(--g900);color:#fff;border-color:var(--g900)}
+.av.has{border-color:var(--gr500);border-width:3px}
+.big{text-align:center;font:900 58px/1.1 var(--mono);letter-spacing:-2px}.big small{font-size:26px}
+.step{display:flex;align-items:center;justify-content:center;gap:16px}
+.step button{width:54px;height:54px;border-radius:50%;background:#fff;border:1px solid var(--g300);font:800 25px var(--mono)}
+.hold{position:relative;overflow:hidden;width:100%;min-height:60px;border-radius:18px;background:var(--b500);color:#fff;font-weight:800;font-size:16px;user-select:none;touch-action:none;flex:none}
+.hold::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.22);transform:scaleX(0);transform-origin:left}
+.hold.on::before{transform:scaleX(1);transition:transform .7s linear}
+.hold span{position:relative}.hold:disabled{background:var(--g300)}
+.res{border-radius:16px;padding:12px;font-weight:700}
+.res.saving{background:#fff;border:1px solid var(--g200);display:flex;gap:10px;align-items:center}
+.res.ok{background:var(--gr50);border:1px solid rgba(3,178,108,.35)}.res.fail{background:var(--r50);border:1px solid rgba(240,68,82,.4)}
+.res p{font-weight:500;font-size:13.5px;color:var(--g700);margin-top:3px}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--g200);border-top-color:var(--b500);animation:sp 1s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+.search{width:100%;min-height:46px;border-radius:999px;border:1px solid var(--g200);background:#fff;padding:0 16px;flex:none}
+.day{font-weight:800;font-size:14.5px;margin:4px 4px 0}.day small{font-weight:600;color:var(--g600);margin-left:6px}
+.recb{display:block;width:100%;text-align:left}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--b500);flex:none}
+.link{color:var(--b600);font-weight:700;font-size:13.5px;min-height:38px;text-align:left}
+.sheetbg{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:9;display:flex;align-items:flex-end}
+.sheet{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:16px 14px 18px;max-height:86%;overflow-y:auto}
+.tl{list-style:none;padding:0;margin-top:6px}
+.tl li{position:relative;padding:0 0 12px 22px;font-size:14px}
+.tl li::before{content:"";position:absolute;left:4px;top:7px;width:9px;height:9px;border-radius:50%;background:var(--b500)}
+.tl li::after{content:"";position:absolute;left:8px;top:18px;bottom:0;width:1px;background:var(--g300)}
+.tl li:last-child::after{display:none}
+.tl li.wait::before{background:#fff;border:2px solid var(--g300)}
+.tl time{font:700 12.5px var(--mono);color:var(--g600);margin-right:6px}
+.schedl{list-style:none;padding:0;margin-top:4px}
+.schedl li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--g100);font-size:14px}
+.schedl time{font:700 12.5px var(--mono);color:var(--g700);width:88px;flex:none}
+svg.sp{width:100%;height:54px;display:block;margin-top:8px}
+/* ── 겹침 ── */
+.modalbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:grid;place-items:center;padding:20px}
+.modal{background:#fff;border-radius:18px;padding:18px;width:min(560px,100%);max-height:86vh;overflow-y:auto}
+.logbtn{position:fixed;right:18px;bottom:18px;z-index:40;background:var(--g900);color:#fff;font-weight:800;border-radius:999px;min-height:44px;padding:0 16px;box-shadow:0 6px 18px rgba(0,0,0,.3);font-size:13.5px}
+.logp{position:fixed;right:18px;bottom:72px;z-index:40;width:380px;max-height:60vh;overflow-y:auto;background:#fff;border:1px solid var(--g300);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.25);padding:12px}
+.logp li{list-style:none;padding:8px 0;border-top:1px solid var(--g100);font-size:13px}
+.logp li:first-child{border-top:0}
+.logp time{font:700 12px var(--mono);color:var(--g600);margin-right:6px}
+.to{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:var(--g900);color:#fff;border-radius:12px;padding:10px 16px;font-weight:700;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+/* ── 좁은 화면: 한 번에 한 화면 ── */
+body.only-phone .pccol,body.only-phone .guide,body.only-pc .phonecol{display:none}
+body.only-phone .phonecol{width:100%;max-width:520px;margin:0 auto;padding:8px}
+@media (max-width:1180px){
+  body:not(.only-pc):not(.only-phone) .phonecol{width:360px}
+}
+@media (max-width:900px){
+  body{overflow:auto}
+  #root{height:auto;min-height:100%}
+  .main{flex-direction:column}
+  .phonecol{width:100%!important;height:88vh;padding:10px}
+  .pccol{padding:10px;height:92vh}
+  .tabs{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition:none!important}}
+
+.hstrip{flex:none;display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border-bottom:1px solid var(--g200);font-size:12.5px;flex-wrap:wrap}
+.hstrip .evt{width:auto;max-width:240px;padding:2px 10px}
+.mgrid{grid-auto-rows:minmax(108px,1fr)}
+.hlink{min-height:36px;display:inline-flex;align-items:center;padding:0 12px;border-radius:10px;border:1px solid var(--g300);background:#fff;font-weight:700;font-size:13px;color:var(--b600);white-space:nowrap;text-decoration:none}
+
+.logp{right:16px;top:58px;bottom:auto;max-height:70vh}
+.gstep{flex:0 0 auto;min-height:44px;padding:5px 10px;align-items:center}
+.gstep b,.gstep small{white-space:nowrap}
+.gstep small{display:block}
+@media (max-width:1500px){body:not(.only-pc):not(.only-phone) .phonecol{width:344px}.board{grid-template-columns:minmax(0,1fr) 250px;min-width:900px}.three.calls{grid-template-columns:240px minmax(300px,1fr) 320px;min-width:900px}.three.doc{grid-template-columns:240px minmax(280px,1fr) 340px;min-width:900px}.sched{grid-template-columns:170px minmax(0,1fr) auto;min-width:860px}.spanel{width:270px}}
+@media (max-height:800px){.hd{padding:5px 14px}.guide{padding:5px 14px}.phonecol,.pccol{padding-top:8px;padding-bottom:8px}.phonecol .cap{display:none}}
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+<noscript>이 시연은 자바스크립트가 켜져 있어야 합니다.</noscript>
+<script>
+/* 별자리노트 통합 시연 · 공용 저장소
+   다섯 화면이 이 저장소 한 벌을 함께 읽고 씁니다.
+   판정·저장·호출 규칙은 저장소 v1.01의 lib/core/judgment.dart, repository.dart 를 그대로 옮긴 것입니다(새 규칙 없음).
+   서버는 없습니다. 값은 이 브라우저(localStorage)에만 남습니다. 이름·수치는 모두 가상입니다. */
+var BN = (function () {
+  'use strict';
+  var KEY = 'byeoljari-integrated-demo-v2';
+  var CL = [
+    { id: 'aquarius', name: '물병자리', tch: '박지은', room: '101호' }, { id: 'pisces', name: '물고기자리', tch: '한지민', room: '102호' },
+    { id: 'bear', name: '곰자리', tch: '정다운', room: '105호' }, { id: 'milkyway', name: '은하수자리', tch: '이수진', room: '203호' },
+    { id: 'aries', name: '양자리', tch: '오세훈', room: '202호' }, { id: 'whale', name: '고래자리', tch: '정하은', room: '204호' }];
+  var ROSTER = {
+    aquarius: [['임유나', 364, '여', 23], ['송지은', 365, '여', 18], ['한나리', 363, '여', 21], ['김윤서', 366, '여', 26], ['서소율', 364, '여', 20], ['홍다은', 365, '여', 22], ['오하린', 362, '여', 25]],
+    pisces: [['정서아', 362, '여', 22], ['신지유', 365, '여', 24], ['박채원', 366, '여', 27], ['배수아', 364, '여', 22], ['이하은', 363, '여', 20], ['안예린', 365, '여', 23]],
+    bear: [['문하준', 362, '남', 21], ['조은우', 366, '남', 25], ['장도현', 368, '남', 22], ['권건우', 365, '남', 19], ['백태윤', 364, '남', 28]],
+    milkyway: [['김민준', 365, '남', 20], ['이서준', 371, '남', 19], ['한지호', 366, '남', 23], ['류은호', 363, '남', 26], ['최도윤', 369, '남', 21], ['강시우', 366, '남', 24]],
+    aries: [['고준우', 364, '남', 22], ['윤예준', 368, '남', 25], ['정현우', 365, '남', 20], ['김민재', 366, '남', 27], ['남정우', 363, '남', 23], ['유로운', 365, '남', 19]],
+    whale: [['서연우', 364, '남', 21], ['노재희', 366, '남', 26], ['황태양', 365, '남', 24], ['박승민', 368, '남', 24], ['차우진', 362, '남', 22], ['엄성민', 367, '남', 25]]
+  };
+  var COMMUTE = ['송지은', '서소율', '김민준', '고준우', '서연우'];
+  var WARN = { '이서준': '페니실린계 · 세파계 항생제 절대 금기' };
+  var STAFF = { care: '이수진', careTitle: '담임복지사', nurse: '박소연', nurseTitle: '수석간호사', doctor: '강다혜', doctorTitle: '촉탁의 (원장)' };
+  var STAGE = { normal: '평소', caution: '주의', abnormal: '이상', danger: '위험', low: '저온' };
+  var RANK = { normal: 0, caution: 1, low: 2, abnormal: 2, danger: 3 };
+  var CATS = [
+    { id: 'facility', name: '시설 점검/행사', c: '#3182F6', bg: '#E8F3FF', ink: '#1D4ED8' }, { id: 'education', name: '특수교육', c: '#03B26C', bg: '#E8F9F1', ink: '#047857' },
+    { id: 'therapy', name: '재활치료', c: '#06B6D4', bg: '#ECFEFF', ink: '#0E7490' }, { id: 'care', name: '생활 케어', c: '#FF8A00', bg: '#FFF4E6', ink: '#B45309' },
+    { id: 'medical', name: '촉탁의 진료', c: '#F04452', bg: '#FEECEE', ink: '#B4232F' }];
+  var RES = [], RID = {}, S = null, subs = [];
+  (function () { var n = 0; CL.forEach(function (c) { ROSTER[c.id].forEach(function (r) { n++; var o = { id: 'r' + (n < 10 ? '0' : '') + n, name: r[0], base: r[1], sex: r[2], age: r[3], cls: c.id, commute: COMMUTE.indexOf(r[0]) >= 0, no: 'HJ-2021-' + (('00' + (40 + n * 3)).slice(-3)) }; RES.push(o); RID[o.id] = o; }); }); })();
+  function byName(n) { return RES.filter(function (r) { return r.name === n; })[0]; }
+  function cls(id) { return CL.filter(function (c) { return c.id === id; })[0]; }
+
+  /* ── 시각: 2026-11-26(목) 00:00 부터의 분 ── */
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function dayOf(t) { return Math.floor(t / 1440); }
+  function hm(t) { var m = ((t % 1440) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+  function dateOf(d) { return new Date(2026, 10, 26 + d); }
+  function md(d) { var x = dateOf(d); return (x.getMonth() + 1) + '.' + pad(x.getDate()); }
+  function dayLabel(d) { return d === 0 ? '오늘' : d === -1 ? '어제' : d === 1 ? '내일' : md(d) + ' (' + '일월화수목금토'[dateOf(d).getDay()] + ')'; }
+  function stamp(t) { var d = dayOf(t); return (d === 0 ? '' : md(d) + ' ') + hm(t); }
+  function f(v) { return (v / 10).toFixed(1); }
+  function fd(d) { return (d >= 0 ? '+' : '−') + (Math.abs(d) / 10).toFixed(1); }
+
+  /* ── judgment.dart 그대로 ── */
+  function judge(value, base) {
+    var diff = value - base, stage;
+    if (diff >= 15 || value >= 390) stage = 'danger';
+    else if (diff >= 10 || value >= 380) stage = 'abnormal';
+    else if (diff <= -10 || value <= 355) stage = 'low';
+    else if (diff >= 5 || value >= 375) stage = 'caution';
+    else stage = 'normal';
+    return { stage: stage, diff: diff, base: base };
+  }
+  function opensCase(stage) { return stage === 'abnormal' || stage === 'danger' || stage === 'low'; }
+  function isValid(v) { return v >= 340 && v <= 420; }
+
+  function id(p) { S.seq++; return p + S.seq; }
+  function tick() { S.clock += 1; return S.clock; }
+  function log(kind, rid, text, to, extra) { var o = { id: id('g'), t: S.clock, kind: kind, rid: rid, text: text, to: to || [] }; if (extra) for (var k in extra) o[k] = extra[k]; S.log.unshift(o); return o; }
+  function notify(role, rid, text, ref) { var n = { id: id('n'), role: role, rid: rid, t: S.clock, text: text, read: false }; if (ref) for (var k in ref) n[k] = ref[k]; S.notices.unshift(n); }
+  function cevent(caseId, type, by, data) { S.events.push({ id: id('v'), caseId: caseId, type: type, by: by, t: S.clock, data: data || {} }); }
+  function msg(callId, by, body, kind, data) { var m = { id: id('msg'), callId: callId, by: by, body: body, t: S.clock, kind: kind || 'text', data: data || {} }; S.msgs.push(m); return m; }
+  function vital(callId, m) { msg(callId, 'system', f(m.v) + '°C', 'vital', { v: m.v, base: m.base, diff: m.diff, stage: m.stage, by: m.by, t: m.t }); }
+
+  /* ── 조회 ── */
+  function latest(rid) { var best = null; S.meas.forEach(function (m) { if (m.rid === rid && (!best || m.t > best.t)) best = m; }); return best; }
+  function measOf(rid) { return S.meas.filter(function (m) { return m.rid === rid; }).sort(function (a, b) { return b.t - a.t; }); }
+  function todayTemp(rid) { return S.meas.some(function (m) { return m.rid === rid && dayOf(m.t) === 0; }); }
+  function openCase(rid) { return S.cases.filter(function (c) { return c.rid === rid && !c.closedAt; })[0] || null; }
+  function caseById(i) { return S.cases.filter(function (c) { return c.id === i; })[0]; }
+  function callById(i) { return S.calls.filter(function (c) { return c.id === i; })[0]; }
+  function callOfCase(caseId) { return S.calls.filter(function (c) { return c.caseId === caseId; }).sort(function (a, b) { return b.t - a.t; })[0] || null; }
+  function openCallOf(rid) { return S.calls.filter(function (c) { return c.rid === rid && c.status === 'open'; })[0] || null; }
+  function msgsOf(callId) { return S.msgs.filter(function (m) { return m.callId === callId; }); }
+  function rxOf(callId) { return S.rx.filter(function (p) { return p.callId === callId; })[0] || null; }
+  function eventsOf(caseId) { return S.events.filter(function (e) { return e.caseId === caseId; }); }
+  function acked(caseId, by) { return S.events.filter(function (e) { return e.caseId === caseId && e.type === 'acked' && (!by || e.by === by); })[0] || null; }
+  function openTempTasks(rid) { return S.entries.filter(function (e) { return e.rid === rid && e.task && e.task.kind === 'temp' && !e.task.done; }); }
+  function caseTitle(c) { return c.severity === 'danger' ? '긴급' : '이상 대응'; }
+
+  /* ── repository.saveMeasurement 그대로 ── */
+  function saveMeasurement(rid, value, by) {
+    if (!isValid(value)) throw new Error('체온은 34.0~42.0℃ 사이여야 해요');
+    var r = RID[rid], at = tick(), j = judge(value, r.base), c0 = cls(r.cls);
+    var m = { id: id('m'), rid: rid, v: value, t: at, by: by, stage: j.stage, diff: j.diff, base: r.base, caseId: null };
+    var res = { m: m, created: false, escalated: false, recovered: false, task: null, call: null, autoDone: 0 };
+    openTempTasks(rid).forEach(function (e) { e.task.done = true; e.task.doneAt = at; e.task.doneBy = by; e.task.auto = true; res.autoDone++; });
+    var open = openCase(rid);
+    if (open) {
+      m.caseId = open.id; cevent(open.id, 'remeasured', by, { v: value, stage: j.stage });
+      if (open.remeasureAt) { open.remeasureDoneAt = at; }
+      if (opensCase(j.stage)) {
+        if (RANK[j.stage] > RANK[open.severity]) {
+          open.severity = j.stage;
+          if (j.stage === 'danger') { res.escalated = true; cevent(open.id, 'escalated', 'system', {}); notify('care', rid, '긴급으로 바뀌었어요 · ' + c0.name + ' ' + r.name + ' ' + f(value) + '℃', { caseId: open.id }); var ex = openCallOf(rid); if (ex) ex.level = 'urgent'; }
+        }
+        open.recoveredAt = null; if (open.status === 'waitingRemeasure') open.status = 'active';
+      } else if (!open.recoveredAt) { open.recoveredAt = at; res.recovered = true; if (open.status === 'waitingRemeasure') open.status = 'active'; cevent(open.id, 'recovered', 'system', { v: value }); }
+      var oc = S.calls.filter(function (x) { return x.caseId === open.id && x.status === 'open'; })[0];
+      if (oc) vital(oc.id, m);
+      res.caseItem = open;
+      log('remeasure', rid, r.name + ' 재측정 ' + f(value) + '° · ' + STAGE[j.stage] + (res.recovered ? ' · 회복 기록' : ''), ['어플', '현황판', '간호 선생님 호출함', '의료진 포털', '일정']);
+    } else if (opensCase(j.stage)) {
+      var c = { id: id('case'), rid: rid, severity: j.stage, status: 'unacked', firstTemp: value, base: r.base, createdAt: at, closedAt: null, recoveredAt: null, remeasureAt: null, remeasureDoneAt: null, no: '#' + (S.caseNo++) };
+      S.cases.push(c); m.caseId = c.id; cevent(c.id, 'created', 'system', { v: value });
+      S.entries.unshift({ id: id('e'), kind: 'temp', rid: rid, t: at, by: by, mid: m.id, caseId: c.id, text: '', seen: by === STAFF.care, task: null });
+      notify('care', rid, (c.severity === 'danger' ? '새 긴급' : '새 이상 대응') + ' · ' + c0.name + ' ' + r.name + ' ' + f(value) + '℃ · 평소보다 ' + fd(j.diff) + ' · ' + STAGE[j.stage], { caseId: c.id });
+      var call = { id: id('call'), rid: rid, level: c.severity === 'danger' ? 'urgent' : 'observe', status: 'open', t: at, by: by, summary: c.severity === 'danger' ? '고열 감지 · 간호 선생님 확인 요청' : '체온 이상 · 관찰 요청', temp: value, diff: j.diff, caseId: c.id, videoAt: null, doneAt: null, forwardedAt: null, forwardedBy: null, doctor: null, nurseRead: false };
+      S.calls.push(call); vital(call.id, m); notify('nurse', rid, '새 의료 호출 · ' + c0.name + ' ' + r.name + ' ' + f(value) + '℃', { callId: call.id });
+      res.caseItem = c; res.created = true; res.call = call;
+      log('call', rid, r.name + ' ' + f(value) + '° 기록 → ' + STAGE[j.stage] + ' 판정 → ' + caseTitle(c) + ' 열림 · 간호 선생님 호출 전달', ['현황판', '간호 선생님 호출함', '일정'], { callId: call.id });
+    } else if (j.stage === 'caution') {
+      res.task = { label: '재측정', kind: 'temp', dueAt: at + 30, done: false, autoMade: true };
+      S.entries.unshift({ id: id('e'), kind: 'temp', rid: rid, t: at, by: by, mid: m.id, caseId: null, text: '', seen: by === STAFF.care, task: res.task });
+      log('caution', rid, r.name + ' ' + f(value) + '° 기록 → 주의 판정 → 재측정 할 일(30분 뒤) 자동 생성', ['어플', '현황판', '일정']);
+    } else {
+      log('vital', rid, r.name + ' ' + f(value) + '° 기록 · 평소', ['현황판']);
+    }
+    S.meas.push(m); commit(); return res;
+  }
+  function acknowledge(caseId, by) {
+    if (acked(caseId, by)) return; var c = caseById(caseId), r = RID[c.rid]; tick();
+    if (c.status === 'unacked') c.status = 'acked'; cevent(caseId, 'acked', by, {});
+    if (by === STAFF.nurse) { notify('care', c.rid, '간호 선생님이 ' + r.name + ' 별님 호출을 확인했어요', { caseId: caseId }); log('ack', c.rid, STAFF.nurse + ' 간호 선생님이 ' + r.name + ' 호출 확인', ['어플', '현황판']); }
+    commit();
+  }
+  function scheduleRemeasure(caseId, by, after) {
+    var c = caseById(caseId), r = RID[c.rid]; tick(); c.remeasureAt = S.clock + after; c.remeasureDoneAt = null; c.status = 'waitingRemeasure'; cevent(caseId, 'remeasure_scheduled', by, { minutes: after });
+    notify('care', c.rid, r.name + ' 별님 재측정 요청 · ' + hm(c.remeasureAt) + ' 예정', { caseId: caseId });
+    log('remeasureAt', c.rid, r.name + ' 재측정 ' + hm(c.remeasureAt) + ' 예정', ['어플', '일정']); commit();
+  }
+  function closeCase(caseId, by, reason) { var c = caseById(caseId); tick(); c.closedAt = S.clock; c.status = 'closed'; cevent(caseId, 'closed', by, { reason: reason }); log('closed', c.rid, RID[c.rid].name + ' ' + caseTitle(c) + ' 종료', ['현황판', '일정', '어플']); commit(); }
+  function readCall(callId) { var c = callById(callId); if (c && !c.nurseRead) { c.nurseRead = true; S.notices.forEach(function (n) { if (n.role === 'nurse' && n.callId === callId) n.read = true; }); commit(true); } }
+  function forward(callId, by) {
+    var c = callById(callId); if (c.forwardedAt) return; tick(); c.forwardedAt = S.clock; c.forwardedBy = by; c.doctor = STAFF.doctor;
+    msg(callId, 'system', by + ' ' + STAFF.nurseTitle + '가 ' + STAFF.doctor + ' ' + STAFF.doctorTitle + '에게 호출을 보냈어요', 'system');
+    notify('doctor', c.rid, '새 호출 · ' + RID[c.rid].name + ' · ' + c.summary, { callId: callId });
+    log('fwd', c.rid, RID[c.rid].name + ' 호출을 의료진에게 보냄 · 응답 대기', ['의료진 포털', '현황판'], { callId: callId }); commit();
+  }
+  function sendMessage(callId, by, body) { tick(); var m = msg(callId, by, body, 'text'); log('chat', callById(callId).rid, by + ': ' + (body.length > 28 ? body.slice(0, 28) + '…' : body), ['간호 선생님 호출함', '의료진 포털'], { quiet: true }); commit(); return m; }
+  function attachVital(callId) { var c = callById(callId), m = latest(c.rid); if (!m) return; tick(); vital(callId, m); commit(); }
+  function scheduleVideo(callId, at, by) {
+    var c = callById(callId); tick(); c.videoAt = at; msg(callId, 'system', by + ' ' + STAFF.doctorTitle + '가 비대면 화상 진료를 ' + hm(at) + '로 예약했어요', 'system');
+    notify('nurse', c.rid, RID[c.rid].name + ' 화상 진료 ' + hm(at) + ' 예약', { callId: callId });
+    log('video', c.rid, RID[c.rid].name + ' 화상 진료 ' + hm(at) + ' 예약', ['일정', '간호 선생님 호출함', '현황판'], { callId: callId }); commit();
+  }
+  function nextSlot() { return S.clock - (S.clock % 10) + 10; }
+  function issuePrescription(callId, by, draft) {
+    var c = callById(callId); if (rxOf(callId)) return rxOf(callId); tick();
+    var p = { id: id('rx'), callId: callId, rid: c.rid, no: 'Rx#' + (S.rxNo++), t: S.clock, by: by, code: draft.code, name: draft.name, memo: draft.memo, items: draft.items.filter(function (x) { return x.name; }) };
+    S.rx.push(p); msg(callId, 'system', '전자처방전을 발행했어요 (' + p.no + ')', 'system');
+    notify('nurse', c.rid, RID[c.rid].name + ' 전자처방전 발행됨 · ' + p.no, { callId: callId });
+    if (c.caseId) { cevent(c.caseId, 'prescribed', by, { no: p.no }); notify('care', c.rid, RID[c.rid].name + ' 별님 의료진 처방이 발행됐어요 · 내용은 간호 선생님께', { caseId: c.caseId }); }
+    log('rx', c.rid, '비대면 협진 완료 · 처방전 수신 ' + p.no + ' (' + RID[c.rid].name + ')', ['간호 선생님 호출함', '현황판', '어플'], { callId: callId }); commit(); return p;
+  }
+  function completeCall(callId, by) { var c = callById(callId); if (c.status === 'done') return; tick(); c.status = 'done'; c.doneAt = S.clock; msg(callId, 'system', by + ' ' + STAFF.nurseTitle + '가 호출을 완료했어요', 'system'); log('done', c.rid, RID[c.rid].name + ' 호출 완료', ['의료진 포털', '현황판', '일정'], { callId: callId }); commit(); }
+  function addNurseNote(rid, by, text) { tick(); S.notes.unshift({ id: id('nt'), rid: rid, by: by, t: S.clock, text: text }); commit(); }
+  function markSeen(entryId) { var e = S.entries.filter(function (x) { return x.id === entryId; })[0]; if (e && !e.seen) { e.seen = true; log('seen', e.rid, '인수인계 기록 읽음 확인 (' + (e.rid ? RID[e.rid].name : '반 공지') + ')', ['현황판'], { quiet: true }); commit(); } }
+  function completeTask(entryId, by) { var e = S.entries.filter(function (x) { return x.id === entryId; })[0]; if (e && e.task && !e.task.done) { tick(); e.task.done = true; e.task.doneAt = S.clock; e.task.doneBy = by; log('task', e.rid, '할 일 완료 · ' + e.task.label + (e.rid ? ' (' + RID[e.rid].name + ')' : ''), ['일정'], { quiet: true }); commit(); } }
+  function readNotice(nid) { var n = S.notices.filter(function (x) { return x.id === nid; })[0]; if (n && !n.read) { n.read = true; commit(true); } return n; }
+  function addEvent(ev) { var e = { id: id('ev'), title: ev.title, day: ev.day, start: ev.start == null ? null : ev.start, end: ev.end == null ? null : ev.end, cat: ev.cat || 'facility', cls: ev.cls || 'all', rid: ev.rid || null, memo: ev.memo || '', canceled: false, by: STAFF.nurse, madeAt: S.clock }; if (e.rid) e.cls = RID[e.rid].cls; S.cal.push(e); log('cal', e.rid, '일정 추가 · ' + e.title + (e.rid ? ' (' + RID[e.rid].name + ' 별님 연결)' : ''), e.rid ? ['일정', '어플'] : ['일정'], { quiet: !e.rid }); commit(); return e; }
+  function updateEvent(eid, patch) { var e = S.cal.filter(function (x) { return x.id === eid; })[0]; if (!e) return; var linked = patch.rid && patch.rid !== e.rid; for (var k in patch) e[k] = patch[k]; if (e.rid) e.cls = RID[e.rid].cls; if (linked) log('cal', e.rid, '일정에 별님 연결 · ' + e.title + ' (' + RID[e.rid].name + ')', ['일정', '어플']); commit(); }
+  function calEvent(eid) { return S.cal.filter(function (x) { return x.id === eid; })[0]; }
+  /* 일정 자동 캘린더: 저장하지 않고 그때그때 읽기만 (일정 v2 §6-7) */
+  function autoItems() {
+    var out = [];
+    S.cases.forEach(function (c) { var r = RID[c.rid];
+      if (c.remeasureAt != null) out.push({ id: 'a-rm-' + c.id, kind: 'todo', day: dayOf(c.remeasureAt), start: c.remeasureAt % 1440, title: '재측정 · ' + r.name, rid: c.rid, done: !!c.remeasureDoneAt, late: !c.remeasureDoneAt && S.clock > c.remeasureAt, info: '이상 건 재측정 예정 ' + hm(c.remeasureAt) + (c.remeasureDoneAt ? ' · ' + hm(c.remeasureDoneAt) + ' 완료' : ''), link: 'board' });
+      var from = dayOf(c.createdAt), to = c.closedAt ? dayOf(c.closedAt) : 0;
+      for (var d = from; d <= to; d++) out.push({ id: 'a-case-' + c.id + '-' + d, kind: 'case', day: d, start: null, title: (c.closedAt ? caseTitle(c) + ' 종료' : caseTitle(c) + ' 중') + ' · ' + r.name, rid: c.rid, done: !!c.closedAt, info: stamp(c.createdAt) + ' 열림' + (c.closedAt ? ' → ' + stamp(c.closedAt) + ' 종료' : ' · 아직 열려 있음'), link: 'board' });
+    });
+    S.entries.forEach(function (e) { if (e.task && e.task.dueAt != null) out.push({ id: 'a-task-' + e.id, kind: 'todo', day: dayOf(e.task.dueAt), start: e.task.dueAt % 1440, title: e.task.label + (e.rid ? ' · ' + RID[e.rid].name : ''), rid: e.rid, done: e.task.done, late: !e.task.done && S.clock > e.task.dueAt, info: '인수인계 할 일 · 기한 ' + hm(e.task.dueAt) + (e.task.done ? ' · 완료' : ''), text: e.text }); });
+    S.calls.forEach(function (c) { if (c.videoAt != null) out.push({ id: 'a-video-' + c.id, kind: 'call', day: dayOf(c.videoAt), start: c.videoAt % 1440, title: '화상 진료 · ' + RID[c.rid].name, rid: c.rid, done: c.status === 'done', info: STAFF.doctor + ' ' + STAFF.doctorTitle + ' · 비대면 협진', link: 'calls', callId: c.id }); });
+    return out;
+  }
+  function eventsForResident(rid) { var r = RID[rid]; return S.cal.filter(function (e) { return !e.canceled && ((e.day === 0 && (e.rid === rid || (!e.rid && (e.cls === r.cls)))) || (e.rid === rid && e.day > 0 && e.day <= 14)); }).sort(function (a, b) { return (a.day - b.day) || ((a.start || 0) - (b.start || 0)); }).slice(0, 3); }
+
+  /* ── 가상 시드 ── */
+  function seed() {
+    S = { v: 2, seq: 100, clock: 10 * 60 + 5, caseNo: 102, rxNo: 88125, meas: [], entries: [], cases: [], calls: [], msgs: [], rx: [], events: [], notices: [], notes: [], cal: [], log: [], drafts: {} };
+    var pat = [0, -1, 1, 0, 0, 1, -1, 0, 1, 0, -1, 0, 1, 0], skip = ['이서준', '한지호', '류은호'];
+    RES.forEach(function (r, i) {
+      for (var d = -13; d <= 0; d++) { if (d === 0 && skip.indexOf(r.name) >= 0) continue; var v = r.base + pat[(i + d + 28) % 14]; var j = judge(v, r.base);
+        S.meas.push({ id: 'm' + i + '_' + (d + 13), rid: r.id, v: v, t: d * 1440 + 7 * 60 + 10 + (i % 6) * 5, by: cls(r.cls).tch, stage: j.stage, diff: j.diff, base: r.base, caseId: null }); }
+    });
+    var sm = byName('박승민'), hw = byName('정현우'), nr = byName('한나리'), sj = byName('이서준'), sa = byName('정서아');
+    var keepClock = S.clock; S.clock = 9 * 60 + 19; saveMeasurement(sm.id, 382, '김하늘'); S.clock = keepClock;
+    S.entries.push({ id: id('e'), kind: 'notice', cls: 'milkyway', t: 8 * 60 + 40, by: '박지은', text: '보일러 점검으로 오늘 목욕 순서가 은하수자리 1순위(09:30)로 바뀌었어요.', seen: false, task: null });
+    S.entries.push({ id: id('e'), kind: 'obs', rid: hw.id, t: 8 * 60 + 10, by: '오세훈', text: '아침 식사량이 절반 정도였어요. 점심에 다시 살펴봐 주세요.', seen: false, task: { label: '점심 식사량 확인', kind: 'memo', dueAt: 12 * 60 + 30, done: false } });
+    S.entries.push({ id: id('e'), kind: 'obs', rid: nr.id, t: 7 * 60 + 50, by: '박지은', text: '아침 식사 남김없이 잘 먹고 기분 좋게 노래를 흥얼거렸어요.', seen: true, task: null });
+    S.entries.push({ id: id('e'), kind: 'obs', rid: sj.id, t: -1440 + 16 * 60 + 30, by: '최민호', text: '단호박죽 전량 섭취, 낮잠 1시간 안정적.', seen: true, task: null });
+    S.entries.push({ id: id('e'), kind: 'obs', rid: sj.id, t: -12 * 1440 + 14 * 60 + 20, by: '박지은', text: '행사 중 스피커 소음에 귀를 막고 불안해함. 1층 쉼터로 이동 후 10분 안에 안정.', seen: true, task: null });
+    var old = { id: id('call'), rid: sa.id, level: 'general', status: 'done', t: -1440 + 14 * 60 + 10, by: '한지민', summary: '일반 의뢰 · 산책 뒤 발뒤꿈치 쓸림 문의', temp: null, diff: null, caseId: null, videoAt: null, doneAt: -1440 + 15 * 60 + 5, forwardedAt: -1440 + 14 * 60 + 20, forwardedBy: STAFF.nurse, doctor: STAFF.doctor, nurseRead: true };
+    S.calls.push(old);
+    S.msgs.push({ id: id('msg'), callId: old.id, by: STAFF.nurse, body: '산책 뒤 오른쪽 발뒤꿈치가 쓸려 있어요. 사진 첨부는 시연에서 생략합니다.', t: old.t + 12, kind: 'text', data: {} });
+    S.msgs.push({ id: id('msg'), callId: old.id, by: STAFF.doctor, body: '확인했습니다. 내일 정기 진료 때 직접 보겠습니다.', t: old.t + 30, kind: 'text', data: {} });
+    S.msgs.push({ id: id('msg'), callId: old.id, by: 'system', body: STAFF.nurse + ' ' + STAFF.nurseTitle + '가 호출을 완료했어요', t: old.doneAt, kind: 'system', data: {} });
+    [['소방 설비 점검', 0, 600, 660, 'facility', 'all'], ['재활치료', 0, 900, 960, 'therapy', 'milkyway'], ['촉탁의 정기 진료', 1, 600, 720, 'medical', 'all'], ['치과 검진', 2, 840, 900, 'medical', 'all', sj.id], ['보호자 면회', 7, 600, 660, 'care', 'all', sj.id], ['김장 행사', 4, null, null, 'facility', 'all'], ['감각 통합 수업', -3, 840, 900, 'education', 'aries'], ['독감 예방접종', -6, 570, 690, 'medical', 'all'], ['물리치료', 5, 660, 720, 'therapy', 'whale'], ['12월 생일 잔치', 9, 900, 960, 'facility', 'all']].forEach(function (x) {
+      S.cal.push({ id: id('ev'), title: x[0], day: x[1], start: x[2], end: x[3], cat: x[4], cls: x[6] ? RID[x[6]].cls : x[5], rid: x[6] || null, memo: '', canceled: false, by: STAFF.nurse, madeAt: -1440 });
+    });
+    S.log = S.log.filter(function (g) { return g.kind === 'call'; }); S.log.forEach(function (g) { g.seed = true; });
+    S.notices.forEach(function (n) { if (n.role === 'care') n.read = true; });
+  }
+  function commit(silent) { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } if (!silent) subs.forEach(function (fn) { fn(); }); }
+  function load() { try { var raw = localStorage.getItem(KEY); if (raw) { var o = JSON.parse(raw); if (o && o.v === 2) { S = o; return true; } } } catch (e) { } return false; }
+  function reset() { seed(); commit(); }
+  if (!load()) { seed(); commit(true); }
+  try { window.addEventListener('storage', function (ev) { if (ev.key === KEY && load()) subs.forEach(function (fn) { fn(); }); }); } catch (e) { }
+
+  return { CL: CL, RES: RES, RID: RID, STAFF: STAFF, STAGE: STAGE, CATS: CATS, WARN: WARN, cls: cls, byName: byName, state: function () { return S; }, subscribe: function (fn) { subs.push(fn); }, reset: reset, commit: commit,
+    pad: pad, dayOf: dayOf, hm: hm, dateOf: dateOf, md: md, dayLabel: dayLabel, stamp: stamp, f: f, fd: fd, judge: judge, opensCase: opensCase, isValid: isValid,
+    latest: latest, measOf: measOf, todayTemp: todayTemp, openCase: openCase, caseById: caseById, callById: callById, callOfCase: callOfCase, openCallOf: openCallOf, msgsOf: msgsOf, rxOf: rxOf, eventsOf: eventsOf, acked: acked, caseTitle: caseTitle,
+    saveMeasurement: saveMeasurement, acknowledge: acknowledge, scheduleRemeasure: scheduleRemeasure, closeCase: closeCase, readCall: readCall, forward: forward, sendMessage: sendMessage, attachVital: attachVital, scheduleVideo: scheduleVideo, nextSlot: nextSlot, issuePrescription: issuePrescription, completeCall: completeCall, addNurseNote: addNurseNote,
+    markSeen: markSeen, completeTask: completeTask, readNotice: readNotice, addEvent: addEvent, updateEvent: updateEvent, calEvent: calEvent, autoItems: autoItems, eventsForResident: eventsForResident };
+})();
+
+</script>
+<script>
+/* 별자리노트 통합 시연 · 틀 + 어플 */
+var APP = (function () {
+  'use strict';
+  var B = BN, ME = B.STAFF.care, MYCLS = 'milkyway', SJ = B.byName('이서준').id;
+  var U = { pc: 'board', mode: 'both', failNext: false, logOpen: false, toast: null, modal: null,
+    m: { view: 'handover', back: [], mode: 'latest', filter: 'all', rid: SJ, cf: 'all', period: 'all', q: '', sheet: null, caseId: null, qt: { open: false, rid: SJ, cls: MYCLS, val: 365, status: 'idle', res: null } },
+    board: { tab: 'all', page: 0 }, calls: { sel: null, tab: 'open', text: '', note: '' }, doc: { sel: null, tab: 'open', text: '' },
+    sched: { mo: 0, off: {}, sel: null, add: null, addText: '', showCx: false } };
+  var ACT = {}, V = {}, seenLog = null, flash = {};
+  var I = {
+    bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
+    back: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>', x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    list: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>',
+    card: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.6 5.4-1.6 6 0M15 10h3M15 14h3"/></svg>',
+    th: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/></svg>' };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function S() { return B.state(); }
+  function R(id) { return B.RID[id]; }
+  function cn(id) { return B.cls(id).name; }
+  var SC = { normal: 'green', caution: 'yel', abnormal: 'org', danger: 'red', low: 'blue' };
+  function stagePill(stage) { return '<span class="pill ' + SC[stage] + '">' + B.STAGE[stage] + '</span>'; }
+  function toast(t) { U.toast = t; clearTimeout(toast.h); toast.h = setTimeout(function () { U.toast = null; render(); }, 2600); }
+  function meas(mid) { return S().meas.filter(function (m) { return m.id === mid; })[0]; }
+
+  /* ───────── 어플 ───────── */
+  var M = U.m;
+  function myNotices() { return S().notices.filter(function (n) { return n.role === 'care' && R(n.rid).cls === MYCLS; }); }
+  function todays() { return S().entries.filter(function (e) { return B.dayOf(e.t) === 0; }).sort(function (a, b) { return b.t - a.t; }); }
+  function work(e) {
+    if (e.task) return e.task.done ? { k: 'done', label: '✓ 완료' + (e.task.auto ? ' (체온 기록)' : ''), sub: e.task.label } : { k: 'todo', label: e.task.label + ' 남음', sub: e.task.label + ' · ' + B.hm(e.task.dueAt) + ' 예정', temp: e.task.kind === 'temp', memo: e.task.kind !== 'temp' };
+    if (e.caseId) { var c = B.caseById(e.caseId);
+      if (c.closedAt) return { k: 'done', label: '✓ 대응 종료' };
+      if (c.remeasureAt != null && !c.remeasureDoneAt) return { k: 'todo', label: '재측정 남음', sub: '재측정 · ' + B.hm(c.remeasureAt) + ' 예정 (간호 선생님 요청)', temp: true };
+      if (c.remeasureDoneAt) return { k: 'done', label: '✓ 재측정 완료', temp: false };
+      return { k: 'prog', label: '대응 중', temp: true, soft: true }; }
+    return { k: 'none', label: '할 일 없음' };
+  }
+  function counts() { var mine = B.RES.filter(function (r) { return r.cls === MYCLS; });
+    return { unseen: todays().filter(function (e) { return !e.seen; }).length, todo: S().entries.filter(function (e) { var w = work(e); return w.k === 'todo'; }).length, miss: mine.filter(function (r) { return !B.todayTemp(r.id); }).length }; }
+  function ptop(title, sub, o) { o = o || {}; var n = myNotices().filter(function (x) { return !x.read; }).length;
+    return '<header class="ptop">' + (o.back ? '<button class="ib" data-a="m.back" aria-label="뒤로">' + I.back + '</button>' : '') + '<h2>' + esc(title) + (sub ? '<span class="sub">' + esc(sub) + '</span>' : '') + '</h2>' +
+      (o.noBell ? '' : '<button class="ib" data-a="m.notices" aria-label="알림 ' + n + '건 안 읽음">' + I.bell + (n ? '<span class="badge">' + n + '</span>' : '') + '</button>') + '</header>'; }
+  function pnav() { return '<nav class="pnav" aria-label="하단 메뉴"><button class="tab" data-a="m.tab" data-v="handover" ' + (M.view === 'handover' ? 'aria-current="page"' : '') + '>' + I.list + '인수인계</button><button class="qt" data-a="m.qt" aria-label="퀵 체온 열기">' + I.th + '퀵 체온</button><button class="tab" data-a="m.tab" data-v="card" ' + (M.view === 'card' ? 'aria-current="page"' : '') + '>' + I.card + '별님카드</button></nav>'; }
+  function tempRow(m) { return '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span class="temp' + (m.stage === 'danger' || m.stage === 'abnormal' ? ' hot' : '') + '">' + B.f(m.v) + '°</span><span class="muted">평소 ' + B.f(m.base) + '° 대비 ' + B.fd(m.diff) + '°</span>' + stagePill(m.stage) + '</div>'; }
+  function entryCard(e, inCard) { var r = e.rid ? R(e.rid) : null, m = e.mid ? meas(e.mid) : null, w = work(e), urgent = m && (m.stage === 'danger') && w.k !== 'done';
+    var h = '<article class="mcard' + (urgent ? ' urgent' : '') + (flash[e.rid] ? ' flash' : '') + '"><div class="row">' + (!e.seen ? '<span class="dot" title="안 읽음"></span>' : '') + '<span class="cls">' + esc(e.kind === 'notice' ? '반 공지 · ' + cn(e.cls) : cn(r.cls)) + '</span>';
+    if (r && !inCard) h += '<button class="name" data-a="m.open" data-v="' + e.rid + '">' + esc(r.name) + '</button>';
+    h += '<span class="time">' + esc(e.by) + ' · ' + B.hm(e.t) + '</span></div>';
+    if (m) h += tempRow(m);
+    if (e.text) h += '<p class="txt">' + esc(e.text) + '</p>';
+    h += '<div class="st"><div class="stbox ' + (e.seen ? 'done' : '') + '"><small>읽음 확인</small><b>' + (e.seen ? '✓ 내가 확인함' : '아직 안 읽음') + '</b></div><div class="stbox ' + (w.k === 'done' ? 'done' : w.k === 'todo' ? 'todo' : '') + '"><small>업무</small><b>' + w.label + '</b></div></div>';
+    if (w.sub && w.k === 'todo') h += '<p class="muted" style="margin-top:6px">' + esc(w.sub) + '</p>';
+    h += '<div class="macts">';
+    if (!e.seen) h += '<button class="mbtn sec" data-a="m.seen" data-v="' + e.id + '">확인했어요</button>';
+    if (w.k === 'todo' && w.temp) h += '<button class="mbtn pri" data-a="m.qtfor" data-v="' + e.rid + '">재측정하기</button>';
+    if (w.k === 'todo' && w.memo) h += '<button class="mbtn pri" data-a="m.done" data-v="' + e.id + '">완료했어요</button>';
+    h += '<button class="mbtn ghost" data-a="m.detail" data-v="' + e.id + '" style="flex:0 0 76px">상세</button></div></article>';
+    return h; }
+  function vHandover() { var c = counts(), h = ptop('별자리노트', '인수인계') + '<main class="pbody" data-scroll="m-ho">';
+    h += '<div class="seg" role="group" aria-label="보기 방식"><button data-a="m.mode" data-v="latest" aria-pressed="' + (M.mode === 'latest') + '">최신 기록</button><button data-a="m.mode" data-v="res" aria-pressed="' + (M.mode === 'res') + '">별님별</button></div>';
+    h += '<section class="mcard"><div class="muted">' + B.hm(S().clock) + ' 기준 · 오전 근무조 인계 · ' + ME + ' ' + B.STAFF.careTitle + '</div><div class="sum"><div><small>미확인</small><b style="color:var(--b500)">' + c.unseen + '</b></div><div><small>할 일</small><b>' + c.todo + '</b></div><div><small>체온 미기록</small><b>' + c.miss + '</b></div></div></section>';
+    if (M.mode === 'latest') { var all = todays();
+      h += '<div class="chips" role="group" aria-label="필터">' + [['all', '모두', all.length], ['unseen', '미확인', c.unseen], ['todo', '할 일', c.todo]].map(function (x) { return '<button class="chip" data-a="m.filter" data-v="' + x[0] + '" aria-pressed="' + (M.filter === x[0]) + '">' + x[1] + '<span class="n">' + x[2] + '</span></button>'; }).join('') + '</div>';
+      var list = (M.filter === 'todo' ? S().entries.slice().sort(function (a, b) { return b.t - a.t; }) : all).filter(function (e) { return M.filter === 'all' || (M.filter === 'unseen' && !e.seen) || (M.filter === 'todo' && work(e).k === 'todo'); });
+      h += list.length ? list.map(function (e) { return entryCard(e); }).join('') : '<p class="empty">' + (M.filter === 'unseen' ? '안 읽은 기록이 없어요' : M.filter === 'todo' ? '남은 할 일이 없어요' : '오늘 기록이 아직 없어요') + '</p>';
+    } else { h += B.RES.filter(function (r) { return r.cls === MYCLS; }).map(function (r) { var k = r.id, u = todays().filter(function (e) { return e.rid === k && !e.seen; }).length, t = S().entries.filter(function (e) { return e.rid === k && work(e).k === 'todo'; }).length, l = B.latest(k), has = B.todayTemp(k);
+        return '<button class="mcard recb" data-a="m.open" data-v="' + k + '"><span class="row"><span class="cls">' + cn(r.cls) + '</span><b style="font-size:16.5px">' + r.name + '</b><span class="time">' + (has ? B.f(l.v) + '° · ' + B.hm(l.t) : '오늘 체온 미기록') + '</span></span><span class="row" style="margin-top:8px;flex-wrap:wrap">' + (u ? '<span class="pill blue">미확인 ' + u + '</span>' : '') + (t ? '<span class="pill red">할 일 ' + t + '</span>' : '') + (!has ? '<span class="pill gray">체온 미기록</span>' : '') + (B.openCase(k) ? '<span class="pill org">' + B.caseTitle(B.openCase(k)) + ' 중</span>' : '') + (!u && !t && has && !B.openCase(k) ? '<span class="pill green">남은 일 없음</span>' : '') + '</span></button>'; }).join(''); }
+    return h + '</main>' + pnav(); }
+  function spark(rid) { var v = B.measOf(rid).slice(0, 8).reverse(); if (v.length < 2) return '';
+    var mn = Math.min.apply(null, v.map(function (e) { return e.v; })) - 3, mx = Math.max.apply(null, v.map(function (e) { return e.v; })) + 3, b = Math.min(Math.max(R(rid).base, mn), mx);
+    function y(t) { return 50 - (t - mn) / (mx - mn) * 44; } var pts = v.map(function (e, i) { return (10 + i * (320 / (v.length - 1))).toFixed(0) + ',' + y(e.v).toFixed(1); }), last = pts[pts.length - 1].split(',');
+    return '<svg class="sp" viewBox="0 0 340 56" role="img" aria-label="최근 체온 ' + v.length + '건 추이"><line x1="0" x2="340" y1="' + y(b).toFixed(1) + '" y2="' + y(b).toFixed(1) + '" stroke="#8B95A1" stroke-dasharray="3 3"/><polyline points="' + pts.join(' ') + '" fill="none" stroke="#3182F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + last[0] + '" cy="' + last[1] + '" r="4.5" fill="#3182F6" stroke="#fff" stroke-width="2"/></svg>'; }
+  function vCard() { var r = R(M.rid), l = B.latest(M.rid), oc = B.openCase(M.rid), anyCase = S().cases.filter(function (c) { return c.rid === M.rid; }).sort(function (a, b) { return b.createdAt - a.createdAt; })[0];
+    var h = ptop(cn(r.cls), '별님카드', { back: M.back.length > 0 }) + '<main class="pbody" data-scroll="m-card">';
+    var chips = B.RES.filter(function (x) { return x.cls === MYCLS || x.id === M.rid; });
+    h += '<div class="chips" role="group" aria-label="별님 선택">' + chips.map(function (x) { return '<button class="chip" data-a="m.pick" data-v="' + x.id + '" aria-pressed="' + (x.id === M.rid) + '">' + x.name + '</button>'; }).join('') + '</div>';
+    h += '<section class="mcard' + (flash[M.rid] ? ' flash' : '') + '"><div class="row" style="flex-wrap:wrap"><b style="font-size:21px">' + r.name + '</b><span class="muted">' + r.sex + ' · 만 ' + r.age + '세 · 담임 ' + B.cls(r.cls).tch + '</span>' + (oc ? '<span class="pill org">' + B.caseTitle(oc) + ' 중</span>' : '') + '</div>';
+    h += '<div class="st"><div class="stbox"><small>평소 체온 (제공된 기준값)</small><b class="temp" style="font-size:19px">' + B.f(r.base) + '°</b></div><div class="stbox"><small>최근 체온</small><b class="temp" style="font-size:19px">' + (l ? B.f(l.v) + '°' : '기록 없음') + '</b>' + (l ? '<small>' + B.dayLabel(B.dayOf(l.t)) + ' ' + B.hm(l.t) + ' · ' + esc(l.by) + '</small>' : '') + '</div></div>' + spark(M.rid);
+    h += '<div class="macts"><button class="mbtn pri" data-a="m.qtfor" data-v="' + M.rid + '">체온 기록하기</button>' + (anyCase ? '<button class="mbtn ghost" data-a="m.case" data-v="' + anyCase.id + '">대응 기록 ' + anyCase.no + '</button>' : '') + '</div></section>';
+    var sc = B.eventsForResident(M.rid);
+    h += '<section class="mcard"><div class="row"><b>일정</b><span class="tag new">일정 v2 연결</span><span class="time">읽기 전용</span></div>' + (sc.length ? '<ul class="schedl">' + sc.map(function (x) { return '<li><time>' + B.dayLabel(x.day).replace(/ \(.\)/, '') + ' ' + (x.start == null ? '종일' : B.hm(x.start)) + '</time><span><b>' + esc(x.title) + '</b><br><span class="muted">' + (x.rid ? '대상 별님 연결' : cn(x.cls)) + '</span></span></li>'; }).join('') + '</ul>' : '<p class="empty" style="padding:12px">오늘과 앞으로 14일 안에 연결된 일정이 없어요</p>') + '<p class="muted">PC 일정에서 넣거나 고치면 여기에 바로 보여요. 최대 3건.</p></section>';
+    h += '<input class="search" id="mq" type="search" placeholder="기록 검색 (체온, 식사, 행동)" aria-label="기록 검색" value="' + esc(M.q) + '">';
+    h += '<div class="chips" role="group" aria-label="기록 종류">' + [['all', '모두'], ['mine', '개인 기록'], ['notice', '반 공지']].map(function (x) { return '<button class="chip" data-a="m.cf" data-v="' + x[0] + '" aria-pressed="' + (M.cf === x[0]) + '">' + x[1] + '</button>'; }).join('') + '<span style="width:1px;background:var(--g300);flex:none;margin:6px 2px"></span>' + [['all', '전체 기간'], ['today', '오늘'], ['week', '7일']].map(function (x) { return '<button class="chip" data-a="m.period" data-v="' + x[0] + '" aria-pressed="' + (M.period === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    var items = [];
+    S().meas.forEach(function (m) { if (m.rid === M.rid) { var e = S().entries.filter(function (x) { return x.mid === m.id; })[0]; items.push({ t: m.t, m: m, e: e || null, own: true }); } });
+    S().entries.forEach(function (e) { if (e.mid) return; if (e.rid === M.rid) items.push({ t: e.t, e: e, own: true }); else if (e.kind === 'notice' && e.cls === r.cls) items.push({ t: e.t, e: e, own: false }); });
+    items = items.filter(function (x) { if (M.cf === 'mine' && !x.own) return false; if (M.cf === 'notice' && x.own) return false; var d = B.dayOf(x.t); if (M.period === 'today' && d !== 0) return false; if (M.period === 'week' && d < -6) return false;
+      if (M.q) { var hay = (x.e ? x.e.text || '' : '') + ' ' + (x.m ? B.f(x.m.v) + ' 체온 ' + B.STAGE[x.m.stage] : '') + ' ' + (x.e ? x.e.by : x.m.by); if (hay.indexOf(M.q) < 0) return false; } return true; }).sort(function (a, b) { return b.t - a.t; });
+    var un = items.filter(function (x) { return x.e && !x.e.seen; });
+    if (un.length) h += '<div class="mcard row" style="padding:8px 12px"><span class="dot"></span><b>새 기록 ' + un.length + '건</b><button class="link" data-a="m.seenall" style="margin-left:auto">모두 확인</button></div>';
+    if (!items.length) h += '<p class="empty">' + (M.q ? '‘' + esc(M.q) + '’에 맞는 기록이 없어요' : '조건에 맞는 기록이 없어요') + '</p>';
+    var cur = null; items.forEach(function (x) { var d = B.dayOf(x.t); if (d !== cur) { cur = d; h += '<div class="day">' + B.dayLabel(d) + (d >= -1 ? '<small>' + B.md(d) + '</small>' : '') + '</div>'; }
+      if (x.e) h += entryCard(x.e, true); else h += '<div class="mcard row" style="padding:8px 12px;flex-wrap:wrap"><span class="temp" style="font-size:17px">' + B.f(x.m.v) + '°</span>' + stagePill(x.m.stage) + '<span class="time">' + esc(x.m.by) + ' · ' + B.hm(x.m.t) + '</span></div>'; });
+    return h + '</main>' + pnav(); }
+  function vNotices() { var h = ptop('알림', '', { back: true, noBell: true }) + '<main class="pbody" data-scroll="m-nt"><p class="muted" style="padding:0 4px">알림을 누르면 ‘알림 읽음’만 바뀝니다. 담당자 확인·업무 완료는 바뀌지 않아요.</p>', ns = myNotices();
+    if (!ns.length) h += '<p class="empty">받은 알림이 없어요</p>';
+    h += ns.map(function (n) { var c = n.caseId ? B.caseById(n.caseId) : null, w = c ? caseWork(c) : null; return '<button class="mcard recb" data-a="m.notice" data-v="' + n.id + '"><span class="row">' + (!n.read ? '<span class="dot"></span>' : '') + '<span class="cls">' + cn(R(n.rid).cls) + '</span><b>' + R(n.rid).name + '</b><span class="time">' + B.hm(n.t) + '</span></span><span class="txt" style="display:block">' + esc(n.text) + '</span>' + (c ? '<span class="row" style="margin-top:8px;flex-wrap:wrap"><span class="pill ' + (B.acked(c.id, B.STAFF.nurse) ? 'green' : 'gray') + '">담당자 확인 ' + (B.acked(c.id, B.STAFF.nurse) ? '✓' : '전') + '</span><span class="pill ' + (w.k === 'todo' ? 'red' : w.k === 'done' ? 'green' : 'gray') + '">' + w.short + '</span></span>' : '') + '</button>'; }).join('');
+    return h + '</main>'; }
+  function caseWork(c) { if (c.remeasureAt != null && !c.remeasureDoneAt) return { k: 'todo', short: '재측정 남음', label: '남음 · ' + B.hm(c.remeasureAt) + ' 예정' }; if (c.remeasureDoneAt) return { k: 'done', short: '재측정 완료', label: '✓ ' + B.hm(c.remeasureDoneAt) + ' 재측정' }; return { k: 'none', short: '요청된 업무 없음', label: '요청된 업무 없음' }; }
+  var EV = { created: function (e) { return '체온 ' + B.f(e.data.v) + '° 기록으로 대응 열림 · 간호 선생님 호출함 전달'; }, acked: function (e) { return e.by + (e.by === B.STAFF.nurse ? ' 간호 선생님이' : ' 선생님이') + ' 확인함'; }, remeasure_scheduled: function (e) { return e.by + ' 간호 선생님이 재측정 요청 (' + e.data.minutes + '분 뒤)'; }, remeasured: function (e) { return '재측정 ' + B.f(e.data.v) + '° · ' + B.STAGE[e.data.stage] + ' (' + e.by + ')'; }, recovered: function () { return '평소 범위로 돌아온 기록'; }, escalated: function () { return '긴급으로 바뀜'; }, prescribed: function (e) { return '의료진 처방 발행됨 ' + e.data.no + ' · 내용은 PC 의료 호출함에서'; }, closed: function (e) { return '대응 종료 (' + e.by + ') · ' + e.data.reason; } };
+  function vCase() { var c = B.caseById(M.caseId), r = R(c.rid), call = B.callOfCase(c.id), w = caseWork(c), ack = B.acked(c.id, B.STAFF.nurse), unread = myNotices().some(function (n) { return n.caseId === c.id && !n.read; });
+    var h = ptop(r.name + ' · ' + B.caseTitle(c), '대응 기록 ' + c.no, { back: true }) + '<main class="pbody" data-scroll="m-case">';
+    h += '<section class="mcard"><b>상태 네 가지</b><div class="st"><div class="stbox ' + (!unread ? 'done' : '') + '"><small>알림 읽음 (나)</small><b>' + (!unread ? '✓ 읽음' : '안 읽은 알림 있음') + '</b></div><div class="stbox ' + (ack ? 'done' : '') + '"><small>담당자 확인 (간호 선생님)</small><b>' + (ack ? '✓ ' + B.hm(ack.t) : '아직') + '</b></div><div class="stbox ' + (w.k === 'todo' ? 'todo' : w.k === 'done' ? 'done' : '') + '"><small>업무 (재측정)</small><b>' + w.label + '</b></div><div class="stbox ' + (c.closedAt ? 'done' : '') + '"><small>대응 종료</small><b>' + (c.closedAt ? '✓ ' + B.hm(c.closedAt) : '진행 중') + '</b></div></div></section>';
+    if (call) h += '<section class="mcard"><b>의료 호출</b><div class="row" style="flex-wrap:wrap;margin-top:6px"><span class="pill blue">간호 선생님 호출함 전달 ' + B.hm(call.t) + '</span>' + (call.forwardedAt ? '<span class="pill pur">의료진에게 전달 ' + B.hm(call.forwardedAt) + '</span>' : '') + (call.videoAt != null ? '<span class="pill pur">화상 진료 ' + B.hm(call.videoAt) + '</span>' : '') + (B.rxOf(call.id) ? '<span class="pill green">처방 발행됨</span>' : '') + (call.status === 'done' ? '<span class="pill gray">호출 완료</span>' : '') + '</div><p class="muted" style="margin-top:6px">대화와 처방 내용은 PC 의료 호출함·의료진 포털에서 봅니다. 어플은 결과 상태만 보여 줘요.</p></section>';
+    h += '<section class="mcard"><b>대응 이력</b><ol class="tl">' + B.eventsOf(c.id).map(function (e) { return '<li><time>' + B.hm(e.t) + '</time>' + esc((EV[e.type] || function () { return e.type; })(e)) + '</li>'; }).join('') + (w.k === 'todo' ? '<li class="wait"><time>' + B.hm(c.remeasureAt) + '</time>재측정 기록 대기</li>' : '') + '</ol></section>';
+    h += '<div class="macts">' + (!c.closedAt ? '<button class="mbtn pri" data-a="m.qtfor" data-v="' + c.rid + '">재측정 기록하기</button>' : '') + '<button class="mbtn ghost" data-a="m.open" data-v="' + c.rid + '">' + r.name + ' 별님카드</button></div>';
+    if (!c.closedAt && c.recoveredAt) h += '<div class="macts" style="margin-top:0"><button class="mbtn sec" data-a="m.close" data-v="' + c.id + '">대응 종료하기</button></div><p class="muted" style="padding:0 4px">종료 조건은 기존 이상 대응 규칙을 따릅니다. 시연에서는 회복 기록 뒤에 누를 수 있게 했어요. <span class="tag ask">팀 확인 필요</span></p>';
+    return h + '</main>'; }
+  function vQT() { var q = M.qt, r = R(q.rid), busy = q.status === 'saving', dis = busy ? ' disabled' : '';
+    var h = '<div class="layer" role="dialog" aria-label="퀵 체온"><header class="ptop"><h2>체온 측정</h2><button class="ib" data-a="m.qtclose" aria-label="퀵 체온 닫기"' + dis + '>' + I.x + '</button></header><main class="pbody">';
+    h += '<div class="chips" role="group" aria-label="반 선택">' + B.CL.map(function (c) { return '<button class="chip" data-a="m.qcls" data-v="' + c.id + '" aria-pressed="' + (c.id === q.cls) + '"' + dis + '>' + c.name + '</button>'; }).join('') + '</div>';
+    h += '<div class="chips" role="group" aria-label="별님 선택" style="padding:2px">' + B.RES.filter(function (x) { return x.cls === q.cls; }).map(function (x) { var has = B.todayTemp(x.id); return '<button class="av' + (has ? ' has' : '') + '" data-a="m.qpick" data-v="' + x.id + '" aria-pressed="' + (x.id === q.rid) + '" aria-label="' + x.name + (has ? ' (오늘 기록 있음)' : '') + '"' + dis + '>' + x.name.slice(1) + '</button>'; }).join('') + '</div>';
+    h += '<div class="target"><div><small class="muted">기록 대상</small><br><b>' + cn(r.cls) + ' · ' + r.name + '</b></div><span class="time">평소 ' + B.f(r.base) + '°</span></div>';
+    h += '<div class="big" aria-live="polite">' + B.f(q.val) + '<small>°C</small></div>';
+    h += '<div class="step"><button data-a="m.dec" aria-label="0.1도 내리기"' + dis + '>−</button><span class="muted">입력 범위 34.0~42.0</span><button data-a="m.inc" aria-label="0.1도 올리기"' + dis + '>+</button></div>';
+    h += '<div class="chips" role="group" aria-label="빠른 값" style="justify-content:center">' + [365, 371, 378, 384, 390].map(function (v) { return '<button class="chip" data-a="m.preset" data-v="' + v + '" aria-pressed="' + (q.val === v) + '"' + dis + '>' + B.f(v) + '°</button>'; }).join('') + '</div><div aria-live="assertive">';
+    if (q.status === 'saving') h += '<div class="res saving"><span class="spin"></span><div>저장 중이에요<p>다시 누르지 않아도 돼요. 같은 값이 두 번 저장되지 않게 막아 두었어요.</p></div></div>';
+    if (q.status === 'ok') { var x = q.res, m = x.m, rr = R(m.rid), line = x.created ? '<b>' + B.caseTitle(x.caseItem) + '</b>이 열리고 간호 선생님 호출함에 전달됐어요.' : x.recovered ? '대응 기록에 재측정이 추가되고 회복으로 기록됐어요.' : x.caseItem ? '대응 기록에 재측정이 추가됐어요.' : x.task ? '재측정 할 일이 ' + B.hm(x.task.dueAt) + '로 만들어졌어요.' : '';
+      h += '<div class="res ok">✓ ' + rr.name + ' ' + B.f(m.v) + '° · ' + B.hm(m.t) + ' 기록됨 ' + stagePill(m.stage) + '<p>' + line + (x.autoDone ? ' 열려 있던 재측정 할 일 ' + x.autoDone + '건이 완료됐어요.' : '') + '</p><p>시연 저장: 이 브라우저의 공용 저장소에 기록됐고 <b>실제 서버로 전송되지는 않았어요.</b></p><div class="macts"><button class="mbtn pri" data-a="m.qtgo">' + rr.name + ' 별님카드에서 보기</button><button class="mbtn sec" data-a="m.qtnext">다음 별님</button></div></div>'; }
+    if (q.status === 'fail') h += '<div class="res fail">저장하지 못했어요<p>입력한 값 <b>' + B.f(q.val) + '°</b>와 대상 <b>' + r.name + '</b>은 그대로예요. 기록은 아직 남지 않았어요.</p><div class="macts"><button class="mbtn pri" data-a="m.retry">다시 시도</button><button class="mbtn sec" data-a="m.qtidle">값 고치기</button></div></div>';
+    h += '</div>';
+    if (q.status === 'idle' || busy) h += '<button class="hold" id="hold"' + dis + '><span>' + (busy ? '저장 중…' : '길게 눌러 ' + r.name + ' ' + B.f(q.val) + '° 기록') + '</span></button><p class="muted" style="text-align:center">키보드는 Enter · 판정은 공통 규칙(judgment.dart)을 그대로 씁니다</p>';
+    return h + '</main></div>'; }
+  function vSheet() { var e = S().entries.filter(function (x) { return x.id === M.sheet; })[0]; if (!e) { M.sheet = null; return ''; } var r = e.rid ? R(e.rid) : null, m = e.mid ? meas(e.mid) : null, w = work(e), c = e.caseId ? B.caseById(e.caseId) : null;
+    var h = '<div class="sheetbg" data-a="m.closesheet"><div class="sheet" role="dialog" aria-label="기록 상세"><div class="row"><b style="font-size:17px">' + (r ? r.name + ' · ' : '') + (e.kind === 'temp' ? '체온 기록' : e.kind === 'notice' ? '반 공지' : '관찰 기록') + '</b><button class="ib" data-a="m.closesheet" aria-label="닫기" style="margin-left:auto">' + I.x + '</button></div><p class="muted">' + B.dayLabel(B.dayOf(e.t)) + ' ' + B.hm(e.t) + ' · 작성 ' + esc(e.by) + '</p>';
+    if (m) h += tempRow(m); if (e.text) h += '<p class="txt">' + esc(e.text) + '</p>';
+    h += '<div class="st"><div class="stbox ' + (e.seen ? 'done' : '') + '"><small>읽음 확인</small><b>' + (e.seen ? '✓ 내가 확인함' : '아직 안 읽음') + '</b></div><div class="stbox ' + (w.k === 'done' ? 'done' : w.k === 'todo' ? 'todo' : '') + '"><small>업무</small><b>' + w.label + '</b></div></div><p class="muted" style="margin-top:8px">상세를 열어 본 것만으로는 읽음·완료가 바뀌지 않아요. 아래 버튼을 눌러야 바뀝니다.</p><div class="macts">';
+    if (!e.seen) h += '<button class="mbtn sec" data-a="m.seen" data-v="' + e.id + '">확인했어요</button>';
+    if (w.k === 'todo' && w.memo) h += '<button class="mbtn pri" data-a="m.done" data-v="' + e.id + '">완료했어요</button>';
+    if (w.k === 'todo' && w.temp) h += '<button class="mbtn pri" data-a="m.qtfor" data-v="' + e.rid + '">재측정하기</button>';
+    if (c) h += '<button class="mbtn ghost" data-a="m.case" data-v="' + c.id + '">대응 기록 ' + c.no + '</button>';
+    return h + '</div></div></div>'; }
+  function vPhone() { if (M.view === 'case' && !B.caseById(M.caseId)) { M.view = 'handover'; M.back = []; } if (M.qt.status === 'ok' && !M.qt.res) M.qt.status = 'idle'; var h = M.view === 'handover' ? vHandover() : M.view === 'card' ? vCard() : M.view === 'notices' ? vNotices() : vCase(); if (M.qt.open) h += vQT(); if (M.sheet) h += vSheet(); return h; }
+  function mgo(v) { M.back.push({ view: M.view, rid: M.rid, caseId: M.caseId }); M.view = v; M.sheet = null; }
+  function save() { var q = M.qt; if (q.status === 'saving') return; q.status = 'saving'; render();
+    setTimeout(function () { if (U.failNext) { U.failNext = false; q.status = 'fail'; render(); } else { var res = B.saveMeasurement(q.rid, q.val, ME); q.res = res; q.status = 'ok'; render(); } }, 1300); }
+  ACT['m.tab'] = function (v) { M.view = v; M.back = []; M.sheet = null; };
+  ACT['m.mode'] = function (v) { M.mode = v; }; ACT['m.filter'] = function (v) { M.filter = v; }; ACT['m.cf'] = function (v) { M.cf = v; }; ACT['m.period'] = function (v) { M.period = v; };
+  ACT['m.open'] = function (v) { mgo('card'); M.rid = v; M.q = ''; }; ACT['m.pick'] = function (v) { M.rid = v; M.q = ''; };
+  ACT['m.seen'] = function (v) { B.markSeen(v); };
+  ACT['m.seenall'] = function () { var r = R(M.rid); S().entries.forEach(function (e) { if (!e.seen && (e.rid === M.rid || (e.kind === 'notice' && e.cls === r.cls))) B.markSeen(e.id); }); };
+  ACT['m.done'] = function (v) { B.completeTask(v, ME); }; ACT['m.detail'] = function (v) { M.sheet = v; };
+  ACT['m.closesheet'] = function (v, el, ev) { if (el.classList.contains('sheetbg') && ev.target !== el) return false; M.sheet = null; };
+  ACT['m.notices'] = function () { mgo('notices'); };
+  ACT['m.notice'] = function (v) { var n = B.readNotice(v); if (n.caseId) { mgo('case'); M.caseId = n.caseId; } else { mgo('card'); M.rid = n.rid; } };
+  ACT['m.case'] = function (v) { mgo('case'); M.caseId = v; };
+  ACT['m.back'] = function () { var p = M.back.pop(); if (p) { M.view = p.view; M.rid = p.rid; M.caseId = p.caseId; } else M.view = 'handover'; };
+  ACT['m.close'] = function (v) { B.closeCase(v, ME, '평소 체온으로 회복'); toast('대응을 종료했어요 · 현황판과 일정에 반영됩니다'); };
+  ACT['m.qt'] = function () { var q = M.qt; q.open = true; q.status = 'idle'; if (M.view === 'card') q.rid = M.rid; q.cls = R(q.rid).cls; q.val = 365; };
+  ACT['m.qtfor'] = function (v) { var q = M.qt, l = B.latest(v); M.sheet = null; q.open = true; q.status = 'idle'; q.rid = v; q.cls = R(v).cls; q.val = l && B.dayOf(l.t) === 0 ? l.v : 365; };
+  ACT['m.qtclose'] = function () { M.qt.open = false; };
+  ACT['m.qcls'] = function (v) { var q = M.qt; q.cls = v; q.rid = B.RES.filter(function (x) { return x.cls === v; })[0].id; q.status = 'idle'; };
+  ACT['m.qpick'] = function (v) { M.qt.rid = v; M.qt.status = 'idle'; };
+  ACT['m.inc'] = function () { var q = M.qt; q.val = Math.min(420, q.val + 1); q.status = 'idle'; }; ACT['m.dec'] = function () { var q = M.qt; q.val = Math.max(340, q.val - 1); q.status = 'idle'; };
+  ACT['m.preset'] = function (v) { M.qt.val = +v; M.qt.status = 'idle'; };
+  ACT['m.retry'] = function () { save(); return false; }; ACT['m.qtidle'] = function () { M.qt.status = 'idle'; };
+  ACT['m.qtnext'] = function () { var q = M.qt, ks = B.RES.filter(function (x) { return x.cls === q.cls; }), i = ks.map(function (x) { return x.id; }).indexOf(q.rid); q.rid = ks[(i + 1) % ks.length].id; q.val = 365; q.status = 'idle'; };
+  ACT['m.qtgo'] = function () { var q = M.qt, rid = q.res.m.rid; q.open = false; q.status = 'idle'; if (!(M.view === 'card' && M.rid === rid)) mgo('card'); M.rid = rid; M.cf = 'all'; M.period = 'all'; M.q = ''; };
+
+  /* ───────── 틀 ───────── */
+  var PCS = [['board', '현황판', '사무국'], ['calls', '간호 선생님 호출함', '간호 선생님'], ['doctor', '의료진 포털', '촉탁의'], ['sched', '일정', '직원 공용']];
+  function steps() { var s = S(), c = s.cases.filter(function (x) { return x.rid === SJ; })[0], call = c ? B.callOfCase(c.id) : null;
+    return [['어플', '이서준 38.4° 기록', !!c, 'phone'], ['현황판', '이상 행 → 호출함', !!(call && call.nurseRead), 'board'], ['간호 선생님 호출함', '확인 · 의료진에게 보내기', !!(c && B.acked(c.id, B.STAFF.nurse) && call.forwardedAt), 'calls'], ['의료진 포털', '화상 예약 · 처방 발행', !!(call && B.rxOf(call.id)), 'doctor'], ['호출함 → 일정', '재측정 요청 · 달력 확인', !!(c && c.remeasureAt != null), 'calls'], ['어플', '재측정 37.8° 기록', !!(c && c.remeasureDoneAt), 'phone'], ['간호 선생님 호출함', '호출 완료', !!(call && call.status === 'done'), 'calls']]; }
+  function header() { var h = '<header class="hd"><span class="brand">별자리노트<small>통합 시연</small></span><span class="demo-pill">가상 데이터 · 서버 미연결 · 이 브라우저 안에서만 연동</span><div class="tabs" role="group" aria-label="PC 화면 선택">' + PCS.map(function (p) { return '<button data-a="pc" data-v="' + p[0] + '" aria-pressed="' + (U.pc === p[0] && U.mode !== 'phone') + '">' + p[1] + '<small>' + p[2] + '</small></button>'; }).join('') + '</div>';
+    h += [['both', '어플+PC'], ['phone', '어플만'], ['pc', 'PC만']].map(function (x) { return '<button class="hbtn" data-a="mode" data-v="' + x[0] + '" aria-pressed="' + (U.mode === x[0]) + '">' + x[1] + '</button>'; }).join('') + '<button class="hbtn" data-a="log" aria-expanded="' + U.logOpen + '" aria-pressed="' + U.logOpen + '">연동 기록 ' + S().log.filter(function (g) { return !g.quiet; }).length + '</button><button class="hbtn" data-a="reset">처음 상태로</button></header>';
+    var st = steps(), nx = -1; st.forEach(function (x, i) { if (nx < 0 && !x[2]) nx = i; });
+    h += '<nav class="guide" aria-label="시연 순서">' + st.map(function (x, i) { return '<button class="gstep' + (x[2] ? ' done' : i === nx ? ' next' : '') + '" data-a="step" data-v="' + x[3] + '"><span class="n">' + (x[2] ? '✓' : i + 1) + '</span><span><small>' + x[0] + '</small><b>' + x[1] + '</b></span></button>'; }).join('') + '<div class="gctl"><label><input type="checkbox" id="failNext"' + (U.failNext ? ' checked' : '') + '> 다음 저장을 실패로</label></div></nav>';
+    return h; }
+  function overlays() { var s = S(), h = '', logs = s.log.filter(function (g) { return !g.quiet; });
+    
+    if (U.logOpen) h += '<aside class="logp" aria-label="연동 기록"><div class="row"><b>연동 기록</b><span class="muted">한 번의 입력이 어느 화면에 반영됐는지</span></div><ul style="padding:0;margin-top:6px">' + (logs.length ? logs.map(function (g) { return '<li><time>' + B.hm(g.t) + '</time>' + esc(g.text) + '<div class="to">' + g.to.map(function (t) { return '<span class="pill blue">→ ' + t + '</span>'; }).join('') + '</div></li>'; }).join('') : '<li class="muted">아직 없어요</li>') + '</ul></aside>';
+    if (U.modal) h += '<div class="modalbg" data-a="modalclose"><div class="modal" role="dialog">' + U.modal + '<div style="text-align:right;margin-top:14px"><button class="btn sec" data-a="modalclose">닫기</button></div></div></div>';
+    if (U.toast) h += '<div class="toast" role="status">' + esc(U.toast) + '</div>';
+    return h; }
+  function pcFrame() { var p = PCS.filter(function (x) { return x[0] === U.pc; })[0], who = U.pc === 'doctor' ? [B.STAFF.doctor + ' ' + B.STAFF.doctorTitle, '내과·외과 · 촉탁의'] : [B.STAFF.nurse + ' ' + B.STAFF.nurseTitle, '혜진원 의료지원팀'];
+    return '<div class="pcframe"><div class="pcbar"><b>별자리노트</b><span class="sep">/</span><span>' + (U.pc === 'doctor' ? '의료진 전용 협진 포털' : '오피스 웹') + '</span><span class="sep">/</span><b>' + p[1] + '</b><span class="fac">울산 혜진원 장애인거주시설</span><span class="mono muted">11.26 (목) ' + B.hm(S().clock) + '</span><span class="user"><b>' + who[0] + '</b><small>' + who[1] + '</small></span></div><div class="pcbody" data-scroll="pc-' + U.pc + '">' + V[U.pc]() + '</div></div>'; }
+  function render() { var root = document.getElementById('root'), ae = document.activeElement, fid = ae && ae.id ? ae.id : null, sel = fid && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null, sc = {};
+    Array.prototype.forEach.call(root.querySelectorAll('[data-scroll]'), function (el) { sc[el.getAttribute('data-scroll')] = [el.scrollTop, el.scrollLeft]; });
+    var s = S(), top = s.log[0] ? s.log[0].id : null; flash = {};
+    if (seenLog !== null && top !== seenLog) { for (var i = 0; i < s.log.length && s.log[i].id !== seenLog; i++) if (s.log[i].rid) flash[s.log[i].rid] = true; }
+    seenLog = top;
+    document.body.className = U.mode === 'phone' ? 'only-phone' : U.mode === 'pc' ? 'only-pc' : '';
+    root.innerHTML = header() + '<div class="main"><section class="phonecol" aria-label="어플 화면"><div class="cap">어플 · 생활관 선생님 — ' + ME + ' ' + B.STAFF.careTitle + ' 로그인</div><div class="phone">' + vPhone() + '</div></section><section class="pccol" aria-label="PC 화면">' + pcFrame() + '</section></div>' + overlays();
+    Array.prototype.forEach.call(root.querySelectorAll('[data-scroll]'), function (el) { var p = sc[el.getAttribute('data-scroll')]; if (p) { el.scrollTop = p[0]; el.scrollLeft = p[1]; } });
+    if (fid) { var el = document.getElementById(fid); if (el) { el.focus(); if (sel && el.setSelectionRange) try { el.setSelectionRange(sel[0], sel[1]); } catch (e) { } } }
+    var hd = document.getElementById('hold'); if (hd) { var t = null, cancel = function () { clearTimeout(t); t = null; hd.classList.remove('on'); };
+      hd.addEventListener('pointerdown', function () { if (hd.disabled) return; hd.classList.add('on'); t = setTimeout(function () { t = null; save(); }, 700); });
+      hd.addEventListener('pointerup', cancel); hd.addEventListener('pointerleave', cancel); hd.addEventListener('pointercancel', cancel); hd.addEventListener('click', function (ev) { if (ev.detail === 0) save(); }); }
+    if (V.after) V.after(); }
+  ACT.pc = function (v) { U.pc = v; if (U.mode === 'phone') U.mode = 'both'; };
+  ACT.mode = function (v) { U.mode = v; };
+  ACT.step = function (v) { if (v === 'phone') { if (U.mode === 'pc') U.mode = 'both'; } else { U.pc = v; if (U.mode === 'phone') U.mode = 'both'; } };
+  ACT.reset = function () { M.view = 'handover'; M.back = []; M.sheet = null; M.caseId = null; M.qt.open = false; M.qt.status = 'idle'; M.qt.rid = SJ; M.qt.cls = MYCLS; M.rid = SJ; M.q = ''; U.calls.sel = null; U.calls.rid = null; U.doc.sel = null; U.sched.sel = null; U.sched.add = null; U.sched.mo = 0; U.board.page = 0; U.board.tab = 'all'; U.failNext = false; U.modal = null; seenLog = null; B.reset(); seenLog = S().log[0] ? S().log[0].id : null; toast('시연을 처음 상태로 돌렸어요'); };
+  ACT.log = function () { U.logOpen = !U.logOpen; };
+  ACT.modalclose = function (v, el, ev) { if (el.classList.contains('modalbg') && ev.target !== el) return false; U.modal = null; };
+  document.addEventListener('click', function (ev) { var el = ev.target.closest('[data-a]'); if (!el || el.disabled) return; var fn = ACT[el.getAttribute('data-a')]; if (!fn) return; if (fn(el.getAttribute('data-v'), el, ev) !== false) render(); });
+  document.addEventListener('input', function (ev) { var t = ev.target; if (t.id === 'mq') { M.q = t.value; render(); } else if (t.id === 'failNext') { U.failNext = t.checked; } else if (V.input) V.input(t); });
+  document.addEventListener('change', function (ev) { if (V.change && V.change(ev.target) === true) render(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { if (U.modal) U.modal = null; else if (M.sheet) M.sheet = null; else if (M.qt.open && M.qt.status !== 'saving') M.qt.open = false; else if (U.sched.add != null) U.sched.add = null; else return; render(); } else if (ev.key === 'Enter' && V.enter && V.enter(ev.target, ev) === true) { ev.preventDefault(); } });
+  function boot() { var hsh = (location.hash || '').replace('#', ''); if (hsh === 'phone') U.mode = 'phone'; else if (['board', 'calls', 'doctor', 'sched'].indexOf(hsh) >= 0) { U.pc = hsh; U.mode = 'pc'; } else if (window.innerWidth < 900) U.mode = 'phone';
+    B.subscribe(render); render(); }
+  return { U: U, ACT: ACT, V: V, B: B, S: S, R: R, cn: cn, esc: esc, stagePill: stagePill, toast: toast, render: render, boot: boot, save: save, flash: function () { return flash; }, SJ: SJ };
+})();
+
+</script>
+<script>
+/* 별자리노트 통합 시연 · PC 화면 넷 (현황판 · 간호 선생님 호출함 · 의료진 포털 · 일정) */
+(function () {
+  'use strict';
+  var A = APP, B = A.B, U = A.U, V = A.V, ACT = A.ACT, S = A.S, R = A.R, cn = A.cn, esc = A.esc, pill = A.stagePill;
+  var NURSE = B.STAFF.nurse, DOC = B.STAFF.doctor;
+  function age(r) { return r.sex + ' · 만 ' + r.age + '세'; }
+  function callsOf(rid) { return S().calls.filter(function (c) { return c.rid === rid; }).sort(function (a, b) { return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.t - a.t; }); }
+  var LV = { urgent: ['긴급', 'solid'], observe: ['관찰 중', 'blue'], general: ['일반 의뢰', 'gray'] };
+
+  /* ───────── 현황판 ───────── */
+  function place(r) { var c = S().clock % 1440; if (r.commute && c < 15 * 60) return ['등교', '울산행복학교']; if (c >= 11 * 60 + 30 && c < 13 * 60) return ['점심 식사', '식당']; return ['자유 시간', '생활관']; }
+  V.board = function () { var s = S(), fl = A.flash(), bd = U.board, rows = B.RES.map(function (r, i) { var l = B.latest(r.id), oc = B.openCase(r.id), call = oc ? B.callOfCase(oc.id) : null; return { r: r, i: i, l: l, oc: oc, call: call, hot: !!oc }; });
+    var hot = rows.filter(function (x) { return x.hot; }), commute = B.RES.filter(function (r) { return r.commute && s.clock % 1440 < 15 * 60; }).length;
+    var today = s.entries.filter(function (e) { return B.dayOf(e.t) === 0; }), seen = today.filter(function (e) { return e.seen; }).length, pct = today.length ? Math.round(seen / today.length * 100) : 100;
+    var vids = s.calls.filter(function (c) { return c.videoAt != null && B.dayOf(c.videoAt) === 0 && c.status === 'open'; }).length, rxs = s.rx.filter(function (p) { return B.dayOf(p.t) === 0; }).length;
+    var h = '<div class="board"><h1>울산 혜진원 통합 관제 현황판 <span class="live">● 실시간 관제 활성</span><span class="muted">어플에서 기록하면 이 화면이 바로 바뀝니다</span></h1><div class="cards4">';
+    h += '<div class="kcard"><small>전체 거주인 재실 현황</small><b>36명</b><p>6개 생활관 · 통학 ' + commute + '명</p></div>';
+    h += '<div class="kcard' + (hot.length ? ' hot' : '') + '"><small>집중 발열/이상 모니터링</small><b>' + hot.length + '건 활성</b><p>' + (hot.length ? hot.map(function (x) { return x.r.name + ' ' + B.f(x.l.v) + '°'; }).join(' · ') : '이상 없음') + '</p></div>';
+    h += '<div class="kcard"><small>당일 비대면 의료 협진</small><b>예정 ' + vids + ' · 완료 ' + rxs + '</b><p>화상 진료 예약과 처방전 수신 기준</p></div>';
+    h += '<div class="kcard"><small>오전 교대조 인계 확인율</small><b>' + pct + '%</b><p>미확인 ' + (today.length - seen) + '건 잔여 · 어플 읽음 확인과 연결</p><div class="bar"><i style="width:' + pct + '%"></i></div></div></div>';
+    var list = rows.filter(function (x) { return bd.tab === 'all' || x.r.cls === bd.tab; }).sort(function (a, b) { return (b.hot - a.hot) || (a.i - b.i); }), pages = Math.max(1, Math.ceil(list.length / 10)); if (bd.page >= pages) bd.page = 0; var pg = list.slice(bd.page * 10, bd.page * 10 + 10);
+    h += '<div><div class="panel"><h3>6개 생활관 전수 거주인 현황</h3><div class="ctabs" role="group" aria-label="생활관">' + [['all', '전체 (36)']].concat(B.CL.map(function (c) { return [c.id, c.name]; })).map(function (t) { return '<button data-a="board.tab" data-v="' + t[0] + '" aria-pressed="' + (bd.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>';
+    h += '<div style="overflow-x:auto"><table class="bt"><thead><tr><th>생활관 / 담당</th><th>별님</th><th>체온</th><th>상태 판정</th><th>현재 위치 및 일과</th><th>최근 기록</th><th>대응 현황</th></tr></thead><tbody>';
+    pg.forEach(function (x) { var r = x.r, c = B.cls(r.cls), l = x.l, td = l && B.dayOf(l.t) === 0, p = place(r), ent = s.entries.filter(function (e) { return e.rid === r.id && e.text && B.dayOf(e.t) === 0; })[0];
+      var rec = x.hot ? '체온 ' + B.f(l.v) + '°C 기록<br><span class="muted">' + B.hm(l.t) + ' · ' + esc(l.by) + '</span>' : ent ? esc(ent.text.length > 24 ? ent.text.slice(0, 24) + '…' : ent.text) + '<br><span class="muted">' + B.hm(ent.t) + ' · ' + esc(ent.by) + ' 관찰 기록</span>' : '<span class="muted">최근 기록 없음</span>';
+      var chip = x.hot ? (x.call && x.call.forwardedAt ? '<span class="pill solid">의료호출 연결됨</span>' : '<span class="pill blue">의료호출 관찰 중</span>') + (x.call && B.rxOf(x.call.id) ? ' <span class="pill green">처방 수신</span>' : '') + (x.oc.remeasureAt != null && !x.oc.remeasureDoneAt ? ' <span class="pill pur">재측정 ' + B.hm(x.oc.remeasureAt) + '</span>' : '') : (p[0] === '등교' ? '<span class="pill gray">정상 통학</span>' : '<span class="pill green">안정</span>');
+      h += '<tr class="clk' + (x.hot ? ' hot' : '') + (fl[r.id] ? ' flash' : '') + '" data-a="board.row" data-v="' + r.id + '" tabindex="0" role="button" aria-label="' + r.name + ' 의료 호출함에서 열기"><td><b>' + c.name + '</b> ' + c.room + '<br><span class="muted">담당: ' + c.tch + ' 선생님</span></td><td style="white-space:nowrap"><span class="av2">' + r.name.slice(1) + '</span><b>' + r.name + '</b><br><span class="muted" style="margin-left:36px">' + age(r) + '</span></td>';
+      h += '<td>' + (td ? '<span class="tv ' + (x.hot ? 'hot' : 'ok') + '">' + B.f(l.v) + '°</span><br><span class="muted">' + (l.diff === 0 ? '기저 ' + B.f(r.base) + '°C 일치' : (x.hot ? '▲ ' : '') + B.fd(l.diff) + '°C 기저치 대비') + '</span>' : '<span class="muted">오늘 미기록</span>') + '</td><td>' + (p[0] === '등교' && !x.hot ? '<span class="pill gray">통학 중</span>' : td ? pill(l.stage) : '<span class="pill gray">미기록</span>') + '</td><td>' + p[0] + '<br><span class="muted">' + p[1] + '</span></td><td>' + rec + '</td><td>' + chip + '</td></tr>'; });
+    h += '</tbody></table></div><div class="pager"><span>' + (bd.page * 10 + 1) + '-' + Math.min(list.length, bd.page * 10 + 10) + ' / ' + list.length + '</span><button class="btn sec" data-a="board.page" data-v="-1"' + (bd.page === 0 ? ' disabled' : '') + '>이전 10명</button><button class="btn sec" data-a="board.page" data-v="1"' + (bd.page >= pages - 1 ? ' disabled' : '') + '>다음 10명</button><span style="margin-left:auto">행을 누르면 그 별님의 의료 호출함이 열립니다</span></div></div>';
+    h += '<div class="tiles">' + B.CL.map(function (c) { var rs = rows.filter(function (x) { return x.r.cls === c.id; }), hs = rs.filter(function (x) { return x.hot; }); return '<button class="tile' + (hs.length ? ' hot' : '') + '" data-a="board.tab" data-v="' + c.id + '"><b>' + c.name + '</b><small>' + (rs.length - hs.length) + '/' + rs.length + ' ' + (hs.length ? '<span style="color:var(--r500)">이상</span>' : '전원정상') + '<br>' + (hs.length ? c.room + ' ' + hs[0].r.name + ' ' + B.STAGE[hs[0].oc.severity] : '자유 시간') + '</small></button>'; }).join('') + '</div></div>';
+    var FT = { call: '의료 호출 접수', ack: '간호 선생님 확인', fwd: '의료 의뢰 · 응답 대기', video: '화상 진료 예약', rx: '비대면 협진 완료', remeasure: '재측정 기록', remeasureAt: '재측정 예정', done: '호출 완료', closed: '대응 종료', caution: '주의 관찰', vital: '정기 바이탈 기록 정상', cal: '일정' };
+    var logs = s.log.filter(function (g) { return !g.quiet && FT[g.kind] && g.kind !== 'cal'; }).slice(0, 12);
+    h += '<div style="display:grid;gap:12px;align-content:start"><div class="panel"><h3>실시간 응급·의료 타임라인 <span class="pill red">LIVE</span></h3><div class="feed">' + (logs.length ? logs.map(function (g, i) { return '<div class="fcard' + (g.kind === 'call' || g.kind === 'fwd' ? ' red' : '') + (i === 0 && fl[g.rid] ? ' new' : '') + '"><div class="row"><b>' + FT[g.kind] + '</b><time style="margin-left:auto">' + B.hm(g.t) + '</time></div><div>' + esc(g.text) + '</div>' + (g.callId ? '<button class="btn sec" style="margin-top:6px;min-height:30px" data-a="board.call" data-v="' + g.callId + '">호출 열기</button>' : '') + '</div>'; }).join('') : '<p class="empty">아직 없어요</p>') + '</div></div>';
+    h += '<div class="panel"><h3>교대 근무조 인계 및 공지</h3><div class="feed">' + today.slice(0, 5).map(function (e) { return '<div class="fcard"><div class="row"><span class="pill ' + (e.seen ? 'green' : 'blue') + '">' + (e.seen ? '확인됨' : '미확인') + '</span><b>' + (e.rid ? R(e.rid).name : cn(e.cls) + ' 공지') + '</b><time style="margin-left:auto">' + B.hm(e.t) + '</time></div><div class="muted">' + esc(e.text || '체온 기록') + '</div></div>'; }).join('') + '</div></div></div></div>';
+    return h; };
+  function openCalls(rid, callId) { var c = callId ? B.callById(callId) : callsOf(rid)[0]; U.pc = 'calls'; U.calls.sel = c ? c.id : null; U.calls.rid = c ? c.rid : rid; U.calls.tab = c && c.status === 'done' ? 'done' : 'open'; if (c) B.readCall(c.id); }
+  ACT['board.tab'] = function (v) { U.board.tab = v; U.board.page = 0; }; ACT['board.page'] = function (v) { U.board.page += +v; };
+  ACT['board.row'] = function (v) { openCalls(v); }; ACT['board.call'] = function (v) { openCalls(null, v); };
+
+  /* ───────── 대화 조각 (호출함·의료진 공용: 같은 메시지를 다른 눈으로) ───────── */
+  function chat(callId, me) { var ms = B.msgsOf(callId).slice().sort(function (a, b) { return a.t - b.t; });
+    return ms.map(function (m) { if (m.kind === 'vital') return '<div class="vcard"><h5>시스템 자동 첨부 · 실시간 활력징후</h5><div class="row"><b>' + B.f(m.data.v) + '°C</b>' + pill(m.data.stage) + '<span class="muted" style="margin-left:auto">평소 ' + B.f(m.data.base) + '° · ' + B.fd(m.data.diff) + '°</span></div><div class="muted">' + B.stamp(m.data.t) + ' · ' + esc(m.data.by) + ' 기록 (어플 퀵 체온)</div></div>';
+      if (m.kind === 'system') return '<div class="sys">' + esc(m.body) + ' · ' + B.hm(m.t) + '</div>';
+      var mine = m.by === me, doc = m.by === DOC; return '<div class="bmeta' + (mine ? ' r' : '') + '">' + esc(m.by) + (doc ? ' <span class="pill blue">진료의</span>' : '') + ' · ' + B.stamp(m.t) + '</div><div class="bub ' + (mine ? 'me' : doc ? 'doc' : 'other') + '">' + esc(m.body) + '</div>'; }).join('') || '<p class="empty">아직 대화가 없어요</p>'; }
+  function chart14(rid) { var r = R(rid), pts = [], d; for (d = -13; d <= 0; d++) { var day = S().meas.filter(function (m) { return m.rid === rid && B.dayOf(m.t) === d; }).sort(function (a, b) { return b.t - a.t; })[0]; if (day) pts.push([d, day.v]); }
+    if (pts.length < 2) return ''; var mn = Math.min(r.base, Math.min.apply(null, pts.map(function (p) { return p[1]; }))) - 3, mx = Math.max.apply(null, pts.map(function (p) { return p[1]; })) + 4;
+    function x(dd) { return 14 + (dd + 13) * (312 / 13); } function y(v) { return 92 - (v - mn) / (mx - mn) * 80; } var last = pts[pts.length - 1];
+    return '<svg viewBox="0 0 340 100" style="width:100%;height:96px" role="img" aria-label="최근 14일 체온 추이"><line x1="8" x2="332" y1="' + y(r.base) + '" y2="' + y(r.base) + '" stroke="#8B95A1" stroke-dasharray="2 2"/><text x="10" y="' + (y(r.base) - 4) + '" font-size="9" fill="#6B7684">평소 ' + B.f(r.base) + '°</text><polyline fill="none" stroke="#3182F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="' + pts.map(function (p) { return x(p[0]).toFixed(1) + ',' + y(p[1]).toFixed(1); }).join(' ') + '"/><circle cx="' + x(last[0]) + '" cy="' + y(last[1]) + '" r="4" fill="#F04452"/><circle cx="' + x(last[0]) + '" cy="' + y(last[1]) + '" r="1.8" fill="#fff"/></svg><div class="row muted mono" style="justify-content:space-between"><span>' + B.md(-13) + '</span><span>오늘 ' + B.f(last[1]) + '°</span></div>'; }
+  function rxCard(p) { return '<div class="note"><div class="row"><span class="pill green">발행됨</span><b class="mono">' + p.no + '</b><span class="muted" style="margin-left:auto">' + B.stamp(p.t) + ' · ' + esc(p.by) + '</span></div><div style="margin-top:4px"><b>' + esc(p.code ? p.code + ' ' : '') + esc(p.name) + '</b></div>' + (p.memo ? '<div style="white-space:pre-wrap">' + esc(p.memo) + '</div>' : '') + p.items.map(function (it) { return '<div class="muted">· ' + esc(it.name) + (it.usage ? ' — ' + esc(it.usage) : '') + (it.amount ? ' (' + esc(it.amount) + ')' : '') + '</div>'; }).join('') + '<div class="muted" style="margin-top:4px">의사가 쓴 글 그대로입니다. 앱은 용량을 계산하거나 추천하지 않습니다.</div></div>'; }
+
+  /* ───────── 간호 선생님 의료 호출함 ───────── */
+  V.calls = function () { var s = S(), cu = U.calls, fl = A.flash(), all = s.calls.slice().sort(function (a, b) { return b.t - a.t; }), open = all.filter(function (c) { return c.status === 'open'; }), done = all.filter(function (c) { return c.status === 'done'; }), list = cu.tab === 'open' ? open : done;
+    var sel = cu.sel ? B.callById(cu.sel) : null, rid = sel ? sel.rid : cu.rid, r = rid ? R(rid) : null;
+    var h = '<div class="three calls"><div class="panel"><h3>의료 호출함 <span class="pill solid mono">' + open.length + '</span></h3><div class="ctabs"><button data-a="calls.tab" data-v="open" aria-pressed="' + (cu.tab === 'open') + '">열린 호출 ' + open.length + '</button><button data-a="calls.tab" data-v="done" aria-pressed="' + (cu.tab === 'done') + '">끝낸 호출 ' + done.length + '</button></div><div class="scroll clist" data-scroll="calls-list">';
+    h += list.length ? list.map(function (c) { var rr = R(c.rid); return '<button class="ccard' + (fl[c.rid] ? ' flash' : '') + '" data-a="calls.sel" data-v="' + c.id + '" aria-pressed="' + (c.id === cu.sel) + '"><span class="row"><span class="cl">' + cn(rr.cls) + '</span><b>' + rr.name + '</b><span class="muted">만 ' + rr.age + '세</span><span class="mono muted" style="margin-left:auto">' + B.stamp(c.t) + '</span></span><p><span class="pill ' + LV[c.level][1] + '">' + LV[c.level][0] + '</span> ' + esc(c.summary) + (c.temp ? ' · ' + B.f(c.temp) + '°' : '') + '</p><span class="who' + (c.nurseRead ? '' : ' unread') + '" style="display:block">' + esc(c.by) + ' 선생님 보냄' + (c.nurseRead ? '' : ' · 안 읽음') + '<br>' + (c.forwardedAt ? DOC + ' ' + B.STAFF.doctorTitle + '에게 보냄 · ' + B.hm(c.forwardedAt) : '아직 의료진에게 보내지 않았어요') + '</span></button>'; }).join('') : '<p class="empty">' + (cu.tab === 'open' ? '열린 호출이 없어요' : '끝낸 호출이 없어요') + '</p>';
+    h += '</div><div class="muted" style="padding:10px;border-top:1px solid var(--g200)">금일 누적 <b class="mono">' + all.filter(function (c) { return B.dayOf(c.t) === 0; }).length + '건</b></div></div>';
+    if (!sel) { h += '<div class="panel"><h3>케어팀 대화</h3><p class="empty">' + (r ? r.name + ' 별님은 열린 호출이 없어요.<br>오른쪽에서 건강기록을 볼 수 있어요.' : '왼쪽에서 호출을 고르세요.<br>어플에서 이상 체온을 기록하면 여기에 새 호출이 생깁니다.') + '</p></div>'; }
+    else { var c = sel, cs = c.caseId ? B.caseById(c.caseId) : null, ack = cs ? B.acked(cs.id, NURSE) : null, isOpen = c.status === 'open';
+      h += '<div class="panel"><h3>' + r.name + ' 별님 케어팀 대화 <span class="muted" style="font-weight:600">' + NURSE + ' · ' + esc(c.by) + (c.forwardedAt ? ' · ' + DOC : '') + '</span></h3><div class="acts">';
+      if (cs) h += ack ? '<span class="pill green">✓ 확인함 ' + B.hm(ack.t) + '</span>' : '<button class="btn pri" data-a="calls.ack" data-v="' + cs.id + '">확인했어요 (생활관에 알림)</button>';
+      if (cs && !cs.closedAt && isOpen) h += cs.remeasureAt != null && !cs.remeasureDoneAt ? '<span class="pill pur">재측정 ' + B.hm(cs.remeasureAt) + ' 예정</span>' : '<button class="btn sec" data-a="calls.rem" data-v="' + cs.id + '">재측정 요청 (30분 뒤)</button>';
+      h += c.forwardedAt ? '<span class="pill pur">의료진에게 보냄 ' + B.hm(c.forwardedAt) + '</span>' : isOpen ? '<button class="btn sec" data-a="calls.fwd" data-v="' + c.id + '">의료진에게 보내기</button>' : '';
+      h += isOpen ? '<button class="btn sec" data-a="calls.done" data-v="' + c.id + '" style="margin-left:auto">✓ 완료</button>' : '<span class="pill gray" style="margin-left:auto">완료 ' + B.stamp(c.doneAt) + '</span>';
+      h += '</div><div class="scroll chat" data-scroll="calls-chat">' + chat(c.id, NURSE) + '</div>' + (isOpen ? '<div class="composer"><input id="callText" aria-label="케어팀에 보낼 메시지" placeholder="' + r.name + ' 별님 건으로 보낼 메시지" value="' + esc(cu.text) + '"><button class="btn pri" data-a="calls.send" style="min-height:40px">전송</button></div>' : '') + '</div>'; }
+    if (!r) h += '<div class="panel"><h3>종합 건강기록</h3><p class="empty">호출을 고르면 그 별님의 건강기록이 보여요</p></div>';
+    else { var l = B.latest(r.id), hot = l && B.opensCase(l.stage), rxs = s.rx.filter(function (p) { return p.rid === r.id; }), notes = s.notes.filter(function (n) { return n.rid === r.id; });
+      h += '<div class="panel"><h3>종합 건강기록 (' + r.name + ')</h3><div class="scroll hr" data-scroll="calls-hr"><div class="kcard"><div class="row"><span class="av2">' + r.name.slice(1) + '</span><b style="font-size:16px">' + r.name + '</b><span class="muted">(' + age(r) + ')</span></div><div class="row muted" style="margin-top:4px"><span class="pill gray">' + cn(r.cls) + ' ' + B.cls(r.cls).room + '</span><span class="mono">' + r.no + '</span></div><div class="two" style="margin-top:8px"><div class="tbox"><small>평소 기저체온</small><b>' + B.f(r.base) + '°C</b></div><div class="tbox' + (hot ? ' hot' : '') + '"><small>현재 체온</small><b>' + (l ? B.f(l.v) + '°C' : '—') + '</b>' + (l ? '<small>' + B.fd(l.diff) + '°C · ' + B.STAGE[l.stage] + ' · ' + B.stamp(l.t) + '</small>' : '') + '</div></div></div>';
+      h += '<div class="kcard"><b>최근 14일 체온 추이</b>' + chart14(r.id) + '</div>';
+      h += '<div class="kcard"><b>상시 복약 및 주의사항</b><div style="margin-top:6px">' + (B.WARN[r.name] ? '<div class="warnbox">⛔ ' + B.WARN[r.name] + '</div>' : '<div class="note">등록된 금기 없음</div>') + '</div></div>';
+      h += '<div class="kcard"><b>비대면 진단·처방 기록</b><div style="display:grid;gap:6px;margin-top:6px">' + (rxs.length ? rxs.map(rxCard).join('') : '<div class="muted">발행된 전자처방전이 없어요. 의료진이 발행하면 여기에 쌓입니다.</div>') + '</div></div>';
+      h += '<div class="kcard"><b>간호 기록</b> <span class="muted">일자별 누적</span><div class="row" style="margin-top:6px"><input class="inp" id="noteText" aria-label="간호 기록 메모" placeholder="오늘 기록 추가" value="' + esc(cu.note) + '"><button class="btn pri" data-a="calls.note" data-v="' + r.id + '">저장</button></div><div style="display:grid;gap:6px;margin-top:8px">' + notes.map(function (n) { return '<div class="note"><div class="row"><b class="mono">' + B.stamp(n.t) + '</b><span class="muted" style="margin-left:auto">' + esc(n.by) + '</span></div>' + esc(n.text) + '</div>'; }).join('') + '</div></div></div></div>'; }
+    return h + '</div>'; };
+  ACT['calls.tab'] = function (v) { U.calls.tab = v; }; ACT['calls.sel'] = function (v) { U.calls.sel = v; U.calls.rid = B.callById(v).rid; B.readCall(v); };
+  ACT['calls.ack'] = function (v) { B.acknowledge(v, NURSE); A.toast('확인했어요 · 어플 알림과 대응 기록에 반영됩니다'); };
+  ACT['calls.rem'] = function (v) { B.scheduleRemeasure(v, NURSE, 30); A.toast('재측정 요청 · 어플 할 일과 일정 달력에 반영됩니다'); };
+  ACT['calls.fwd'] = function (v) { B.forward(v, NURSE); A.toast('의료진에게 보냈어요 · 의료진 포털에 호출이 생깁니다'); };
+  ACT['calls.done'] = function (v) { B.completeCall(v, NURSE); U.calls.tab = 'done'; A.toast('호출을 완료했어요'); };
+  ACT['calls.send'] = function () { var t = U.calls.text.trim(); if (!t || !U.calls.sel) return false; U.calls.text = ''; B.sendMessage(U.calls.sel, NURSE, t); };
+  ACT['calls.note'] = function (v) { var t = U.calls.note.trim(); if (!t) return false; U.calls.note = ''; B.addNurseNote(v, NURSE, t); };
+
+  /* ───────── 의료진 협진 포털 ───────── */
+  function draft(callId) { var d = S().drafts[callId]; if (!d) d = S().drafts[callId] = { code: '', name: '', memo: '', items: [{ name: '', usage: '', amount: '' }] }; return d; }
+  function canIssue(d) { return !!d.name.trim() && d.items.some(function (x) { return x.name.trim(); }); }
+  V.doctor = function () { var s = S(), du = U.doc, fl = A.flash(), fw = s.calls.filter(function (c) { return c.forwardedAt != null; }).sort(function (a, b) { return b.forwardedAt - a.forwardedAt; }), open = fw.filter(function (c) { return c.status === 'open'; }), done = fw.filter(function (c) { return c.status === 'done'; }), list = du.tab === 'open' ? open : done;
+    var sel = du.sel ? B.callById(du.sel) : null; if (sel && sel.forwardedAt == null) sel = null;
+    var h = '<div class="three doc"><div class="panel"><h3>호출함 <span class="muted" style="font-weight:600">협진 기관에서 보낸 호출</span></h3><div class="ctabs"><button data-a="doc.tab" data-v="open" aria-pressed="' + (du.tab === 'open') + '">열린 호출 ' + open.length + '</button><button data-a="doc.tab" data-v="done" aria-pressed="' + (du.tab === 'done') + '">끝낸 호출 ' + done.length + '</button></div><div class="scroll clist" data-scroll="doc-list">';
+    h += list.length ? list.map(function (c) { var r = R(c.rid), l = B.latest(c.rid); return '<button class="ccard' + (fl[c.rid] ? ' flash' : '') + '" data-a="doc.sel" data-v="' + c.id + '" aria-pressed="' + (sel && c.id === sel.id) + '"><span class="row"><span class="cl">혜진원</span><span class="mono muted" style="margin-left:auto">' + B.stamp(c.forwardedAt) + '</span></span><span class="row" style="margin-top:4px;flex-wrap:wrap"><b>' + r.name + '</b><span class="muted">(' + age(r) + ') · ' + cn(r.cls) + ' ' + B.cls(r.cls).room + '</span></span><p><span class="pill ' + LV[c.level][1] + '">' + LV[c.level][0] + '</span>' + (l && c.temp ? ' <b class="mono" style="color:var(--r500)">' + B.f(l.v) + '°</b>' : '') + ' ' + esc(c.summary) + '</p><span class="who" style="display:block">' + esc(c.forwardedBy) + ' ' + B.STAFF.nurseTitle + ' 보냄' + (B.rxOf(c.id) ? ' · <b style="color:var(--gr700)">처방 발행됨</b>' : '') + '</span></button>'; }).join('') : '<p class="empty">' + (du.tab === 'open' ? '열린 호출이 없어요.<br>간호 선생님이 [의료진에게 보내기]를 눌러야 여기에 생깁니다.' : '끝낸 호출이 없어요') + '</p>';
+    h += '</div></div><div class="panel"><h3>별님별 채팅 <span class="muted" style="font-weight:600">별님마다 대화가 따로 있어요</span></h3><div class="scroll" data-scroll="doc-chat">';
+    var seenR = {}, rooms = fw.filter(function (c) { if (seenR[c.rid]) return false; seenR[c.rid] = 1; return true; });
+    if (!rooms.length) h += '<p class="empty">아직 받은 호출이 없어요</p>';
+    rooms.forEach(function (c) { var r = R(c.rid), ms = B.msgsOf(c.id), last = ms[ms.length - 1], openRoom = sel && sel.rid === c.rid, cc = openRoom ? sel : c;
+      h += '<div class="acc"><button data-a="doc.sel" data-v="' + c.id + '" aria-expanded="' + !!openRoom + '"><span class="av2">' + r.name.slice(1) + '</span><span style="flex:1;min-width:0"><b>' + r.name + ' 별님</b> <span class="muted">' + cn(r.cls) + ' ' + B.cls(r.cls).room + '</span><br><span class="muted" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(last ? (last.kind === 'vital' ? '활력징후 ' + last.body : last.body) : '') + '</span></span><span class="mono muted">' + (last ? B.hm(last.t) : '') + '</span></button>';
+      if (openRoom) { var isOpen = cc.status === 'open';
+        h += '<div class="acts">' + (cc.videoAt != null ? '<span class="pill pur">화상 진료 ' + B.stamp(cc.videoAt) + '</span>' : isOpen ? '<button class="btn sec" data-a="doc.video" data-v="' + cc.id + '">화상 진료 예약 ' + B.hm(B.nextSlot() + 30) + '</button>' : '') + (isOpen ? '<button class="btn sec" data-a="doc.vital" data-v="' + cc.id + '">+ 바이탈 첨부</button>' : '') + '<button class="btn sec" data-a="doc.hist" data-v="' + cc.rid + '">투약 이력</button></div><div class="chat">' + chat(cc.id, DOC) + '</div>' + (isOpen ? '<div class="composer"><input id="docText" aria-label="보낼 메시지" placeholder="' + r.name + ' 별님 건으로 보낼 메시지" value="' + esc(du.text) + '"><button class="btn pri" data-a="doc.send" style="min-height:40px">전송</button></div>' : ''); }
+      h += '</div>'; });
+    h += '</div></div>';
+    if (!sel) h += '<div class="panel"><h3>비대면 진단서 및 전자처방전 작성</h3><p class="empty">호출을 고르면 작성 화면이 열려요</p></div>';
+    else { var r = R(sel.rid), l = B.latest(sel.rid), p = B.rxOf(sel.id), d = draft(sel.id), ro = !!p || sel.status === 'done';
+      h += '<div class="panel"><h3>비대면 진단서 및 전자처방전 <span class="pill ' + (p ? 'green' : ro ? 'gray' : 'yel') + '" style="margin-left:auto">' + (p ? '발행 완료' : ro ? '처방 없이 완료' : '진단 작성중') + '</span></h3><div class="scroll hr" data-scroll="doc-rx">';
+      h += '<div class="kcard"><div class="row" style="flex-wrap:wrap"><b style="font-size:16px">' + r.name + '</b><span class="muted">(' + age(r) + ') · ' + cn(r.cls) + ' · ' + r.no + '</span></div><div class="row" style="margin-top:6px"><span class="muted">현재 체온</span><b class="mono" style="font-size:18px;color:' + (l && B.opensCase(l.stage) ? 'var(--r500)' : 'inherit') + '">' + (l ? B.f(l.v) + '°C' : '—') + '</b>' + (l ? pill(l.stage) : '') + '</div><div class="' + (B.WARN[r.name] ? 'warnbox' : 'note') + '" style="margin-top:6px">처방 주의: ' + (B.WARN[r.name] || '등록된 금기 없음') + '</div></div>';
+      if (p) h += rxCard(p) + '<div class="kcard"><div class="muted">의사 전자서명: ' + DOC + ' ' + B.STAFF.doctorTitle + ' · ✔ 서명 완료</div><button class="btn sec" disabled style="width:100%;margin-top:8px">발행 완료 · ' + p.no + ' · ' + B.hm(p.t) + '</button></div>';
+      else if (ro) h += '<div class="note">이 호출은 처방 없이 완료됐어요.</div>';
+      else { h += '<div class="kcard"><b>진단 상병 및 질병코드 (KCD-8)</b><div class="two"><div><label class="lbl" for="rx-code">질병코드</label><input class="inp" id="rx-code" value="' + esc(d.code) + '" placeholder="의사가 직접 입력"></div><div><label class="lbl" for="rx-name">상병명 (필수)</label><input class="inp" id="rx-name" value="' + esc(d.name) + '" placeholder="의사가 직접 입력"></div></div><label class="lbl" for="rx-memo">진료 소견 및 원격 지도사항</label><textarea class="inp" id="rx-memo" placeholder="의사가 직접 입력">' + esc(d.memo) + '</textarea></div>';
+        h += '<div class="kcard"><b>비대면 처방의약품 지정</b><div class="muted">의사가 쓴 글 그대로 저장돼요. 앱은 투약 용량을 계산하거나 추천하지 않아요.</div>' + d.items.map(function (it, i) { return '<div class="rxrow"><input class="inp" id="rx-i-' + i + '-name" aria-label="약 이름 ' + (i + 1) + '" placeholder="약 이름" value="' + esc(it.name) + '"><input class="inp" id="rx-i-' + i + '-usage" aria-label="용법 ' + (i + 1) + '" placeholder="용법" value="' + esc(it.usage) + '"><input class="inp" id="rx-i-' + i + '-amount" aria-label="양 ' + (i + 1) + '" placeholder="양" value="' + esc(it.amount) + '"><button class="btn sec" style="padding:0" data-a="doc.rmitem" data-v="' + i + '" aria-label="처방약 ' + (i + 1) + ' 빼기"' + (d.items.length < 2 ? ' disabled' : '') + '>✕</button></div>'; }).join('') + '<div class="row" style="margin-top:8px"><button class="btn sec" data-a="doc.additem">+ 처방약 추가</button><button class="btn sec" data-a="doc.fill">시연용 가상 문구 채우기</button></div></div>';
+        h += '<div class="kcard"><div class="muted">의사 전자서명: ' + DOC + ' ' + B.STAFF.doctorTitle + ' · 발행하면 고칠 수 없어요</div><button class="btn pri" id="rx-issue" data-a="doc.issue" data-v="' + sel.id + '" style="width:100%;margin-top:8px;min-height:44px"' + (canIssue(d) ? '' : ' disabled') + '>전자서명 완료 및 전자처방전 발행·전송</button><div class="muted" style="margin-top:4px">상병명과 처방약 1개 이상을 적어야 눌립니다 (시연용 조건)</div></div>'; }
+      h += '</div></div>'; }
+    return h + '</div>'; };
+  ACT['doc.tab'] = function (v) { U.doc.tab = v; }; ACT['doc.sel'] = function (v) { U.doc.sel = U.doc.sel === v ? v : v; S().notices.forEach(function (n) { if (n.role === 'doctor' && n.callId === v) n.read = true; }); };
+  ACT['doc.video'] = function (v) { B.scheduleVideo(v, B.nextSlot() + 30, DOC); A.toast('화상 진료 예약 · 일정 달력과 호출함에 반영됩니다'); };
+  ACT['doc.vital'] = function (v) { B.attachVital(v); };
+  ACT['doc.send'] = function () { var t = U.doc.text.trim(); if (!t || !U.doc.sel) return false; U.doc.text = ''; B.sendMessage(U.doc.sel, DOC, t); };
+  ACT['doc.additem'] = function () { draft(U.doc.sel).items.push({ name: '', usage: '', amount: '' }); B.commit(true); };
+  ACT['doc.rmitem'] = function (v) { draft(U.doc.sel).items.splice(+v, 1); B.commit(true); };
+  ACT['doc.fill'] = function () { var d = draft(U.doc.sel); d.code = 'Z00.0'; d.name = '시연용 가상 상병명'; d.memo = '시연용 가상 소견입니다. 실제 진료 내용이 아닙니다.'; d.items = [{ name: '가상약 A (시연용)', usage: '의사가 입력한 용법 문구 (시연용)', amount: '3일분' }]; B.commit(true); };
+  ACT['doc.issue'] = function (v) { var d = draft(v); if (!canIssue(d)) return false; var p = B.issuePrescription(v, DOC, d); A.toast(p.no + ' 발행 · 간호 선생님 호출함과 현황판에 반영됩니다'); };
+  ACT['doc.hist'] = function (v) { var r = R(v), rxs = S().rx.filter(function (p) { return p.rid === v; }); U.modal = '<h3>' + r.name + ' 투약 이력</h3><p class="muted">의료진이 쓴 글 그대로 보여 줍니다. 용량을 계산하지 않습니다.</p><label class="lbl">상시 복약 · 주의사항</label><div class="' + (B.WARN[r.name] ? 'warnbox' : 'note') + '">' + (B.WARN[r.name] || '등록된 내용 없음') + '</div><label class="lbl">전자처방전 ' + rxs.length + '건</label><div style="display:grid;gap:6px">' + (rxs.length ? rxs.map(rxCard).join('') : '<div class="note">발행된 처방전이 없어요</div>') + '</div>'; };
+
+  /* ───────── 일정 ───────── */
+  var AUTOS = [['todo', '재측정 · 할 일', '#7C5CF0'], ['call', '진료 · 의료 호출', '#F04452'], ['case', '이상 건', '#F04452']];
+  function cat(id) { return B.CATS.filter(function (c) { return c.id === id; })[0]; }
+  function iso(day) { var d = B.dateOf(day); return d.getFullYear() + '-' + B.pad(d.getMonth() + 1) + '-' + B.pad(d.getDate()); }
+  function dayFromIso(v) { var p = v.split('-'); return Math.round((new Date(+p[0], +p[1] - 1, +p[2]) - B.dateOf(0)) / 864e5); }
+  function tstr(m) { return m == null ? '' : B.pad(Math.floor(m / 60)) + ':' + B.pad(m % 60); }
+  function tnum(v) { if (!v) return null; var p = v.split(':'); return +p[0] * 60 + +p[1]; }
+  function itemsOn(day) { var su = U.sched, off = su.off, out = [];
+    S().cal.forEach(function (e) { if (e.day !== day) return; if (e.canceled && !su.showCx) return; if (off['cat:' + e.cat]) return; if (e.cls !== 'all' && off['cls:' + e.cls]) return; out.push({ id: e.id, manual: true, e: e, start: e.start }); });
+    B.autoItems().forEach(function (a) { if (a.day !== day || off['auto:' + a.kind]) return; if (a.rid && off['cls:' + R(a.rid).cls]) return; out.push({ id: a.id, manual: false, a: a, start: a.start }); });
+    return out.sort(function (x, y) { return (x.start == null ? -1 : x.start) - (y.start == null ? -1 : y.start); }); }
+  function evBtn(x, fl) { var su = U.sched, pressed = su.sel === x.id;
+    if (x.manual) { var e = x.e, c = cat(e.cat); return '<button class="evt' + (e.canceled ? ' cx' : '') + (e.madeAt === S().clock ? ' newf' : '') + '" style="background:' + c.bg + ';color:' + c.ink + '" data-a="sched.sel" data-v="' + e.id + '" aria-pressed="' + pressed + '" title="' + esc(e.title) + '">' + (e.start != null ? B.hm(e.start) + ' ' : '') + esc(e.title) + (e.rid ? ' · ' + R(e.rid).name : '') + '</button>'; }
+    var a = x.a; return '<button class="evt auto' + (a.kind !== 'todo' ? ' red' : '') + (a.done ? ' done' : '') + (a.rid && fl[a.rid] ? ' newf' : '') + '" data-a="sched.sel" data-v="' + a.id + '" aria-pressed="' + pressed + '" title="' + esc(a.title) + '">' + (a.done ? '✓ ' : '') + (a.start != null ? B.hm(a.start) + ' ' : '') + esc(a.title) + (a.late ? ' · 지남' : '') + '</button>'; }
+  V.sched = function () { var su = U.sched, fl = A.flash(), first = new Date(2026, 10 + su.mo, 1), startDay = Math.round((first - B.dateOf(0)) / 864e5) - first.getDay(), mon = first.getMonth();
+    var h = '<div class="sched"><aside class="srail" data-scroll="sched-rail"><b>캘린더</b><h4>건강 (자동 · 읽기 전용)</h4>' + AUTOS.map(function (a) { return '<button class="tog" data-a="sched.tog" data-v="auto:' + a[0] + '" aria-pressed="' + !su.off['auto:' + a[0]] + '"><i style="background:' + a[2] + '"></i>' + a[1] + '</button>'; }).join('') + '<p class="muted" style="margin-top:4px">다른 화면의 자료를 읽어 그리기만 합니다. 일정에 복사해 저장하지 않아요.</p><h4>반</h4>' + B.CL.map(function (c) { return '<button class="tog" data-a="sched.tog" data-v="cls:' + c.id + '" aria-pressed="' + !su.off['cls:' + c.id] + '"><i style="background:var(--g700)"></i>' + c.name + '</button>'; }).join('') + '<h4>업무</h4>' + B.CATS.map(function (c) { return '<button class="tog" data-a="sched.tog" data-v="cat:' + c.id + '" aria-pressed="' + !su.off['cat:' + c.id] + '"><i style="background:' + c.c + '"></i>' + c.name + '</button>'; }).join('') + '<h4>기타</h4><label class="row" style="font-size:13px;font-weight:600;min-height:30px"><input type="checkbox" id="showCx"' + (su.showCx ? ' checked' : '') + '> 취소한 일정 보기</label><p class="muted" style="margin-top:10px">이 시연은 월 보기만 있습니다. 주·일 보기, 반복, 검색, 엑셀은 원본 시제품·명세를 봐 주세요.</p></aside>';
+    h += '<div class="scal"><div class="stool"><h2>' + first.getFullYear() + '년 ' + (mon + 1) + '월</h2><button class="btn sec" data-a="sched.mo" data-v="-1" aria-label="이전 달">‹</button><button class="btn sec" data-a="sched.mo" data-v="0">오늘</button><button class="btn sec" data-a="sched.mo" data-v="1" aria-label="다음 달">›</button><button class="btn pri" data-a="sched.add" data-v="0">+ 일정</button></div>' + (function () { var au = itemsOn(0).filter(function (x) { return !x.manual; }); return '<div class="hstrip"><b>오늘의 건강 일정 (자동)</b>' + (au.length ? au.map(function (x) { return evBtn(x, fl); }).join('') : '<span class="muted">없음 · 어플·호출함에서 재측정이나 진료가 잡히면 여기에 보여요</span>') + '</div>'; })() + '<div class="dow">' + '일월화수목금토'.split('').map(function (d) { return '<span>' + d + '</span>'; }).join('') + '</div><div class="mgrid" data-scroll="sched-grid">';
+    for (var i = 0; i < 42; i++) { var day = startDay + i, dt = B.dateOf(day), its = itemsOn(day), show = its.slice(0, 4);
+      h += '<div class="cell' + (dt.getMonth() !== mon ? ' out' : '') + (day === 0 ? ' today' : '') + '" data-a="sched.add" data-v="' + day + '"><span class="dn">' + dt.getDate() + '</span>' + show.map(function (x) { return evBtn(x, fl); }).join('') + (its.length > 4 ? '<button class="more" data-a="sched.more" data-v="' + day + '">외 ' + (its.length - 4) + '건</button>' : '') + (su.add === day ? '<input class="qadd" id="qadd" aria-label="새 일정 제목" placeholder="제목 쓰고 Enter" value="' + esc(su.addText) + '">' : '') + '</div>'; }
+    h += '</div></div>';
+    if (su.sel) { var e = B.calEvent(su.sel), a = e ? null : B.autoItems().filter(function (x) { return x.id === su.sel; })[0];
+      if (e) { h += '<aside class="spanel" data-scroll="sched-panel"><div class="row"><b>일정 편집</b>' + (e.canceled ? '<span class="pill gray">취소됨</span>' : '') + '<button class="btn sec" data-a="sched.close" style="margin-left:auto;min-height:30px">닫기</button></div><label class="lbl" for="ev-title">제목</label><input class="inp" id="ev-title" value="' + esc(e.title) + '"><label class="lbl" for="ev-date">날짜</label><input class="inp" id="ev-date" type="date" value="' + iso(e.day) + '"><label class="row" style="margin-top:8px;font-weight:600"><input type="checkbox" id="ev-allday"' + (e.start == null ? ' checked' : '') + '> 종일</label>' + (e.start != null ? '<div class="two"><div><label class="lbl" for="ev-start">시작</label><input class="inp" id="ev-start" type="time" value="' + tstr(e.start) + '"></div><div><label class="lbl" for="ev-end">종료</label><input class="inp" id="ev-end" type="time" value="' + tstr(e.end) + '"></div></div>' : '') + (su.err ? '<div class="warnbox" style="margin-top:6px">' + su.err + '</div>' : '');
+        h += '<label class="lbl" for="ev-cat">업무</label><select class="inp" id="ev-cat">' + B.CATS.map(function (c) { return '<option value="' + c.id + '"' + (c.id === e.cat ? ' selected' : '') + '>' + c.name + '</option>'; }).join('') + '</select><label class="lbl" for="ev-rid">대상 별님 (선택)</label><select class="inp" id="ev-rid"><option value="">없음</option>' + B.RES.map(function (r) { return '<option value="' + r.id + '"' + (r.id === e.rid ? ' selected' : '') + '>' + r.name + ' · ' + cn(r.cls) + '</option>'; }).join('') + '</select><label class="lbl" for="ev-cls">반</label><select class="inp" id="ev-cls"' + (e.rid ? ' disabled' : '') + '><option value="all">시설 전체</option>' + B.CL.map(function (c) { return '<option value="' + c.id + '"' + (c.id === e.cls ? ' selected' : '') + '>' + c.name + '</option>'; }).join('') + '</select>' + (e.rid ? '<p class="muted">별님을 붙이면 반은 그 별님의 반으로 맞춰지고, 어플 별님카드의 일정 묶음에 읽기 전용으로 보입니다.</p>' : '') + '<label class="lbl" for="ev-memo">메모</label><textarea class="inp" id="ev-memo">' + esc(e.memo) + '</textarea><p class="muted" style="margin-top:8px">만든 사람 ' + esc(e.by) + ' · 고치면 바로 저장돼요</p><button class="btn sec" data-a="sched.cancel" data-v="' + e.id + '" style="margin-top:8px;width:100%">' + (e.canceled ? '취소 되돌리기' : '일정 취소 (지우지 않고 남김)') + '</button></aside>'; }
+      else if (a) { h += '<aside class="spanel"><div class="row"><span class="pill ' + (a.kind === 'todo' ? 'pur' : 'red') + '">자동 · 읽기 전용</span><button class="btn sec" data-a="sched.close" style="margin-left:auto;min-height:30px">닫기</button></div><h3 style="margin-top:8px;font-size:17px">' + (a.done ? '✓ ' : '') + esc(a.title) + '</h3><p class="muted">' + B.dayLabel(a.day) + (a.start != null ? ' ' + B.hm(a.start) : ' · 종일') + '</p><div class="note" style="margin-top:8px">' + esc(a.info) + (a.text ? '<br>' + esc(a.text) : '') + '</div><p class="muted" style="margin-top:8px">이 항목은 ' + (a.kind === 'call' ? '의료 호출함' : a.kind === 'case' ? '이상 대응 기록' : '어플·호출함의 재측정과 인수인계 할 일') + '에서 읽어 온 것입니다. 달력에서는 고칠 수 없어요.</p>' + (a.callId ? '<button class="btn pri" data-a="board.call" data-v="' + a.callId + '" style="margin-top:8px;width:100%">의료 호출함에서 열기</button>' : a.rid ? '<button class="btn pri" data-a="board.row" data-v="' + a.rid + '" style="margin-top:8px;width:100%">' + R(a.rid).name + ' 호출함·건강기록 열기</button>' : '') + '</aside>'; }
+      else su.sel = null; }
+    return h + '</div>'; };
+  ACT['sched.tog'] = function (v) { U.sched.off[v] = !U.sched.off[v]; }; ACT['sched.cx'] = function () { U.sched.showCx = !U.sched.showCx; };
+  ACT['sched.mo'] = function (v) { U.sched.mo = v === '0' ? 0 : U.sched.mo + +v; U.sched.add = null; };
+  ACT['sched.sel'] = function (v, el, ev) { ev.stopPropagation(); U.sched.sel = v; U.sched.add = null; U.sched.err = null; };
+  ACT['sched.close'] = function () { U.sched.sel = null; };
+  ACT['sched.add'] = function (v, el, ev) { if (ev.target.closest('.evt,.more,.qadd')) return false; if (el.classList.contains('btn')) U.sched.mo = 0; U.sched.add = +v; U.sched.addText = ''; U.sched.sel = null; };
+  ACT['sched.more'] = function (v) { var day = +v; U.modal = '<h3>' + B.dayLabel(day) + ' 일정</h3><div style="display:grid;gap:4px;margin-top:8px">' + itemsOn(day).map(function (x) { return evBtn(x, {}); }).join('') + '</div>'; };
+  ACT['sched.cancel'] = function (v) { var e = B.calEvent(v); B.updateEvent(v, { canceled: !e.canceled }); };
+  function addQuick() { var su = U.sched, t = su.addText.trim(); if (!t) { su.add = null; A.render(); return; } var on = B.CL.filter(function (c) { return !su.off['cls:' + c.id]; }); var e = B.addEvent({ title: t, day: su.add, cls: on.length === 1 ? on[0].id : 'all', cat: 'facility' }); su.add = null; su.addText = ''; su.sel = e.id; A.render(); }
+
+  /* ───────── 입력 처리 (글자를 칠 때는 화면을 다시 그리지 않음) ───────── */
+  V.input = function (t) { var id = t.id, m;
+    if (id === 'callText') U.calls.text = t.value; else if (id === 'noteText') U.calls.note = t.value; else if (id === 'docText') U.doc.text = t.value; else if (id === 'qadd') U.sched.addText = t.value;
+    else if (id.indexOf('rx-') === 0 && U.doc.sel) { var d = draft(U.doc.sel); if (id === 'rx-code') d.code = t.value; else if (id === 'rx-name') d.name = t.value; else if (id === 'rx-memo') d.memo = t.value; else if ((m = /^rx-i-(\d+)-(name|usage|amount)$/.exec(id))) d.items[+m[1]][m[2]] = t.value; B.commit(true); var b = document.getElementById('rx-issue'); if (b) b.disabled = !canIssue(d); } };
+  V.enter = function (t) { if (t.id === 'callText') { if (ACT['calls.send']() !== false) A.render(); return true; } if (t.id === 'docText') { if (ACT['doc.send']() !== false) A.render(); return true; } if (t.id === 'noteText') { if (ACT['calls.note'](U.calls.rid) !== false) A.render(); return true; } if (t.id === 'qadd') { addQuick(); return true; } return false; };
+  V.change = function (t) { var su = U.sched, id = t.id; if (id === 'showCx') { su.showCx = t.checked; return true; } if (id.indexOf('ev-') !== 0 || !su.sel) return false; var e = B.calEvent(su.sel); if (!e) return false; su.err = null;
+    if (id === 'ev-title') { if (t.value.trim()) B.updateEvent(e.id, { title: t.value.trim() }); else { su.err = '제목은 비울 수 없어요'; return true; } }
+    else if (id === 'ev-date') { if (t.value) B.updateEvent(e.id, { day: dayFromIso(t.value) }); }
+    else if (id === 'ev-allday') B.updateEvent(e.id, t.checked ? { start: null, end: null } : { start: 600, end: 660 });
+    else if (id === 'ev-start' || id === 'ev-end') { var s2 = id === 'ev-start' ? tnum(t.value) : e.start, e2 = id === 'ev-end' ? tnum(t.value) : e.end; if (s2 == null) return true; if (e2 != null && e2 < s2) { su.err = '종료가 시작보다 이를 수 없어요. 저장하지 않았어요.'; return true; } B.updateEvent(e.id, { start: s2, end: e2 }); }
+    else if (id === 'ev-cat') B.updateEvent(e.id, { cat: t.value }); else if (id === 'ev-cls') B.updateEvent(e.id, { cls: t.value }); else if (id === 'ev-rid') B.updateEvent(e.id, { rid: t.value || null }); else if (id === 'ev-memo') B.updateEvent(e.id, { memo: t.value });
+    return false; };
+  V.after = function () { var q = document.getElementById('qadd'); if (q && document.activeElement !== q) q.focus(); };
+  document.addEventListener('keydown', function (ev) { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('tr.clk')) { ev.preventDefault(); ev.target.click(); } });
+})();
+
+</script>
+<script>APP.boot();</script>
+</body>
+</html>
