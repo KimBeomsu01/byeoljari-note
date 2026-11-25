@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>별자리노트 현황판 (오피스 웹 · 실시간 임상 관리)</title>
+<style>
+:root{
+  --g50:#F9FAFB;--g100:#F2F4F6;--g200:#E5E8EB;--g300:#D1D6DB;--g400:#B0B8C1;--g500:#8B95A1;--g600:#6B7684;--g700:#4E5968;--g800:#333D4B;--g900:#191F28;
+  --b500:#3182F6;--b600:#2563EB;--b50:#E8F3FF;--r500:#F04452;--r600:#D92D3B;--r50:#FEECEE;--gr500:#03B26C;--gr700:#03804D;--gr50:#E8F8F0;
+  --font:'Pretendard','Inter',-apple-system,BlinkMacSystemFont,system-ui,'Noto Sans KR','Malgun Gothic',Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{min-width:1280px}
+body{margin:0;background:#fff;color:var(--g900);font:16px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+button:focus-visible{outline:3px solid var(--b500);outline-offset:2px}
+svg{display:block}
+
+.side{position:fixed;z-index:50;top:0;left:0;bottom:0;width:80px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:10px}
+.logo{width:44px;height:44px;border-radius:16px;background:var(--b50);color:var(--b500);display:grid;place-items:center;margin-bottom:8px}
+.nav{width:44px;height:44px;border-radius:14px;color:var(--g600);display:grid;place-items:center}
+.nav.on{background:var(--b500);color:#fff;box-shadow:0 4px 12px rgba(49,130,246,.3)}
+.grow{flex:1}
+.me{position:relative;width:40px;height:40px;border-radius:50%;background:var(--g900);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 3px #fff,0 0 0 4px var(--g200)}
+.me i{position:absolute;right:-1px;bottom:0;width:9px;height:9px;border-radius:50%;background:var(--gr500);border:2px solid #fff}
+
+.top{position:sticky;top:0;z-index:40;margin-left:80px;height:64px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--g200);display:flex;align-items:center;gap:12px;padding:0 28px}
+.crumb{font-size:14px;font-weight:700}.crumb span{font-weight:500;color:var(--g700)}.crumb em{font-style:normal;font-weight:600;color:var(--b600)}.crumb i{font-style:normal;color:var(--g300);margin:0 4px;font-weight:400}
+.fac{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;background:var(--g100);border:1px solid var(--g200);font-size:13px;font-weight:700;color:var(--g800)}
+.sp{flex:1}
+.sess{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:16px;background:#F3FBF7;border:1px solid #CDEEDC;font-size:12px;color:var(--g700)}
+.sess b{color:var(--b600);font-weight:600;font-variant-numeric:tabular-nums}.sess .d{width:7px;height:7px;border-radius:50%;background:var(--gr500)}
+.user{display:flex;align-items:center;gap:10px;border-left:1px solid var(--g200);padding-left:14px}
+.user div{text-align:right;line-height:1.25}.user b{display:block;font-size:13px}.user small{font-size:11px;color:var(--g600)}
+.av{width:34px;height:34px;border-radius:50%;background:var(--g900);color:#fff;display:grid;place-items:center}
+
+main{margin-left:80px;padding:22px 40px 40px 40px}
+.head{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.head .dot{width:9px;height:9px;border-radius:50%;background:var(--gr500)}
+.head .t{font-size:15px;font-weight:500;color:var(--g800)}
+.live{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:14px;background:var(--gr50);border:1px solid #BDE9D3;color:var(--gr700);font-size:13.5px;font-weight:700}
+.live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.head .tm{font-size:15px;color:var(--g800);padding-left:10px;border-left:1px solid var(--g200)}
+.rf{width:30px;height:30px;border-radius:50%;border:1px solid var(--g200);background:#fff;display:grid;place-items:center;color:var(--g700)}
+.hb{height:38px;padding:0 16px;border-radius:19px;border:1px solid var(--g200);background:#fff;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:7px;color:var(--g800);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.hb.warn{color:#B45309;border-color:#F5D08F;background:#FFFBEF}.hb.warn b{width:7px;height:7px;border-radius:50%;background:var(--r500)}
+.hb.call{background:var(--b500);color:#fff;border-color:var(--b500);font-weight:700;box-shadow:0 4px 12px rgba(49,130,246,.3)}
+
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:22px}
+.kc{background:#fff;border:1px solid var(--g200);border-radius:20px;padding:18px 20px;height:152px;display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.kc.alert{background:linear-gradient(180deg,#FFF6F6,#fff);border-color:#F6C9CC}
+.kh{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--g800)}
+.kc.alert .kh{font-weight:700}
+.ic{margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--b50);color:var(--b500);display:grid;place-items:center}
+.kc.alert .ic{background:var(--r50);color:var(--r500)}.ic.g{background:var(--gr50);color:var(--gr500)}
+.pl{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:12px;font-size:12.5px;font-weight:700}
+.pl.red{background:var(--r50);color:var(--r600)}.pl.red::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--r500)}
+.pl.blue{background:var(--b50);color:var(--b600)}.pl.yel{background:#FFF3C4;color:#8A5D12}.pl.gray{background:var(--g100);color:var(--g700);font-weight:600}
+.big{font-size:15px;font-weight:700;margin-top:10px}.big b{font-size:15px}.big.r{color:var(--r500)}
+.hr{border-top:1px solid var(--g100);margin:10px 0 0}
+.ln{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--g800);margin-top:6px}.ln .rr{color:var(--r500);font-weight:600}
+.ln.big2{font-size:14px;margin-top:12px}
+.dg{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gr500);margin-right:8px}
+.pct{font-size:15px;font-weight:700;margin-top:30px;display:flex;align-items:center;gap:10px}.pct b{font-size:16px}
+.bar{height:6px;border-radius:3px;background:var(--g100);margin-top:auto}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 540px;gap:20px;align-items:start}
+.panel{background:#fff;border:1px solid var(--g200);border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.ph{display:flex;align-items:center;gap:12px;padding:20px 20px 14px}
+.ph h2{margin:0;font-size:15px;font-weight:700}
+.tot{font-size:11.5px;font-weight:700;color:var(--b600);background:var(--b50);border-radius:10px;padding:2px 8px}
+.tabs{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.tab{height:32px;padding:0 14px;border-radius:16px;background:var(--g100);font-size:14px;color:var(--g800);border:1px solid var(--g200)}
+.tab[aria-pressed="true"]{background:var(--g900);color:#fff;border-color:var(--g900);font-weight:700}
+.tw{margin:0 16px 16px;background:var(--g50);border-radius:16px;overflow:hidden;border:1px solid var(--g100)}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{text-align:left;font-size:14px;font-weight:500;color:var(--g800);padding:16px 14px;white-space:nowrap}
+th.r{text-align:right}
+td{padding:10px 14px;vertical-align:middle;background:#fff;border-top:1px solid var(--g100);font-size:13px;color:var(--g700)}
+tr.al td{background:#FFF1F2}
+tr.al td:first-child{box-shadow:inset 3px 0 0 var(--r500)}
+.rm{display:flex;gap:8px;align-items:flex-start}.rm .d{margin-top:5px;width:7px;height:7px;border-radius:50%;flex:none}
+.rm b{display:block;font-size:12.5px;color:var(--g900);line-height:1.3}.rm small{display:block;font-size:12px;color:var(--g500);line-height:1.4}
+.rs{display:flex;gap:10px;align-items:center}
+.ab{width:32px;height:32px;border-radius:50%;background:var(--g100);border:1px solid var(--g200);display:grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--g700);flex:none}
+tr.al .ab{background:#FDE3E5;border-color:#F7C6CB;color:var(--r600)}
+.rs b{display:block;font-size:13px;color:var(--g900)}.rs small{font-size:12px;color:var(--g500)}
+.tp b.v{display:block;font-size:21px;font-weight:700;color:var(--gr500);letter-spacing:-.2px;line-height:1.2}
+tr.al .tp b.v{color:var(--r500)}
+.tp small{display:block;font-size:10.5px;color:var(--g500)}tr.al .tp small{color:var(--r500);font-weight:700}
+.sj{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 13px;border-radius:15px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.sj.red{background:var(--r500);color:#fff;box-shadow:0 2px 6px rgba(240,68,82,.25)}
+.sj.ok{background:var(--gr50);color:var(--gr700)}
+.sj.gray{background:var(--g100);color:var(--g700);font-weight:600}
+.lc b{display:block;font-size:13px;color:var(--g900)}.lc small{display:block;font-size:12px;color:var(--g500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr b{display:block;font-weight:400;font-size:12.5px;color:var(--g700)}.cr small{display:block;font-size:12px;color:var(--g500)}
+.none{color:var(--g500)}
+.ra{text-align:right}
+.rp{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 12px;border-radius:14px;font-size:12px;font-weight:700;white-space:nowrap}
+.rp.c{background:#FFF1F2;color:var(--r600);border:1px solid #F7C6CB}
+.rp.w{background:var(--b50);color:var(--b600);border:1px solid #BBD7FB}
+.rp.s{background:var(--g100);color:var(--g600);font-weight:600}
+.rp.g{background:var(--gr50);color:var(--gr700);border:1px solid #BDE9D3}
+
+.colL,.colR{display:flex;flex-direction:column;gap:20px;min-width:0}
+.pg{display:flex;align-items:center;gap:12px;padding:0 20px 18px;font-size:13.5px;color:var(--g700)}
+.pg .dg{margin-right:8px}.pg b{font-size:14px;color:var(--g900);padding:0 6px}
+.pg button{height:34px;padding:0 16px;border-radius:17px;background:var(--g100);color:var(--g800);font-size:13.5px}.pg button:disabled{color:var(--g400);cursor:default}
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.tl{background:#fff;border:1px solid var(--g200);border-radius:20px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.03);text-align:left}
+.tl.al{background:#FFF7F7;border-color:#F6C9CC}
+.tl .n{display:flex;align-items:center;font-size:15px;font-weight:700}.tl .n i{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--gr500)}.tl.al .n i{background:var(--r500)}
+.tl .c{margin-top:6px;font-size:11.5px;color:var(--g500)}.tl .c b{font-size:18px;color:var(--gr500)}.tl.al .c b{color:var(--r500)}
+.tl .s{margin-top:6px;font-size:10.5px;color:var(--g500)}
+.sec{padding:18px 20px 20px}.sec h2{margin:0;font-size:15px;font-weight:700;display:flex;align-items:center}
+.sec .bb{margin-left:auto;height:32px;padding:0 14px;border-radius:16px;background:var(--b500);color:#fff;font-weight:700;font-size:13.5px;box-shadow:0 4px 12px rgba(49,130,246,.3)}
+.sec .sub{font-size:14px;color:var(--g600);margin:14px 0 10px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sgc{display:flex;align-items:center;gap:10px;border:1px solid #F3D98B;background:#FFFBEA;border-radius:18px;padding:10px 12px}
+.sgc .a2{width:30px;height:30px;border-radius:50%;background:#FFE9A8;color:#8A5D12;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}
+.sgc b{display:block;font-size:14px;line-height:1.2}.sgc small{font-size:10.5px;color:var(--g500)}.sgc em{margin-left:auto;font-style:normal;font-size:10.5px;font-weight:700;color:#8A5D12;background:#FFF3C4;border-radius:9px;padding:2px 8px;white-space:nowrap}
+.nt{margin-top:14px;border:1px solid #F3D98B;background:#FFFBEA;border-radius:18px;padding:12px 14px}
+.nt .t1{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}.nt .t1 em{font-style:normal;font-size:11px;font-weight:700;color:#8A5D12;background:#FFE9A8;border-radius:9px;padding:2px 8px}
+.nt p{margin:4px 0 0;font-size:12px;color:var(--g600)}
+.ap{margin-top:18px}.ap .hh{display:flex;align-items:center;font-size:14px;color:var(--g600);margin-bottom:10px}.ap .hh b{margin-left:auto;color:var(--b600)}
+.ar{display:flex;align-items:center;gap:10px;border:1px solid var(--g200);background:var(--g50);border-radius:24px;padding:8px 10px 8px 16px;margin-bottom:10px;font-size:14px;font-weight:500}
+.ar svg{color:var(--b500);flex:none}.ar span{flex:1}.ar button{height:34px;padding:0 16px;border-radius:17px;background:var(--b500);color:#fff;font-weight:700;font-size:13.5px}
+.fc.r{background:#FFF5F6;border-color:#F6C9CC}.fc.r .a{color:#D92D3B}.fi.r{background:var(--r500);border-color:var(--r500);color:#fff}
+.fc .hrl{border-top:1px solid #DCE9FB;margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:11px;color:var(--g500)}.fc .hrl b{color:var(--b600)}
+.tg2.rd{background:#FDE3E5;color:#C2303B}
+
+.fh{display:flex;align-items:center;padding:20px 20px 14px;gap:8px}
+.fh h2{margin:0;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}.fh h2::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--r500)}
+.lvb{margin-left:auto;font-size:13px;font-weight:700;color:var(--b600);background:var(--b50);border-radius:8px;padding:4px 10px}
+.fl{padding:6px 16px 18px;display:flex;flex-direction:column;gap:12px;position:relative}
+.fl::before{content:"";position:absolute;left:34px;top:30px;bottom:30px;width:2px;background:var(--g100)}
+.fr{display:flex;gap:12px;align-items:flex-start;position:relative}
+.fi{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;background:#fff;border:2px solid;z-index:1}
+.fi.y{border-color:#F3D98B;color:#B7791F;background:#FFFBEA}.fi.g{border-color:#BDE9D3;color:var(--gr500);background:var(--gr50)}.fi.b{border-color:var(--b500);color:#fff;background:var(--b500)}
+.fc{flex:1;border:1px solid var(--g200);border-radius:16px;padding:12px 16px;min-width:0}
+.fc.y{background:#FFFBEA;border-color:#F3D98B}.fc.b{background:#F5F9FF;border-color:#BBD7FB}.fc.g{background:var(--g50);color:var(--g600)}
+.fc .a{font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}.fc.y .a,.fc.b .a{color:#B7791F}.fc.b .a{color:var(--b600)}
+.fc .a b{font-weight:700}.fc.g .a{color:var(--g500);font-size:14px}.fc.g .a b{color:var(--gr700)}
+.fc .m{font-size:15px;font-weight:700;margin-top:4px;color:var(--g900)}.fc.g .m{font-weight:400;font-size:14px;color:var(--g700)}
+.fc .s{font-size:11px;color:var(--g500);margin-top:4px}
+.fc .bt{display:flex;gap:8px;margin-top:10px}
+.pb{height:34px;padding:0 16px;border-radius:17px;background:var(--b500);color:#fff;font-weight:700;font-size:14px}
+.pw{height:34px;padding:0 16px;border-radius:17px;background:#fff;border:1px solid var(--g300);font-weight:500;font-size:14px}
+.tg2{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:13px;font-weight:700}
+.tg2.y{background:#FFF3C4;color:#8A5D12}.tg2.gn{background:var(--gr50);color:var(--gr700)}
+
+.mdl{position:fixed;inset:0;z-index:100;background:rgba(25,31,40,.45);display:none;align-items:center;justify-content:center}
+.mdl.on{display:flex}
+.mdl .bx{background:#fff;border-radius:20px;padding:20px 24px;max-height:80vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.mdl h3{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:8px}.mdl h3 .x{margin-left:auto;width:28px;height:28px;border-radius:14px;background:var(--g100)}
+.mdl table{width:100%;border-collapse:collapse;font-size:13px}.mdl th,.mdl td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--g100)}
+.mdl .al3{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--g200);border-radius:12px;margin-bottom:8px;font-size:13px}
+.mdl .al3 .pb{margin-left:auto}
+#cv{display:none;margin-left:80px;padding:72px 20px 20px;min-height:100vh;background:var(--g50)}
+#cv .cols{display:grid;grid-template-columns:288px minmax(0,576px) 440px;justify-content:start;gap:16px;height:calc(100vh - 100px)}
+#cv .cc{background:#fff;border:1px solid var(--g200);border-radius:16px;padding:14px;overflow:auto}
+#cv .it{border:1px solid var(--g200);border-radius:12px;padding:10px;margin-bottom:8px;font-size:13px;cursor:pointer}#cv .it.on{border-color:var(--b500);background:var(--b50)}
+#cv .tb{display:flex;gap:6px;margin-bottom:10px}#cv .tb button{padding:6px 10px;border-radius:10px;background:var(--g100);font-size:13px}#cv .tb button.on{background:var(--b500);color:#fff}
+tr[data-n]{cursor:pointer}.pb,.bt button,.kc,.tl{cursor:pointer}.kc{cursor:default}
+
+.pr{display:none}
+body.prop .pr{display:block}
+body.prop span.pr,body.prop .tg3.pr{display:inline-block}
+.prb{margin:0 0 12px;padding:8px 14px;border-radius:12px;background:var(--r50);color:var(--r600);font-weight:700;font-size:14px}
+.tool{display:none;align-items:center;gap:8px;padding:8px 16px;flex-wrap:wrap}
+body.prop .tool{display:flex}
+.tool input{height:32px;border:1px solid var(--g200);background:var(--g100);border-radius:16px;padding:0 12px;font:inherit;font-size:13px;width:200px}
+.tool button.f{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--g300);font-size:13px}.tool button.f[aria-pressed=true]{background:var(--b500);color:#fff;border-color:var(--b500)}
+.tool .cn{font-size:13px;color:var(--g600)}
+.st{margin-top:4px;font-size:12px;color:var(--g700)}.st.u{color:var(--r600);font-weight:700}
+small.pr{font-size:12px;color:var(--g600)}
+.pbadge{display:none;position:fixed;right:16px;bottom:16px;z-index:200;gap:8px;align-items:center}
+.ptog{position:fixed;right:16px;bottom:16px;z-index:200;padding:10px 16px;border-radius:24px;background:var(--g900);color:#fff;font-size:14px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.ptog[aria-pressed=true]{background:var(--b500)}
+.tag{display:none;font-size:11px;font-weight:700;color:var(--b600);background:var(--b50);border-radius:8px;padding:1px 6px;margin-left:6px}
+body.prop .tag{display:inline-block}
+
+.fm{border:1px solid var(--g200);border-radius:16px;padding:12px;margin-bottom:12px}.fm h4{margin:0 0 8px;font-size:14px}
+.fm label{display:block;font-size:12px;color:var(--g600);margin-bottom:8px}.fm input:not([type=checkbox]),.fm select{display:block;width:100%;height:36px;margin-top:4px;border:1px solid var(--g200);background:var(--g100);border-radius:18px;padding:0 12px;font:inherit;font-size:13px}
+.fm .sx{display:flex;gap:6px;margin-bottom:8px}.fm .sx button{flex:1;height:34px;border-radius:17px;background:var(--g100);font-weight:700;font-size:13px}.fm .sx button.on{background:var(--b500);color:#fff}
+.fm .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fm .ck{display:flex;align-items:center;gap:6px}
+.pbig{width:100%;height:38px;border-radius:19px;background:var(--b500);color:#fff;font-weight:700;font-size:14px}.fn{display:block;margin-top:8px;color:var(--g500);font-size:11px}
+.ur{display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid var(--g100);font-size:13px}.ur.on{background:var(--b50)}.ur b.t{margin-left:auto}
+.ur .ch{padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700}.ur .ch.r{background:var(--r50);color:var(--r600)}.ur .ch.g{background:var(--gr50);color:var(--gr700)}
+.rp2 h4{margin:12px 0 4px;font-size:13px;color:var(--b600)}.rp2 ul{margin:0;padding-left:16px;font-size:12px;color:var(--g700);line-height:1.6}.rp2 li.r{color:var(--r600)}.rp2 li.o{color:#B45F06}
+</style>
+</head>
+<body class="prop">
+<nav class="side" aria-label="메뉴">
+  <div class="logo" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg></div>
+  <button class="nav on" aria-label="실시간 임상 관리 (현황판)" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v10H3zm10 0h8v6h-8zM3 15h8v6H3zm10-4h8v10h-8z"/></svg></button>
+  <button class="nav" aria-label="일정"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v11H5z"/></svg></button>
+  <button class="nav" aria-label="의료 호출함"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 2v2h4V4zm1 6v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></button>
+  <div class="grow"></div>
+  <div class="me" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-3.3 0-8 1.7-8 5v1h16v-1c0-3.3-4.7-5-8-5z"/></svg><i></i></div>
+</nav>
+
+<header class="top">
+  <div class="crumb">별자리노트 <i>/</i> <span>오피스 웹</span> <i>/</i> <em>실시간 임상 관리</em></div>
+  <span class="fac"><svg width="15" height="15" viewBox="0 0 24 24" fill="#6B7684" aria-hidden="true"><path d="M3 21V5l9-3 9 3v16h-6v-6H9v6z"/></svg>울산 혜진원장애인거주시설</span>
+  <span class="sp"></span>
+  <span class="sess"><span class="d"></span>로그인 세션 <b>11:56:04</b> 남음</span>
+  <div class="user"><div><b>박소연 수석간호사</b><small>혜진원 의료지원팀</small></div><span class="av"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-3.3 0-8 1.7-8 5v1h16v-1c0-3.3-4.7-5-8-5z"/></svg></span></div>
+</header>
+
+<main>
+  <div class="pr prb" role="status">이상 대응 2건 · 이서준 · 박승민 <span class="tag">제안 P0 긴급 배너</span></div>
+  <div class="head">
+    <span class="dot"></span><span class="t">울산 혜진원 통합 관제 현황판</span><span class="live">실시간 관제 활성</span>
+    <span class="tm">2026.11.25 수 11:31 KST</span>
+    <button class="rf" aria-label="새로고침"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A8 8 0 1 0 19.74 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z"/></svg></button>
+    <span class="sp"></span>
+    <button class="hb"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 8H5a3 3 0 0 0-3 3v6h4v4h12v-4h4v-6a3 3 0 0 0-3-3zm-3 11H8v-5h8zm3-7a1 1 0 1 1 1-1 1 1 0 0 1-1 1zM18 3H6v4h12z"/></svg>인계 리포트 인쇄</button>
+    <button class="hb"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h16V6zm3 2h4v4H7zm6 0h5v2h-5zm0 4h5v2h-5z"/></svg>전체 거주인 명부</button>
+    <button class="hb warn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.9V4a1 1 0 0 0-2 0v1.1A6 6 0 0 0 6 11v5l-2 2v1h16v-1z"/></svg>이상 알림 이력 <b></b></button>
+    <button class="hb call"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 10v4h4l5 4V6L7 10zm13.5 2A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>긴급 방송/호출</button>
+  </div>
+
+  <section class="cards" aria-label="요약">
+    <div class="kc"><div class="kh">전체 거주인 재실 현황<span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3zM8 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.6 0-1 .1A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z"/></svg></span></div>
+      <div class="big"><b>36</b> 명 재실</div><div class="hr"></div>
+      <div class="ln big2"><span><i class="dg"></i>6개 생활관 정상 운영</span><span class="pl blue" style="font-weight:600">통학 5명</span></div></div>
+    <div class="kc alert"><div class="kh">집중 발열 / 이상 모니터링 <span class="pl red">2건 활성</span><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v12H3zm2 2v8h14V6zm2 6 3-3 2 2 3-4 2 3v2z"/></svg></span></div>
+      <div class="big r">2 명 관제 중</div><div class="hr"></div>
+      <div class="ln"><span>이상: 이서준 (38.4°C)</span><span class="rr">의료호출 발송완료</span></div>
+      <div class="ln"><span>이상: 박승민 (38.2°C)</span><span class="rr">의료호출 발송완료</span></div></div>
+    <div class="kc"><div class="kh">당일 비대면 의료 협진<span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 2v2h4V4zm1 6v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></span></div>
+      <div class="big"><b>0</b> 건 예정</div><div class="hr"></div>
+      <div class="ln big2"><span style="color:var(--gr700);font-weight:700">⊙ 0건 완료</span><span class="pl gray" style="font-weight:500">대기 없음</span></div></div>
+    <div class="kc"><div class="kh">오전 교대조 인계 완료율<span class="ic g"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-2 15-4-4 1.4-1.4L10 14.2l6.6-6.6L18 9z"/></svg></span></div>
+      <div class="pct"><b>0%</b><span class="pl yel">미확인 4건 잔여</span></div><div class="bar"></div></div>
+  </section>
+
+  <div class="grid">
+    <div class="colL"><section class="panel" aria-labelledby="tt">
+      <div class="ph"><h2 id="tt">6개 생활관 전수 거주인 현황</h2><span class="tot">총 36명</span><div class="tabs" id="tabs" role="group" aria-label="생활관 선택"></div></div>
+      <div class="tool"><input id="q" placeholder="별님 이름 검색" aria-label="별님 이름 검색"><button class="f" id="f1" aria-pressed="false">대응 중</button><button class="f" id="f2" aria-pressed="false">기록 없음</button><span class="cn" id="cn2"></span><span class="tag">제안 P0·P1 검색·필터, 기록 없음 ≠ 이상</span></div>
+      <div class="tw"><table><colgroup><col style="width:17%"><col style="width:14%"><col style="width:14%"><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:14%"></colgroup>
+        <thead><tr><th scope="col">생활관 / 담당</th><th scope="col">별님 (거주인)</th><th scope="col">활력징후 (체온)</th><th scope="col">상태 판정</th><th scope="col" style="white-space:normal;line-height:1.35">현재 위치 및 일과</th><th scope="col">투약 &amp; 케어</th><th scope="col" class="r">대응 현황</th></tr></thead>
+        <tbody id="rows"></tbody></table></div>
+      <div class="pg"><span><i class="dg"></i>총 6개 생활실 중 4개 생활실 전원 정상 상태</span><span class="sp"></span><button id="pv">이전 10명</button><b id="pgt"></b><button id="nx">다음 10명</button></div>
+    </section>
+    <div class="tiles" id="tiles"></div></div>
+
+    <div class="colR"><aside class="panel feed" aria-label="실시간 응급·의료 타임라인">
+      <div class="fh"><h2>실시간 응급·의료 타임라인</h2><span class="lvb">LIVE FEED</span></div>
+      <div class="fl">
+        <div class="fr"><span class="fi y"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 2v2h4V4zm1 6v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></span>
+          <div class="fc y"><div class="a">12:00 · 일반 의료 의뢰 <span class="tg2 y">응답 대기</span></div><div class="m">[물병자리] 임유나 (36.4°C)</div><div class="s">임유나 별님 상태 확인 요청 (현장판)</div><div class="bt"><button class="pb">호출 열기</button><button class="pw">현장 확인 요청</button></div></div></div>
+        <div class="fr"><span class="fi y"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 2v2h4V4zm1 6v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></span>
+          <div class="fc y"><div class="a">13:50 · 일반 의료 의뢰 <span class="tg2 y">응답 대기</span></div><div class="m">[은하수자리] 김민준 (36.5°C)</div><div class="s">열이나요</div><div class="bt"><button class="pb">호출 열기</button><button class="pw">현장 확인 요청</button></div></div></div>
+        <div class="fr"><span class="fi g">✓</span><div class="fc g"><div class="a">13:09 · 정기 바이탈 기록 <b>정상</b></div><div class="m">[물병자리] 오하린 (36.2°C) 활력징후 기록 완료</div></div></div>
+        <div class="fr"><span class="fi g">✓</span><div class="fc g"><div class="a">13:08 · 정기 바이탈 기록 <b>정상</b></div><div class="m">[물병자리] 홍다은 (36.6°C) 활력징후 기록 완료</div></div></div>
+        <div class="fr"><span class="fi y"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 2v2h4V4zm1 6v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></span>
+          <div class="fc y"><div class="a">10:35 · 일반 의료 의뢰 <span class="tg2 y">응답 대기</span></div><div class="m">[은하수자리] 강시우 (36.7°C)</div><div class="s">기침을 자주 하고 콧물이 나요.</div><div class="bt"><button class="pb">호출 열기</button><button class="pw">현장 확인 요청</button></div></div></div>
+        <div class="fr"><span class="fi b"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg></span>
+          <div class="fc b"><div class="a">10:20 · 비대면 협진 완료 <span class="tg2 gn">처방전 수신</span></div><div class="m">[은하수자리] 이서준 (38.4°C)</div><div class="s" style="color:var(--g500)">강다혜 촉탁의 (원장) 원격 진료. 상세불명의 급성 상기도 감염(J06.9) 진단 후 전자처방전 발행.</div><div class="hrl"><span>발행 14:35</span><b>Rx#88124</b></div></div></div>
+        <div class="fr"><span class="fi r"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 2v2h4V4zm1 6v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></span>
+          <div class="fc r"><div class="a">10:11 · 긴급 발열 호출 <span class="tg2 rd">화상 10:20 예약</span></div><div class="m">[은하수자리] 이서준 (38.4°C 고온 감지)</div><div class="s">감기증세있습니다. 진료 요청드려요</div><div class="bt"><button class="pb" style="background:var(--r500)">호출 열기</button><button class="pw">현장 확인 요청</button></div></div></div>
+      </div>
+    </aside>
+    <section class="panel sec" aria-label="교대 근무조 인계 및 공지">
+      <h2>교대 근무조 인계 및 공지<button class="bb">✓ 일괄 확인 (2건)</button></h2>
+      <div class="sub">오전 근무조 (Day Shift) 인계 서명 상태</div>
+      <div class="sg">
+        <div class="sgc"><span class="a2">김</span><div><b>김하늘 선생님</b><small>은하수자리</small></div><em>미서명</em></div>
+        <div class="sgc"><span class="a2">박</span><div><b>박지은 선생님</b><small>물병자리</small></div><em>미서명</em></div>
+        <div class="sgc"><span class="a2">이</span><div><b>이수진 담임복지사</b><small>은하수자리</small></div><em>미서명</em></div>
+        <div class="sgc"><span class="a2">최</span><div><b>최민호 선생님</b><small>고래자리</small></div><em>미서명</em></div>
+      </div>
+      <div class="nt"><div class="t1"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E0861A"><path d="M3 10v4h3l5 4V6L6 10zm13 2a4 4 0 0 0-2-3.5v7A4 4 0 0 0 16 12z"/></svg>오늘 10:00 목욕실 온수 보일러 점검 안내 <em>11/20 08:00 게시</em></div><p>10:00~11:30 온수 사용 불가. 오전 목욕은 일정을 앞당겨 진행해주세요.</p></div>
+      <div class="ap"><div class="hh">수석간호사 결재 대기 업무<b>2건 대기</b></div>
+        <div class="ar"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5z"/></svg><span>야간 당직 간호기록부 전자서명 결재</span><button>승인</button></div>
+        <div class="ar"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2z"/></svg><span>고래자리 박승민 비상 해열제 선투약 품의</span><button>승인</button></div></div>
+    </section></div>
+  </div>
+</main>
+
+
+<div class="mdl" id="m-roster"><div class="bx" style="width:880px"><h3>전체 거주인 명부 <small style="color:var(--g500);font-weight:400">6개 반 · 36명</small><button class="x" data-close aria-label="닫기">×</button></h3><div style="display:grid;grid-template-columns:1fr 270px;gap:14px"><div id="rostL" style="max-height:62vh;overflow:auto"></div><div id="rostR" style="max-height:62vh;overflow:auto">
+<div class="fm"><h4>반 추가</h4><label>반 이름<input placeholder="예: 은하수자리"></label><label>생활실<input placeholder="예: 203호 (없으면 비워 두세요)"></label><div class="sx"><button class="on" type="button">남</button><button type="button">여</button></div><label>담임<select><option>지정 안 함</option></select></label><button type="button" class="pbig">+ 반 추가</button></div>
+<div class="fm"><h4>별님 추가</h4><label>반<select><option>물병자리 101호</option></select></label><label>이름<input placeholder="예: 김별님"></label><div class="two"><div class="sx"><button type="button">남</button><button class="on" type="button">여</button></div><label>나이<input placeholder="세"></label></div><label class="ck"><input type="checkbox"> 학교에 다니나요 (통학)</label><button type="button" class="pbig">+ 별님 추가</button><small class="fn">기록은 지우지 않아요. 별님 정리는 담당 간호사에게 말해 주세요. (문구는 화면이 작아 정확히 읽지 못함)</small></div></div></div></div></div>
+<div class="mdl" id="m-hist"><div class="bx" style="width:440px"><h3>이상 알림 이력 <small style="color:var(--g500);font-weight:400">최근 3건 · 최신순</small><button class="x" data-close aria-label="닫기">×</button></h3>
+<div class="al3"><span>🔔</span><div><b>11/20 10:11 · 새 이상 접수</b><br><small>은하수자리 이서준 38.4°C · 기저치보다 +1.3 · 의료호출 발송</small></div><button class="pb" data-call="이서준">호출 열기</button></div>
+<div class="al3"><span>🔔</span><div><b>11/20 09:26 · 확인했어요</b><br><small>박소연 수석간호사가 확인했어요</small></div><button class="pb" data-call="박승민">호출 열기</button></div>
+<div class="al3"><span>🔔</span><div><b>11/20 09:20 · 새 이상 접수</b><br><small>고래자리 박승민 38.2°C · 기저치보다 +1.4 · 의료호출 발송</small></div><button class="pb" data-call="박승민">호출 열기</button></div></div></div>
+<section id="cv" aria-label="의료 호출함"><div class="cols">
+<div class="cc"><div class="tb"><button class="on">열린 호출 5</button><button>끝낸 호출 16</button></div><div id="cl"></div></div>
+<div class="cc"><b>의료진 채팅</b><p id="cn" style="color:var(--g600);font-size:13px"></p></div>
+<div class="cc"><div class="tb"><button class="on">비대면 진단·처방 기록</button><button id="cr">종합 건강기록</button></div><p style="color:var(--g500);font-size:13px">선택한 호출의 기록이 여기 표시됩니다. (의료호출함은 다른 담당 명세 범위 — 현황판은 연결만)</p></div>
+</div></section>
+
+<div class="mdl" id="m-urg"><div class="bx" style="width:520px"><h3><span style="color:var(--r500)">●</span> 긴급 방송/호출<button class="x" data-close aria-label="닫기">×</button></h3>
+<div style="font-size:12px;color:var(--g600);margin-bottom:6px">호출할 별님</div><div id="ulist" style="max-height:240px;overflow:auto;border:1px solid var(--g200);border-radius:12px"></div>
+<div style="font-size:12px;color:var(--g600);margin:10px 0 4px">호출 내용</div><input id="umsg" value="긴급 방송 · 간호 선생님 즉시 확인 요청" style="width:100%;height:38px;border:1px solid var(--g200);background:var(--g100);border-radius:12px;padding:0 12px;font:inherit;font-size:13px">
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button data-close style="height:38px;padding:0 18px;border-radius:19px;background:var(--g100);font-weight:700">취소</button><button data-close style="height:38px;padding:0 18px;border-radius:19px;background:var(--r500);color:#fff;font-weight:700">🔔 긴급 호출 보내기</button></div></div></div>
+<div class="mdl" id="m-rep"><div class="bx rp2" style="width:560px"><h3 style="font-size:14px">● 인계 리포트 <small style="color:var(--g500);font-weight:400">2026.11.25 수 11:31 기준</small><button class="x" data-close aria-label="닫기">×</button></h3>
+<h4>근무조 인계 서명 0/4</h4><ul><li>오후 근무조 14:00~22:00</li><li class="o">미서명: 오세훈 선생님, 정다운 선생님, 한지민 선생님, 정하은 선생님</li></ul>
+<h4>열린 이상 건 · 체온 이상 2명</h4><ul><li class="r">은하수자리 이서준 · 38.4°C · 이상 고온 · 이상 대응</li><li class="r">고래자리 박승민 · 38.2°C · 이상 고온 · 이상 대응</li></ul>
+<h4>주의 관찰 0명</h4><ul><li>없음</li></ul>
+<h4 id="rmiss">체온 미기록</h4><ul><li id="rmissl"></li></ul>
+<h4>의료 호출 대기 6건</h4><ul><li>물병자리 임유나 · 일반 의뢰 · 임유나 별님 상태 확인 요청</li><li>은하수자리 이서준 · 긴급 · 촉탁의 비대면 협진 요청</li><li>은하수자리 김민준 · 일반 의뢰 · 열이나요</li><li>은하수자리 강시우 · 일반 의뢰 · 기침을 자주 하고 콧물이 나요.</li><li>은하수자리 최도윤 · 일반 의뢰 · 식욕 부진 및 활력징후 모니터링 의뢰.</li><li>고래자리 박승민 · 관찰 중 · 해열 조치 후 2차 재측정 관찰 중.</li></ul>
+<h4>결재 대기 2건</h4><ul><li>야간 당직 간호기록부 전자서명 결재</li><li>고래자리 박승민 비상 해열제 선투약 품의</li></ul>
+<h4>오늘 전체 공지 0건</h4><ul><li>없음</li></ul>
+<div style="text-align:right;margin-top:12px"><button data-close style="height:38px;padding:0 22px;border-radius:19px;background:var(--g100);font-weight:700">닫기</button></div></div></div>
+<script>
+/* 가상 데이터. 보내 주신 캡처에서 보이는 6행은 그대로, 나머지 행은 같은 양식으로 채운 가짜 값 */
+const CL=[['aquarius','물병자리','박지은','101호','선생님'],['pisces','물고기자리','한지민','102호','선생님'],['bear','곰자리','정다운','103호','선생님'],['milkyway','은하수자리','이수진','203호','담임복지사'],['aries','양자리','오세훈','202호','선생님'],['whale','고래자리','정하은','204호','선생님']];
+const R={aquarius:[['임유나',364,'여',23],['송지은',365,'여',18],['한나리',363,'여',21],['김윤서',366,'여',26],['서소율',364,'여',20],['홍다은',365,'여',22],['오하린',362,'여',25]],
+pisces:[['정서아',362,'여',22],['신지유',365,'여',24],['박채원',366,'여',27],['배수아',364,'여',22],['이하은',363,'여',20],['안예린',365,'여',23]],
+bear:[['문하준',362,'남',21],['조은우',366,'남',25],['장도현',368,'남',22],['권건우',365,'남',19],['백태윤',364,'남',28]],
+milkyway:[['김민준',365,'남',20],['이서준',371,'남',19],['한지호',366,'남',23],['류은호',363,'남',26],['최도윤',369,'남',21],['강시우',366,'남',24]],
+aries:[['고준우',364,'남',22],['윤예준',368,'남',25],['정현우',365,'남',20],['김민재',366,'남',27],['남정우',363,'남',23],['유로운',365,'남',19]],
+whale:[['서연우',364,'남',21],['노재희',366,'남',26],['황태양',365,'남',24],['박승민',368,'남',24],['차우진',362,'남',22],['엄성민',367,'남',25]]};
+const COMMUTE=['송지은','서소율','김민준','고준우','서연우'];
+const F=v=>(v/10).toFixed(1);
+const ALERT={이서준:{v:384,d:'+1.3',when:'11/20 10:11 · 이수진 체온 기록',chip:['c','의료호출 연결됨']},박승민:{v:382,d:'+1.4',when:'11/20 09:20 · 김하늘 체온 기록',chip:['w','의료호출 관찰 중']}};
+const SPECIAL={김윤서:{v:367},정서아:{v:361,care:['산책 중 신발이 불편해 보였어요. 새 신발 신청했어요.','11/15 16:30 · 한지민 관찰 기록']},한나리:{care:['아침 식사 반찬 남김없이 잘 드시고 기분 좋게 노래 흥얼거리심. 컨디...','11/20 07:50 · 최민호 관찰 기록']}};
+const phone='<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.6 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .6 3.6 1 1 0 0 1-.25 1z"/></svg>';
+let all=[];CL.forEach(c=>R[c[0]].forEach(r=>{const a=ALERT[r[0]],sp=SPECIAL[r[0]]||{};
+  all.push({cls:c,name:r[0],base:r[1],g:r[2],age:r[3],al:!!a,v:a?a.v:(sp.v||r[1]),a,care:sp.care,commute:COMMUTE.includes(r[0])})}));
+all.sort((x,y)=>(y.al-x.al));  /* 이상이 있는 행이 맨 위, 나머지는 생활관 순 */
+let tab='',page=0,q='',fl='';
+function tabs(){document.getElementById('tabs').innerHTML=`<button class="tab" data-c="" aria-pressed="${tab===''}">전체 (36)</button>`+CL.map(c=>`<button class="tab" data-c="${c[0]}" aria-pressed="${tab===c[0]}">${c[1]} (${R[c[0]].length})</button>`).join('');
+ document.querySelectorAll('#tabs .tab').forEach(b=>b.onclick=()=>{tab=b.dataset.c;page=0;tabs();rows()})}
+function rows(){
+ const list=all.filter(r=>(!tab||r.cls[0]===tab)&&(!q||r.name.includes(q))&&(fl!=='al'||r.al)&&(fl!=='none'||(!r.a&&!r.care)));document.getElementById('cn2').textContent='최근 기록 있음 '+all.filter(r=>r.a||r.care).length+' · 없음 '+all.filter(r=>!r.a&&!r.care).length+' (기록 없음은 이상이라는 뜻이 아님)';const tot=list.length;const st=page*10;
+ document.getElementById('pgt').textContent=`${tot?st+1:0} - ${Math.min(st+10,tot)} / ${tot}`;
+ document.getElementById('pv').disabled=page===0;document.getElementById('nx').disabled=st+10>=tot;
+ document.getElementById('rows').innerHTML=list.slice(st,st+10).map(r=>{
+  const c=r.cls,d=r.v-r.base;
+  const mid=r.al?'<span class="sj red"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3 2 21h20zM12 10v5M12 18v.5"/></svg>이상 고온</span>':(r.commute&&r.name!=='김민준'&&r.name!=='고준우'&&r.name!=='서소율'&&r.name!=='서연우'?'<span class="sj gray">▭ 통학 중</span>':'<span class="sj ok">✓✓ 정상</span>');
+  const sub=r.al?`▲ +${(d/10).toFixed(1)}°C 기저치 대비`:(d===0?`기저 ${F(r.base)}°C 일치`:`기저 ${F(r.base)}°C · ${d>0?'+':'−'}${Math.abs(d/10).toFixed(1)}°C`);
+  const loc=r.commute&&r.name==='송지은'?'<b>울산행복학교</b><small style="white-space:normal">등교<br>특수학교</small>':`<b>자유 시간</b><small>${c[1]} 생활관</small>`;
+  const care=r.a?`<div class="cr"><b>체온 ${F(r.v)}°C 기록</b><small>${r.a.when}</small></div>`:(r.care?`<div class="cr"><b style="line-height:1.45">${r.care[0]}</b><small>${r.care[1]}</small></div>`:'<span class="none">최근 기록 없음</span>');
+  const resp=r.a?`<span class="rp ${r.a.chip[0]}">${phone}${r.a.chip[1]}</span>`:(r.commute&&r.name==='송지은'?'<span class="rp g">✓ 정상 통학</span>':'<span class="rp s">안정</span>');
+  return `<tr class="${r.al?'al':''}"><td><div class="rm"><span class="d" style="background:${r.al?'#F04452':'#03B26C'}"></span><div><b>${c[1]} ${c[3]}</b><small>담당: ${c[2]} ${c[4]}</small></div></div></td>
+   <td><div class="rs"><span class="ab">${r.name.slice(1)}</span><div><b>${r.name}</b><small>${r.g} · ${r.age}세${r.name==='박승민'?' (중증)':''}</small></div></div></td>
+   <td class="tp"><b class="v">${F(r.v)}°C</b><small>${sub}</small>${r.al?`<small class="pr">${r.a.when.slice(6,11)} 측정</small>`:''}</td>
+   <td>${mid}</td><td class="lc">${loc}</td><td>${care}</td><td class="ra">${resp}${r.al?`<div class="pr st${r.name==='박승민'?' u':''}">${r.name==='이서준'?'② 원내 조제 · 담당 이수진':'① 관찰·재측정 · 담당 미지정'}</div>`:''}</td></tr>`}).join('');
+}
+document.getElementById('pv').onclick=()=>{page=Math.max(0,page-1);rows()};
+document.getElementById('nx').onclick=()=>{page++;rows()};
+const TL=[['물병자리','7/7','전원정상','울산행복학교 등교'],['물고기자리','6/6','전원정상','자유 시간'],['곰자리','5/5','전원정상','자유 시간'],['은하수자리','1/6','이상','203호 이서준 발열'],['양자리','6/6','전원정상','울산행복학교 등교'],['고래자리','1/6','이상','204호 박승민 발열']];
+document.getElementById('tiles').innerHTML=TL.map(t=>{const a=t[2]==='이상';const [x,y]=t[1].split('/');return `<div class="tl${a?' al':''}"><div class="n">${t[0]}<i></i></div><div class="c"><b>${x}</b>/${y} ${t[2]}</div><div class="s">${t[3]}</div></div>`}).join('');
+tabs();rows();
+
+document.getElementById('q').oninput=e=>{q=e.target.value.trim();page=0;rows()};
+[['f1','al'],['f2','none']].forEach(([id,v])=>document.getElementById(id).onclick=function(){fl=fl===v?'':v;document.getElementById('f1').setAttribute('aria-pressed',fl==='al');document.getElementById('f2').setAttribute('aria-pressed',fl==='none');page=0;rows()});
+document.querySelectorAll('.fc.y').forEach((c,i)=>{const a=c.querySelector('.a');if(a)a.insertAdjacentHTML('afterend','<div class="pr st">응답 대기 '+(i?'25':'55')+'분 · 현장 확인 요청 전 <span class="tag">제안 P1</span></div>')});
+document.querySelectorAll('.tl.al .s').forEach(e=>e.insertAdjacentHTML('afterend','<div class="pr st u">이상 1건 <span class="tag">제안 P1</span></div>'));
+
+function showCall(n){document.querySelector('main').style.display='none';document.querySelector('.top').style.display='';document.getElementById('cv').style.display='block';
+ document.querySelectorAll('.nav').forEach((b,i)=>b.classList.toggle('on',i===2));
+ const L=['이서준','박승민','임유나','김민준','강시우'];if(n&&!L.includes(n))L.unshift(n);
+ document.getElementById('cl').innerHTML=L.map(x=>`<div class="it${x===n?' on':''}"><b>${x}</b><br><small>열린 호출</small></div>`).join('');
+ document.getElementById('cn').textContent=n?n+' 호출이 선택되었습니다.':'';document.getElementById('cr').textContent=n?'종합 건강기록 ('+n+')':'종합 건강기록';}
+function showBoard(){document.querySelector('main').style.display='';document.getElementById('cv').style.display='none';document.querySelectorAll('.nav').forEach((b,i)=>b.classList.toggle('on',i===0))}
+document.querySelectorAll('.nav')[0].onclick=showBoard;document.querySelectorAll('.nav')[2].onclick=()=>showCall('');
+document.getElementById('rows').addEventListener('click',e=>{const tr=e.target.closest('tr');if(!tr)return;showCall(tr.querySelector('.rs b').textContent)});
+document.addEventListener('click',e=>{const c=e.target.closest('[data-call]');if(c){document.querySelectorAll('.mdl').forEach(m=>m.classList.remove('on'));showCall(c.dataset.call)}
+ if(e.target.closest('[data-close]')||e.target.classList.contains('mdl'))document.querySelectorAll('.mdl').forEach(m=>m.classList.remove('on'))});
+document.querySelectorAll('.hb')[1].onclick=()=>{document.getElementById('rostL').innerHTML=CL.map(c=>`<h4 style="margin:10px 0 4px">${c[1]} ${c[3]} <small style="color:var(--g500);font-weight:400">담당 ${c[2]} ${c[4]}</small></h4><table><tr><th>이름</th><th>성별</th><th>나이</th><th>통학</th><th>중증</th></tr>${R[c[0]].map(r=>`<tr><td>${r[0]}</td><td>${r[2]}</td><td>${r[3]}세</td><td>${COMMUTE.includes(r[0])?'통학':'-'}</td><td>${r[0]==='박승민'?'중증':'-'}</td></tr>`).join('')}</table>`).join('');document.getElementById('m-roster').classList.add('on')};
+document.querySelectorAll('.hb')[2].onclick=()=>document.getElementById('m-hist').classList.add('on');
+
+document.querySelectorAll('.hb')[0].onclick=()=>{const L=all.filter(r=>!r.a&&!r.care);document.getElementById('rmiss').textContent='체온 미기록 '+L.length+'명';document.getElementById('rmissl').textContent=L.map(r=>r.cls[1]+' '+r.name).join(', ');document.getElementById('m-rep').classList.add('on')};
+document.querySelectorAll('.hb')[3].onclick=()=>{document.getElementById('ulist').innerHTML=all.map((r,i)=>`<label class="ur${i?'':' on'}"><input type="radio" name="u" ${i?'':'checked'}>${r.cls[1]} · ${r.name}<b class="t" style="color:${r.al?'var(--r500)':'var(--g700)'}">${F(r.v)}°C</b><span class="ch ${r.al?'r':'g'}">${r.al?'이상 고온':'정상'}</span></label>`).join('');document.getElementById('m-urg').classList.add('on')};
+document.querySelectorAll('.fc .pb').forEach(b=>b.onclick=()=>{const m=b.closest('.fc').querySelector('.m').textContent.match(/\]\s*(\S+)/);showCall(m?m[1]:'')});
+</script>
+</body>
+</html>

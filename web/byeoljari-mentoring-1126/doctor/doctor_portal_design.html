@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>별자리노트 의료진 협진 포털 (의료진 호출함)</title>
+<style>
+:root{--g50:#F9FAFB;--g100:#F2F4F6;--g200:#E5E8EB;--g300:#D1D6DB;--g400:#B0B8C1;--g500:#8B95A1;--g600:#6B7684;--g700:#4E5968;--g800:#333D4B;--g900:#191F28;--b500:#3182F6;--b600:#2563EB;--b50:#E8F3FF;--r500:#F04452;--r50:#FEECEE;--gr500:#03B26C;--gr50:#E8F8F0;--gr700:#03804D;--font:'Pretendard','Inter',-apple-system,BlinkMacSystemFont,system-ui,'Noto Sans KR','Malgun Gothic',sans-serif}
+*{box-sizing:border-box}html{min-width:1280px}
+body{margin:0;background:var(--g100);color:var(--g900);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--b500);outline-offset:2px}
+.side{position:fixed;z-index:50;top:0;left:0;bottom:0;width:80px;background:#fff;border-right:1px solid var(--g200);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:10px}
+.logo{width:44px;height:44px;border-radius:16px;background:var(--b50);color:var(--b500);display:grid;place-items:center}
+.nav{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:var(--b500);color:#fff;box-shadow:0 4px 12px rgba(49,130,246,.3)}
+.grow{flex:1}.me{width:40px;height:40px;border-radius:20px;background:var(--g900);color:#fff;display:grid;place-items:center;position:relative}.me i{position:absolute;right:0;bottom:0;width:10px;height:10px;border-radius:5px;background:var(--gr500);border:2px solid #fff}
+.top{position:fixed;z-index:40;top:0;left:80px;right:0;height:64px;background:rgba(255,255,255,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--g200);display:flex;align-items:center;gap:10px;padding:0 24px}
+.crumb{font-weight:700}.crumb span,.crumb i{font-weight:500;color:var(--g600);font-style:normal}.crumb em{font-style:normal;color:var(--b500);font-weight:700}
+.fac{display:inline-flex;gap:6px;align-items:center;padding:4px 12px;border-radius:99px;background:var(--g100);border:1px solid var(--g200);font-weight:700;font-size:12px}
+.sp{flex:1}.sess{border:1px solid var(--g200);border-radius:99px;padding:3px 12px;font-size:12px;background:#fff}.sess b{color:var(--b500);font-family:ui-monospace,monospace}
+.user{display:flex;gap:10px;align-items:center;border-left:1px solid var(--g200);padding-left:14px}.user b{display:block;font-size:13px;text-align:right}.user small{display:block;font-size:11px;color:var(--g500);text-align:right}.av{width:30px;height:30px;border-radius:15px;background:var(--g900);color:#fff;display:grid;place-items:center}
+main{padding:80px 16px 16px 96px;display:grid;grid-template-columns:330px minmax(0,1fr) 400px;gap:16px;height:100vh}
+.pn{background:#fff;border:1px solid var(--g200);border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.03);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.ph{padding:14px 16px;border-bottom:1px solid var(--g100)}.ph h2{margin:0;font-size:16px;display:flex;align-items:center;gap:8px}.ph h2 svg{color:var(--b500)}.ph small{display:block;color:var(--g500);font-size:12px;margin-top:2px}
+.ph .badge{margin-left:auto;font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px}.badge.g{background:var(--gr50);color:var(--gr700)}.badge.r{background:var(--r50);color:var(--r500)}
+.body{padding:12px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:10px}
+.seg{display:flex;background:var(--g100);border-radius:20px;padding:4px;margin:12px 12px 0}.seg button{flex:1;height:32px;border-radius:16px;font-weight:700;font-size:12.5px;color:var(--g600)}.seg button[aria-pressed=true]{background:#fff;color:var(--g900);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.call{text-align:left;width:100%;padding:12px;border:1px solid var(--g200);border-radius:20px;background:#fff;display:block}
+.call:hover{border-color:var(--b500);background:rgba(49,130,246,.08)}.call.on{border-color:var(--b500);background:rgba(49,130,246,.12);box-shadow:0 0 0 1px var(--b500)}
+.call .r1{display:flex;align-items:center;gap:6px}.org{display:inline-flex;gap:4px;align-items:center;background:var(--g900);color:#fff;font-size:11px;font-weight:700;border-radius:10px;padding:1px 8px}.call .t{margin-left:auto;font-size:11px;color:var(--g500)}
+.call .nm{margin-top:6px;font-weight:700;font-size:15px}.call .nm small{font-weight:400;color:var(--g500);font-size:11.5px}
+.call .r3{margin-top:4px;display:flex;gap:6px;align-items:center}.chip{font-size:10.5px;font-weight:700;padding:0 6px;border-radius:6px}.chip.u{background:var(--r500);color:#fff}.chip.n{background:var(--g100);color:var(--g700)}.tp{font-weight:700}.tp.r{color:var(--r500)}
+.call .msg{margin-top:4px}.call .by{font-size:11.5px;color:var(--g500);margin-top:4px}
+.crow{border:1px solid var(--g200);border-radius:20px;background:#fff}
+.crow>button.h{width:100%;display:flex;gap:10px;align-items:center;padding:10px 12px;text-align:left}.crow.on{border-color:var(--b500)}
+.ab{width:36px;height:36px;border-radius:12px;background:var(--g100);display:grid;place-items:center;font-weight:700;color:var(--g700)}
+.crow .x1{flex:1;min-width:0}.crow .x1 b{font-size:14px}.crow .x1 small{color:var(--g500);font-size:11px;margin-left:6px}.crow .x1 div{color:var(--g600);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crow .ts{font-size:11px;color:var(--g500);align-self:flex-start}
+.cb{display:none;border-top:1px solid var(--g100);padding:10px 12px}.crow.on .cb{display:block}
+.chips{display:flex;gap:6px;margin-bottom:10px}.chips button{height:28px;padding:0 10px;border-radius:14px;background:var(--g100);font-size:12px;font-weight:600;color:var(--g700)}
+.msgs{display:flex;flex-direction:column;gap:10px;max-height:330px;overflow:auto}
+.me2{align-self:flex-end;max-width:85%;background:var(--b500);color:#fff;border-radius:16px;padding:10px 12px;font-size:13px}
+.ot{display:flex;gap:8px;max-width:85%}.ot .q{background:#fff;border:1px solid var(--g200);border-radius:16px;padding:10px 12px;font-size:13px}.ot small{display:block;font-size:11px;color:var(--g600);margin-bottom:2px}
+.sys{align-self:center;font-size:11.5px;color:var(--g700);border:1px solid var(--g200);border-radius:14px;padding:6px 12px;background:#fff;text-align:center}
+.vit{border:1px solid var(--g200);border-radius:16px;padding:12px;background:#fff}.vit .h{font-size:11.5px;color:var(--b500);font-weight:700;display:flex;justify-content:space-between}.vit .v{display:flex;justify-content:space-between;align-items:center;margin-top:8px;background:var(--g50);border-radius:14px;padding:10px 12px}.vit .v b{font-size:26px;font-family:ui-monospace,monospace}.vit small{color:var(--g500);font-size:11px}
+.inp{display:flex;gap:8px;margin-top:10px}.inp input{flex:1;height:38px;border:1px solid var(--g200);background:var(--g100);border-radius:19px;padding:0 14px;font:inherit;font-size:13px}.inp button{height:38px;padding:0 16px;border-radius:19px;background:var(--b500);color:#fff;font-weight:700}
+.card{border:1px solid var(--g200);border-radius:20px;padding:14px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05)}.card h3{margin:0 0 10px;font-size:12.5px;display:flex;gap:6px;align-items:center}.card h3 svg{color:var(--b500)}.card h3 em{margin-left:auto;font-style:normal;font-size:11px;font-weight:700;color:var(--gr700)}
+.pat{display:flex;gap:10px;align-items:center}.pat .ab{background:var(--b50);color:var(--b500);border-radius:16px}.pat .tmp{margin-left:auto;text-align:right;font-size:11px;color:var(--g500)}.pat .tmp b{display:block;font-size:20px;color:var(--r500);font-family:ui-monospace,monospace}.pat .tmp b.n{color:var(--g900)}
+.warn{margin-top:10px;border-radius:14px;padding:8px 12px;font-size:12px;font-weight:700;display:flex;gap:6px;align-items:center}.warn.r{background:#FEF2F2;border:1px solid #FECACA;color:var(--r500)}.warn.n{background:var(--g100);color:var(--g600);border:1px solid var(--g200)}
+.dx{display:flex;gap:8px;align-items:center;background:var(--g100);border-radius:14px;padding:8px 12px;font-size:12.5px}.dx b{color:var(--b500);font-family:ui-monospace,monospace}.dx i{margin-left:auto;font-style:normal;font-size:10.5px;background:#fff;border-radius:8px;padding:0 6px;color:var(--g600)}
+.lb{display:flex;justify-content:space-between;margin:10px 0 4px;font-size:12px;font-weight:700}.lb em{font-style:normal;font-weight:400;color:var(--b500);font-size:11px}
+.ta{background:var(--g100);border-radius:14px;padding:10px 12px;font-size:12.5px;color:var(--g800);line-height:1.6;min-height:70px}
+textarea.ta{width:100%;border:0;font:inherit;resize:vertical}
+.rx{display:flex;gap:8px;align-items:flex-start;background:var(--g100);border-radius:14px;padding:10px 12px;margin-bottom:8px}.rx b{font-size:12.5px;display:block}.rx small{color:var(--g600);font-size:11.5px}.rx .q{margin-left:auto;background:#fff;border-radius:8px;padding:2px 8px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.rxi{display:grid;grid-template-columns:1fr 70px 28px;gap:6px;background:var(--g100);border-radius:14px;padding:8px}.rxi input{height:34px;border:1px solid var(--g200);border-radius:10px;padding:0 10px;font:inherit;font-size:12px;background:#fff;width:100%}.rxi input:first-child{grid-column:1/3}
+.add{width:100%;height:34px;border-radius:12px;border:1px dashed var(--g300);color:var(--b500);font-weight:600;font-size:12px;margin:8px 0 6px}
+.note{font-size:11px;color:var(--g500)}
+.foot{border-top:1px solid var(--g100);padding:10px 14px}.foot .l{display:flex;justify-content:space-between;font-size:11.5px;color:var(--g600);margin-bottom:8px}.foot .l b{color:var(--g900)}.foot .l em{font-style:normal;color:var(--gr700);font-weight:700}
+.pub{width:100%;height:46px;border-radius:23px;font-weight:700;font-size:14px}.pub.done{background:var(--gr50);color:var(--gr700);border:1px solid #B7E8D0;cursor:default}.pub.go{background:var(--b500);color:#fff;box-shadow:0 4px 12px rgba(49,130,246,.3)}
+.mdl{position:fixed;inset:0;z-index:100;background:rgba(25,31,40,.45);display:none;align-items:center;justify-content:center}.mdl.on{display:flex}.mdl .bx{background:#fff;border-radius:22px;padding:22px 26px;width:560px;max-height:84vh;overflow:auto}
+.mdl h3{margin:0 0 6px;font-size:18px}.mdl h4{margin:14px 0 4px;font-size:13px}.mdl p{margin:0;font-size:12.5px;color:var(--g700)}
+.mdl .a{color:var(--b500);font-weight:700;float:right;margin-top:10px}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;color:var(--b600);background:var(--b50);border-radius:8px;padding:0 6px;margin-left:6px;white-space:nowrap}
+.tool{display:flex;gap:6px;align-items:center;padding:10px 12px 0}.tool input{flex:1;min-width:0;height:32px;border:1px solid var(--g200);background:var(--g100);border-radius:16px;padding:0 12px;font:inherit;font-size:12.5px}.tool button{height:32px;padding:0 10px;border-radius:16px;background:var(--g100);font-size:12px;font-weight:700;color:var(--g700)}.tool button[aria-pressed=true]{background:var(--b50);color:var(--b600)}
+.chip.w{background:var(--b50);color:var(--b600)}
+.pbox{border:1px dashed var(--b500);border-radius:20px;padding:12px 14px;background:#fff}.pbox h3{margin:0 0 8px;font-size:12.5px;display:flex;align-items:center}
+.srow{display:grid;grid-template-columns:44px 1fr;gap:8px;font-size:12.5px;padding:4px 0;border-top:1px solid var(--g100)}.srow:first-of-type{border-top:0}.srow b{color:var(--b600);font-size:11.5px}.srow span{color:var(--g800)}
+.chk{display:flex;gap:8px;font-size:12px;padding:3px 0}.chk b{min-width:92px;color:var(--g600);font-weight:600}
+.phr{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.phr button{height:26px;padding:0 10px;border-radius:13px;background:var(--b50);color:var(--b600);font-size:11.5px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.phr .sv{background:var(--g100);color:var(--g700)}
+.el{font-size:11.5px;color:var(--g600);text-align:center;margin-bottom:6px}
+</style>
+</head>
+<body>
+<nav class="side" aria-label="메뉴"><div class="logo" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg></div>
+<button class="nav" aria-label="의료 호출함" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 2h4a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm0 2v2h4V4zm1 6v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></button><div class="grow"></div><div class="me" aria-hidden="true">●<i></i></div></nav>
+<header class="top"><div class="crumb">별자리노트 <i>/</i> <span>의료진 전용 협진 포털</span> <i>/</i> <em>실시간 임상 관리</em></div><span class="fac">울산 혜진원 장애인거주시설</span><span class="note"><span class="tag" style="margin:0">제안</span> 표시는 실제 화면에 없는, 레퍼런스를 보고 더한 부분</span><span class="sp"></span><span class="sess">● 로그인 세션 | <b>11:59:34</b> 남음</span><div class="user"><div><b>강다혜 촉탁의 (원장)</b><small>내과·외과 · 촉탁 · 외래전담</small></div><span class="av">●</span></div></header>
+<main>
+ <section class="pn" aria-label="호출함"><div class="ph"><h2><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4z"/></svg>호출함</h2><small>협진 기관에서 보낸 호출</small></div>
+  <div class="seg" role="group" aria-label="호출 구분"><button id="tO" aria-pressed="true">열린 호출 2</button><button id="tC" aria-pressed="false">끝낸 호출 1</button></div>
+  <div class="tool"><input id="q" placeholder="별님 이름 검색" aria-label="별님 이름 검색"><button id="so" aria-pressed="false" type="button">긴급 먼저</button><span class="tag" style="margin:0">제안</span></div><div class="body" id="calls"></div></section>
+ <section class="pn" aria-label="별님별 채팅"><div class="ph"><h2><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v12H8l-4 4zm3 4v2h10V8zm0 3v2h7v-2z"/></svg>별님별 채팅</h2><small>혜진원 별님마다 대화가 따로 있어요. 눌러서 펼쳐요.</small></div><div class="body" id="chats"></div></section>
+ <section class="pn" aria-label="진단서와 전자처방전" id="rp"></section>
+</main>
+<div class="mdl" id="mh"><div class="bx"><h3 id="mht"></h3><p>의료진이 쓴 글 그대로 보여줘요. 앱은 투약 용량을 계산하지 않아요.</p><div id="mhb"></div><button class="a" id="mhx">닫기</button></div></div>
+<script>
+/* 가상 데이터(실제 의료진 포털 화면에서 본 6가지 호출·채팅·처방을 같은 양식으로 옮김) */
+const CALLS={
+ '이서준':{open:true,t:'11.20 (금) 10:11',sex:'남',age:19,cls:'은하수자리 203호',no:'HJ-2021-088',v:384,u:true,msg:'촉탁의 비대면 협진 요청',by:'박소연 수석간호사 보냄',done:true,
+  warn:'처방 주의: 페니실린계 · 세파계 항생제 절대 금기',dx:['J06.9','상세불명의 급성 상기도 감염'],
+  memo:'금일 오전 10시 11분 38.4°C 급상승 및 경미한 오한 증상. 뇌병변 질환자로 발열성 경련 예방을 위해 즉시 해열제 투약 필요. 페니실린계 금기 준수하여 아세트아미노펜 단일 제제 투약 지시함. 수분 섭취 유지 및 1시간 후 재측정 요망.',
+  rx:[['어린이타이레놀현탁액 (아세트아미노펜 3.2g/100mL)','1회 20mL 경구투여 · 4~6시간 간격 필요시 투여 (1일 최대 5회 초과 금지)','1회 20ml'],['코대원에스시럽 20mL/포','기침 및 호흡기 자극 완화 목적 · 1일 3회 식후 경구투여','3일분 (9포)']],rxno:'Rx#88124 · 14:35',
+  chat:'11/20 14:35',last:'강다혜 촉탁의 (원장)이 전자처방전을 발행했어요 (Rx#88124)',
+  vc:1,hist:{reg:'데파코트정 250mg (조석 식후 복약)',prn:'38.2°C 초과 시 아세트아미노펜 500mg 1정 투여 (촉탁의 지시)',n:0}},
+ '김민준':{open:true,t:'11.20 (금) 13:53',sex:'남',age:19,cls:'은하수자리 203호',no:'HJ-2019-124',v:365,u:false,msg:'열이나요',by:'박소연 수석간호사 보냄',done:false,
+  warn:'처방 주의: 등록된 금기 없음',chat:'11/20 13:53',last:'박소연 수석간호사가 강다혜 촉탁의 (원장)에게 김민준 별님 호출을 보냈어요.',hist:{reg:null,prn:null,n:0}},
+ '박승민':{open:false,t:'11.08 (일) 14:13',sex:'남',age:24,cls:'고래자리 204호',no:'HJ-2019-041',v:382,u:false,msg:'오른쪽 팔꿈치에 긁힌 상처가 붉게 부어 있습니다.',by:'박소연 수석간호사 보냄',done:true,
+  warn:'처방 주의: 등록된 금기 없음',dx:['L08.9','상세불명의 피부 및 피하조직의 국소감염'],memo:'찰과상 부위 경미한 발적. 소독 후 연고 도포, 3일 경과 관찰.',
+  rx:[['후시딘연고 10g','1일 2회 환부 도포','1개']],rxno:'Rx#88006 · 15:00',chat:'11/8 15:00',last:'강다혜 촉탁의 (원장) · 전자처방전 발행 (Rx#88006)',hist:{reg:null,prn:null,n:1}}};
+let sel='이서준',tabOpen=true,openChat='이서준',qv='',sortU=false,phr=[];
+const esc=t=>t.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+const hm=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};const md=()=>{const d=new Date();return (d.getMonth()+1)+'/'+d.getDate()+' '+hm()};let rxSeq=88125;
+const F=v=>(v/10).toFixed(1);
+const $=id=>document.getElementById(id);
+function calls(){let L=Object.entries(CALLS).filter(([k,c])=>c.open===tabOpen&&k.includes(qv));if(sortU)L.sort((a,b)=>(b[1].u|0)-(a[1].u|0));
+ $('calls').innerHTML=(L.length?'':'<div class="note" style="text-align:center;padding:16px">맞는 호출이 없어요</div>')+L.map(([k,c])=>`<button class="call${k===sel?' on':''}" data-k="${k}"><div class="r1"><span class="org">혜진원</span><span class="t">${c.t}</span></div><div class="nm">${k} <small>(${c.sex} · 만 ${c.age}세) · ${c.cls}</small></div><div class="r3">${c.u?'<span class="chip u">긴급</span>':'<span class="chip n">일반 의뢰</span>'}<span class="tp${c.u?' r':''}">${F(c.v)}°C</span>${(!c.done&&c.open&&!(c.ev||[]).some(e=>e.k==='me'))?'<span class="chip w">내 답 대기</span><span class="tag" style="margin:0">제안</span>':''}</div><div class="msg">${c.msg}</div><div class="by">${c.by}</div></button>`).join('');
+ $('tO').setAttribute('aria-pressed',tabOpen);$('tC').setAttribute('aria-pressed',!tabOpen);
+ document.querySelectorAll('.call').forEach(b=>b.onclick=()=>{sel=b.dataset.k;openChat=sel;all()})}
+function chats(){$('chats').innerHTML=Object.entries(CALLS).map(([k,c])=>{const on=k===openChat;
+ let b='';if(on){b=`<div class="cb"><div class="chips"><button data-vc="${k}" type="button">${c.u?'화상 진료 11/20 10:20':'화상 진료 예약'}</button><button data-vt="${k}" type="button">+ 바이탈 첨부</button><button data-h="${k}" type="button">투약 이력</button></div><div class="msgs">`+
+  (k==='이서준'?`<div class="me2">혈압 및 산소포화도(SpO2) 추가 측정 부탁드립니다. 10시 20분 비대면 화상 진료 즉시 연결 후 전자처방전 발급하겠습니다. 아세트아미노펜 단일제 원내 비축분 준비해 주세요.</div><div class="sys">촉탁의 강다혜 님이 비대면 진단 대기실에 입장하셨습니다</div><div class="ot"><div class="ab">박</div><div class="q"><small>박소연 수석간호사 10:19</small>아세트아미노펜 원내 비축분 준비해 두었습니다. 화상 진료 대기하겠습니다.</div></div><div class="ot"><div class="ab">박</div><div class="q"><small>박소연 수석간호사 13:47</small>감기증세있습니다. 진료 요청드려요</div></div><div class="sys">강다혜 촉탁의 (원장)이 전자처방전을 발행했어요 (Rx#88124)</div>`:
+  k==='김민준'?`<div class="vit"><div class="h"><span>시스템 자동 첨부 · 실시간 활력징후</span><span>13:50 전송</span></div><div class="v"><span>거주인: 김민준 (남, 만 19세)<br><small>평소 기저체온: 36.5°C</small></span><span style="text-align:right"><b>36.5°C</b><br><small>+0.0°C 평소 범위</small></span></div><small>측정 13:50 · 기록 김하늘 선생님</small></div><div class="sys">박소연 수석간호사가 강다혜 촉탁의(원장)에게 김민준 별님 호출을 보냈어요</div>`:
+  `<div class="ot"><div class="ab">박</div><div class="q"><small>박소연 수석간호사 14:14</small>오른쪽 팔꿈치에 긁힌 상처가 붉게 부어 있습니다.</div></div>`)+(c.ev||[]).map(e=>e.k==='me'?`<div class="me2">${esc(e.t)}</div>`:e.k==='sys'?`<div class="sys">${esc(e.t)}</div>`:`<div class="vit"><div class="h"><span>시스템 자동 첨부 · 실시간 활력징후</span><span>${e.tm} 전송</span></div><div class="v"><span>거주인: ${k} (${c.sex}, 만 ${c.age}세)${k==='김민준'?'<br><small>평소 기저체온: 36.5°C</small>':''}</span><span style="text-align:right"><b>${F(c.v)}°C</b>${k==='김민준'?'<br><small>+0.0°C 평소 범위</small>':''}</span></div><small>측정 ${e.tm}</small></div>`).join('')+
+  `</div><div class="inp"><input aria-label="메시지" placeholder="${k} 별님 건으로 보낼 메시지"><button type="button">전송 ➤</button></div></div>`}
+ return `<div class="crow${on?' on':''}"><button class="h" data-c="${k}" aria-expanded="${on}"><span class="ab">${k[0]}</span><span class="x1"><b>${k} 별님</b><small>혜진원 · ${c.cls.replace(' ','·')}</small><div>${c.last}</div></span><span class="ts">${c.chat}</span></button>${b}</div>`}).join('');
+ document.querySelectorAll('.crow>.h').forEach(b=>b.onclick=()=>{openChat=openChat===b.dataset.c?'':b.dataset.c;chats()});
+ document.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>hist(b.dataset.h));
+ const keep=()=>{const m=document.querySelector('.crow.on .msgs');if(m)m.scrollTop=m.scrollHeight};
+ document.querySelectorAll('[data-vc]').forEach(b=>b.onclick=()=>{const c=CALLS[b.dataset.vc];if(!c.vc){c.vc=1;(c.ev=c.ev||[]).push({k:'sys',t:'촉탁의 강다혜 님이 비대면 진단 대기실에 입장하셨습니다'});c.last='촉탁의 강다혜 님이 비대면 진단 대기실에 입장하셨습니다';c.chat=md();chats();calls();keep()}});
+ document.querySelectorAll('[data-vt]').forEach(b=>b.onclick=()=>{const c=CALLS[b.dataset.vt];(c.ev=c.ev||[]).push({k:'vit',tm:hm()});chats();keep()});
+ const bx=document.querySelector('.crow.on .inp');if(bx){const i=bx.querySelector('input'),k=openChat,c=CALLS[k],ms=document.querySelector('.crow.on .msgs');ms.scrollTop=ms.scrollHeight;
+  const go=()=>{const v=i.value.trim();if(!v)return;(c.ev=c.ev||[]).push({k:'me',t:v});c.last=v;c.chat=md();chats();calls();const n=document.querySelector('.crow.on .inp input');if(n)n.focus();const m2=document.querySelector('.crow.on .msgs');if(m2)m2.scrollTop=m2.scrollHeight};
+  bx.querySelector('button').onclick=go;i.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();go()}}}}
+function panel(){const c=CALLS[sel];const done=c.done;
+ const dr=c.dr=c.dr||{code:'',name:'',memo:'',rx:[['','','']]};
+ const tg='<span class="tag">제안</span>';
+ const sb=`<div class="pbox"><h3>호출 한눈에 (상황·배경·요청)${tg}</h3><div class="srow"><b>상황</b><span>${sel} 별님 (${c.sex} · 만 ${c.age}세) · ${c.u?'긴급':'일반 의뢰'} · 체온 ${F(c.v)}°C · ${c.t} · ${c.by}</span></div><div class="srow"><b>배경</b><span>상시 복약: ${c.hist.reg||'등록 없음'}<br>필요시 지시: ${c.hist.prn||'등록 없음'}<br>${c.warn}</span></div><div class="srow"><b>요청</b><span>${c.msg}</span></div><div class="note" style="margin-top:6px">호출 때 간호사가 보낸 글과 등록된 기록을 그대로 모은 것이에요. 앱이 평가나 권고를 덧붙이지 않아요.</div></div>`;
+ const m=s=>{const x=s.match(/(\d+):(\d+)\s*$/);return x?(+x[1])*60+(+x[2]):0};
+ let el='';if(done){const d=m(c.rxno)-m(c.t);el=`<div class="el">접수 ${c.t.match(/\d+:\d+$/)[0]} → 발행 ${c.rxno.match(/\d+:\d+$/)[0]} · ${Math.floor(d/60)?Math.floor(d/60)+'시간 ':''}${d%60}분 ${tg}</div>`}
+ const pre=done?'':`<div class="pbox"><h3>발행 전 확인${tg}</h3><div class="chk"><b>등록된 금기</b><span>${c.warn.replace('처방 주의: ','')}</span></div><div class="chk"><b>상시 복약</b><span>${c.hist.reg||'등록 없음'}</span></div><div class="chk"><b>필요시 지시</b><span>${c.hist.prn||'등록 없음'}</span></div><div class="chk"><b>처방 품목</b><span id="prn">${dr.rx.filter(r=>r[0].trim()).length?dr.rx.filter(r=>r[0].trim()).length+'개':'아직 없음'}</span></div><div class="note">등록된 내용을 한곳에 모아 보여줄 뿐, 맞다 틀리다 판단하거나 용량을 계산하지 않아요.</div></div>`;
+ const dx=done?`<div class="dx"><b>${c.dx[0]}</b>${c.dx[1]}<i>주상병</i></div>`:`<div class="dx"><input id="dc" aria-label="질병코드" placeholder="코드" value="${esc(dr.code)}" style="width:70px;height:30px;border:1px solid var(--g200);border-radius:10px;padding:0 8px;font:inherit;font-size:12px"><input id="dn" aria-label="상병명" placeholder="상병명" value="${esc(dr.name)}" style="flex:1;min-width:0;height:30px;border:1px solid var(--g200);border-radius:10px;padding:0 8px;font:inherit;font-size:12px"><i>주상병</i></div>`;
+ const rx=done?c.rx.map(r=>`<div class="rx"><span><b>${r[0]}</b><small>${r[1]}</small></span><span class="q">${r[2]}</span></div>`).join(''):dr.rx.map((r,i)=>`<div class="rxi" style="margin-bottom:6px"><input data-r="${i},0" value="${esc(r[0])}" placeholder="약 이름 (의사가 쓴 그대로)" aria-label="약 이름"><input data-r="${i},1" value="${esc(r[1])}" placeholder="용법·횟수 (의사가 쓴 그대로)" aria-label="용법"><input data-r="${i},2" value="${esc(r[2])}" placeholder="양" aria-label="양" style="grid-column:auto"><button type="button" data-rd="${i}" aria-label="삭제">✕</button></div>`).join('')+`<button class="add" type="button" id="radd">+ 처방약 추가</button>`;
+ $('rp').innerHTML=`<div class="ph"><h2><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM9 13h6v2H9zm0 4h6v2H9z"/></svg>비대면 진단서 및 전자처방전 작성<span class="badge ${done?'g':'r'}">${done?'발행 완료':'진단 작성중'}</span></h2></div>
+ <div class="body">${sb}<div class="card"><div class="pat"><span class="ab">${sel.slice(1)}</span><span><b>${sel} 별님</b> <small style="color:var(--g500)">(${c.sex} · 만 ${c.age}세)</small><br><small style="color:var(--g500)">${c.cls} · ${c.no}</small></span><span class="tmp">현재 체온<b class="${c.v>=380?'':'n'}">${F(c.v)}°C</b></span></div><div class="warn ${c.warn.includes('금기 없음')?'n':'r'}">${c.warn.includes('금기 없음')?'⊘':'⊘'} ${c.warn}</div></div>
+ <div class="card"><h3>📋 진단 상병 및 질병코드 (KCD-8)</h3>${dx}<div class="lb">진료 소견 및 원격 지도사항 <em>${done?'발행됨 · 고칠 수 없음':'실시간 동기화'}</em></div>${done?`<div class="ta">${c.memo}</div>`:`<textarea class="ta" id="ta" aria-label="진료 소견" placeholder="진료 소견 및 원격 지도사항을 적어 주세요">${esc(dr.memo)}</textarea>`+'<div class="phr" id="phr"></div>'}</div>
+ <div class="card"><h3>💊 비대면 처방의약품 지정<em id="rxn">${done?c.rx.length+'개 품목':dr.rx.filter(r=>r[0].trim()).length+'개 품목'}</em></h3>${rx}<div class="note">의사가 쓴 글 그대로 저장돼요. 앱은 투약 용량을 계산하거나 추천하지 않아요.</div></div>${pre}</div>
+ ${el}<div class="foot"><div class="l"><span>의사 전자서명: <b>강다혜 촉탁의 (원장)</b></span>${done?'<em>✔ 서명 완료</em>':'<span id="pmsg">발행하면 고칠 수 없어요</span>'}</div><button id="pubb" class="pub ${done?'done':'go'}" type="button">${done?'✔ 발행 완료 · '+c.rxno:'✔ 전자서명 완료 및 전자처방전 발행·전송'}</button></div>`}
+function wire(){const c=CALLS[sel],dr=c.dr;if(c.done||!dr)return;
+ const cnt=()=>{const n=dr.rx.filter(r=>r[0].trim()).length;$('rxn').textContent=n+'개 품목';$('prn').textContent=n?n+'개':'아직 없음'};
+ $('dc').oninput=e=>dr.code=e.target.value;$('dn').oninput=e=>dr.name=e.target.value;$('ta').oninput=e=>dr.memo=e.target.value;
+ document.querySelectorAll('[data-r]').forEach(i=>i.oninput=e=>{const [a,b]=i.dataset.r.split(',');dr.rx[a][b]=e.target.value;cnt()});
+ document.querySelectorAll('[data-rd]').forEach(b=>b.onclick=()=>{if(dr.rx.length>1)dr.rx.splice(+b.dataset.rd,1);else dr.rx=[['','','']];panel();wire();phrs()});
+ $('radd').onclick=()=>{dr.rx.push(['','','']);panel();wire();phrs()};
+ $('pubb').onclick=()=>{const rx=dr.rx.filter(r=>r[0].trim());const m=$('pmsg');
+  if(!dr.name.trim()||!rx.length){m.textContent='상병명과 처방약 1개 이상을 적어 주세요';m.style.color='var(--r500)';return}
+  c.done=true;c.dx=[dr.code.trim()||'-',dr.name.trim()];c.memo=esc(dr.memo.trim()||'(적은 소견 없음)').replace(/\n/g,'<br>');c.rx=rx.map(r=>[esc(r[0].trim()),esc(r[1].trim()||'-'),esc(r[2].trim()||'-')]);
+  const no='Rx#'+(rxSeq++);c.rxno=no+' · '+hm();const t='강다혜 촉탁의 (원장)이 전자처방전을 발행했어요 ('+no+')';(c.ev=c.ev||[]).push({k:'sys',t});c.last=t;c.chat=md();all()}}
+function phrs(){const h=$('phr');if(!h)return;h.innerHTML='<span class="note">자주 쓰는 문구</span><span class="tag" style="margin:0">제안</span>'+phr.map((t,i)=>`<button type="button" data-p="${i}" title="${t.replace(/"/g,'')}">${t}</button>`).join('')+'<button type="button" class="sv" id="psv">+ 지금 소견을 문구로 저장</button>';
+ h.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const t=$('ta');t.value+=(t.value?'\n':'')+phr[b.dataset.p];t.dispatchEvent(new Event('input'))});
+ $('psv').onclick=()=>{const v=$('ta').value.trim();if(v&&phr.length<5&&!phr.includes(v)){phr.push(v);phrs()}}}
+let ss=11*3600+59*60+34;setInterval(()=>{ss=Math.max(0,ss-1);const x=document.querySelector('.sess b');if(x)x.textContent=String(Math.floor(ss/3600)).padStart(2,'0')+':'+String(Math.floor(ss%3600/60)).padStart(2,'0')+':'+String(ss%60).padStart(2,'0')},1000);
+function hist(k){const c=CALLS[k];$('mht').textContent=k+' 투약 이력';
+ $('mhb').innerHTML=`<h4>상시 복약</h4><p>${c.hist.reg||'등록된 상시 복약이 없어요'}</p><h4>필요시 투약 지시</h4><p>${c.hist.prn||'등록된 지시가 없어요'}</p><h4>전자처방전 ${c.done?1:0}건</h4>`+(c.done?`<p><b>[발행됨] ${c.dx[0]} ${c.dx[1]}</b> · ${c.rxno}</p>`+c.rx.map(r=>`<div class="rx" style="margin-top:6px"><span><b>${r[0]}</b><small>${r[1]}</small></span><span class="q">${r[2]}</span></div>`).join(''):'<p>발행된 처방전이 없어요</p>')+`<h4>이상 대응 투약 기록 ${c.hist.n}건</h4><p>${c.hist.n?'':'투약 기록이 없었어요'}</p>`;$('mh').classList.add('on')}
+$('mhx').onclick=()=>$('mh').classList.remove('on');$('mh').onclick=e=>{if(e.target.id==='mh')$('mh').classList.remove('on')};
+$('tO').onclick=()=>{tabOpen=true;sel=Object.keys(CALLS).find(k=>CALLS[k].open);openChat=sel;all()};$('tC').onclick=()=>{tabOpen=false;sel=Object.keys(CALLS).find(k=>!CALLS[k].open);openChat=sel;all()};
+function all(){calls();chats();panel();wire();phrs()}
+$('q').oninput=e=>{qv=e.target.value.trim();calls()};$('so').onclick=()=>{sortU=!sortU;$('so').setAttribute('aria-pressed',sortU);calls()};all();
+</script>
+</body></html>
